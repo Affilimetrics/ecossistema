@@ -900,6 +900,6 @@ contendo:
 
 A principal garantia desta versão é:
 
-> **Cada produto processado é salvo imediatamente no Excel.**
+> **Cada produto processado é salvo imediatamente no Excel, portanto ao parar e retomar um processo, o programa procura por um arquivo excel existente, e se houver, verifica onde o processo anterior encerrou, e parte daquele ponto.**
 
 Portanto, uma interrupção no meio da execução não apaga o trabalho que já foi realizado.
