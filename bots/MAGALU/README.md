@@ -1,33 +1,54 @@
-# Magalu - Coletor de Links de Afiliado
+# Magalu — Coletor de Links de Afiliado
 
-Automação em Python usando Selenium para acessar uma vitrine do Magazine Você através de um Chrome já aberto em modo de depuração remota, percorrer categorias, coletar produtos e gerar links de afiliado.
+Automação em Python utilizando Selenium para acessar uma vitrine do Magazine Você através de um Chrome já aberto em modo de depuração remota, percorrer categorias, coletar produtos e gerar links de afiliado.
 
-O programa:
-
-1. Conecta a um Chrome existente na porta `9222`.
-2. Abre a vitrine configurada.
-3. Acessa cada categoria.
-4. Coleta até 20 produtos por categoria.
-5. Entra individualmente em cada produto.
-6. Localiza o botão **Gerar link**.
-7. Abre o modal de geração de link.
-8. Localiza o campo **Link do produto**.
-9. Extrai o link diretamente do campo, sem usar o botão "Copiar".
-10. Armazena os resultados.
-11. Ao final, gera um arquivo `.xlsx` com os links coletados.
-12. Mostra um relatório da quantidade de produtos e links obtidos.
+A versão atual possui **salvamento incremental** e **interrupção segura com `Ctrl+C`**, evitando a perda dos dados já coletados.
 
 ---
 
-## 1. Requisitos
+# 1. O que o programa faz
 
-### Python
+O programa executa o seguinte fluxo:
 
-É necessário ter o Python instalado.
+1. Conecta ao Chrome em `127.0.0.1:9222`.
+2. Abre a vitrine configurada.
+3. Entra em cada categoria.
+4. Coleta até 20 URLs de produtos por categoria.
+5. Entra em cada produto individualmente.
+6. Localiza o botão **Gerar link**.
+7. Clica em **Gerar link**.
+8. Aguarda o modal.
+9. Localiza o campo **Link do produto**.
+10. Extrai o link diretamente do campo.
+11. Salva o resultado na memória.
+12. Salva o Excel imediatamente.
+13. Continua para o próximo produto.
+14. Ao terminar todas as categorias, mostra um relatório final.
 
-Recomenda-se utilizar uma versão recente do Python compatível com as versões instaladas no projeto.
+Também é possível interromper o programa usando:
 
-Para verificar:
+```text
+Ctrl+C
+```
+
+Nesse caso, o programa:
+
+* interrompe a execução;
+* salva novamente o Excel;
+* preserva os dados coletados;
+* lista os links de afiliado obtidos;
+* informa quantos produtos foram processados;
+* informa quantos links foram obtidos.
+
+---
+
+# 2. Requisitos
+
+## Python
+
+É necessário ter Python instalado.
+
+Verifique com:
 
 ```bash
 python --version
@@ -41,7 +62,9 @@ py --version
 
 ---
 
-## 2. Criar o ambiente virtual
+# 3. Ambiente virtual
+
+É recomendado utilizar um ambiente virtual.
 
 Dentro da pasta do projeto:
 
@@ -49,13 +72,13 @@ Dentro da pasta do projeto:
 python -m venv venv
 ```
 
-Ative o ambiente virtual no Windows:
+No Windows, ative:
 
 ```bash
 venv\Scripts\activate
 ```
 
-Quando estiver ativado, o terminal deverá mostrar algo semelhante a:
+O terminal deverá ficar parecido com:
 
 ```text
 (venv) C:\Users\SeuUsuario\...\>
@@ -63,16 +86,9 @@ Quando estiver ativado, o terminal deverá mostrar algo semelhante a:
 
 ---
 
-## 3. Instalar as dependências
+# 4. Dependências
 
-O projeto utiliza somente:
-
-```text
-selenium
-openpyxl
-```
-
-Crie um arquivo chamado:
+Crie o arquivo:
 
 ```text
 requirements.txt
@@ -85,13 +101,13 @@ selenium
 openpyxl
 ```
 
-Depois instale:
+Instale:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Também é possível instalar diretamente:
+Ou diretamente:
 
 ```bash
 pip install selenium openpyxl
@@ -99,9 +115,9 @@ pip install selenium openpyxl
 
 ---
 
-# 4. Estrutura do projeto
+# 5. Estrutura do projeto
 
-Uma estrutura simples pode ser:
+Uma estrutura recomendada:
 
 ```text
 MAGALU_COLETOR/
@@ -115,15 +131,21 @@ MAGALU_COLETOR/
 └── links_afiliados_magalu.xlsx
 ```
 
-O arquivo Excel não precisa existir previamente.
+O arquivo:
 
-Ele será criado automaticamente pelo programa.
+```text
+links_afiliados_magalu.xlsx
+```
+
+não precisa existir antes de executar o programa.
+
+Ele será criado automaticamente.
 
 ---
 
-# 5. Configuração do código
+# 6. Configuração
 
-No início do arquivo Python existem algumas configurações importantes:
+No início do código existem as principais configurações:
 
 ```python
 CHROME_DEBUGGER = "127.0.0.1:9222"
@@ -131,9 +153,23 @@ CHROME_DEBUGGER = "127.0.0.1:9222"
 MINHA_LOJA = "magazineblackriseco"
 
 BASE_URL = f"https://www.magazinevoce.com.br/{MINHA_LOJA}"
+
+CATEGORIAS = [
+    "acessórios",
+    "cozinha",
+    "banheiro",
+    "sala de estar",
+    "eletrodomesticos",
+]
+
+LIMITE_POR_CATEGORIA = 20
+
+ARQUIVO_SAIDA = "links_afiliados_magalu.xlsx"
 ```
 
-## MINHA_LOJA
+---
+
+# 7. Configurar sua vitrine
 
 Altere:
 
@@ -141,7 +177,7 @@ Altere:
 MINHA_LOJA = "magazineblackriseco"
 ```
 
-para o identificador da sua vitrine.
+para o identificador da sua própria vitrine.
 
 Por exemplo:
 
@@ -149,7 +185,7 @@ Por exemplo:
 MINHA_LOJA = "minhavitrine"
 ```
 
-O programa então utilizará:
+O programa utilizará:
 
 ```text
 https://www.magazinevoce.com.br/minhavitrine
@@ -157,9 +193,9 @@ https://www.magazinevoce.com.br/minhavitrine
 
 ---
 
-# 6. Configuração das categorias
+# 8. Configurar categorias
 
-As categorias ficam nesta lista:
+As categorias são definidas em:
 
 ```python
 CATEGORIAS = [
@@ -171,7 +207,7 @@ CATEGORIAS = [
 ]
 ```
 
-Você pode alterar, adicionar ou remover categorias.
+É possível adicionar ou remover categorias.
 
 Exemplo:
 
@@ -185,52 +221,39 @@ CATEGORIAS = [
 ]
 ```
 
-O código transforma automaticamente o nome da categoria em uma URL.
+O programa monta automaticamente a URL da categoria.
 
 ---
 
-# 7. Quantidade de produtos por categoria
+# 9. Quantidade de produtos
 
-A quantidade máxima é definida por:
-
-```python
-LIMITE_POR_CATEGORIA = 20
-```
-
-Com:
+A quantidade máxima de produtos por categoria é definida por:
 
 ```python
 LIMITE_POR_CATEGORIA = 20
 ```
 
-o programa tenta coletar até 20 produtos de cada categoria.
-
-Por exemplo, com 5 categorias:
+Com cinco categorias:
 
 ```text
-5 categorias × 20 produtos = 100 produtos
+5 × 20 = 100 produtos
 ```
+
+Portanto, o programa tentará processar até 100 produtos nesse exemplo.
 
 ---
 
-# 8. IMPORTANTE: Chrome na porta 9222
+# 10. Chrome na porta 9222
 
-Esse programa **não abre um Chrome novo**.
+O programa não cria uma sessão independente do Chrome.
 
-Ele se conecta a uma instância do Chrome que já esteja aberta com a depuração remota habilitada.
+Ele se conecta a uma instância do Chrome já aberta utilizando:
 
-A configuração utilizada é:
-
-```python
-options = Options()
-
-options.add_experimental_option(
-    "debuggerAddress",
-    "127.0.0.1:9222"
-)
+```text
+127.0.0.1:9222
 ```
 
-Portanto, antes de executar o programa, o Chrome precisa estar iniciado com:
+O Chrome precisa ser iniciado com:
 
 ```text
 --remote-debugging-port=9222
@@ -238,27 +261,27 @@ Portanto, antes de executar o programa, o Chrome precisa estar iniciado com:
 
 ---
 
-# 9. Abrindo o Chrome corretamente
+# 11. Iniciando o Chrome
 
-No Windows, primeiro feche completamente o Chrome.
+Primeiro, feche completamente o Chrome.
 
-Depois abra o Prompt de Comando (`cmd`).
+Depois abra o `cmd`.
 
-Um exemplo de comando é:
-
-```cmd
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\ChromeDebug"
-```
-
-Dependendo da instalação, o Chrome pode estar em:
+Exemplo:
 
 ```cmd
-"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
 ```
 
-ou em outro caminho.
+Dependendo da instalação:
 
-O importante é que o Chrome seja iniciado com:
+```cmd
+"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+```
+
+O caminho do executável pode variar.
+
+O ponto importante é:
 
 ```text
 --remote-debugging-port=9222
@@ -266,17 +289,15 @@ O importante é que o Chrome seja iniciado com:
 
 ---
 
-# 10. Verificando se a porta 9222 está funcionando
+# 12. Verificar a porta 9222
 
-Antes de executar o Python, você pode verificar se o Chrome respondeu.
-
-No navegador, abra:
+Abra no navegador:
 
 ```text
 http://127.0.0.1:9222/json/version
 ```
 
-Se estiver funcionando, deverá aparecer uma resposta contendo informações semelhantes a:
+Se estiver funcionando, deverão aparecer informações semelhantes a:
 
 ```json
 {
@@ -286,25 +307,25 @@ Se estiver funcionando, deverá aparecer uma resposta contendo informações sem
 }
 ```
 
-Se a página não abrir, o Chrome provavelmente não foi iniciado corretamente com a porta `9222`.
+Se essa página não abrir, o Chrome não está disponível na porta `9222`.
 
 ---
 
-# 11. Fazer login antes de executar
+# 13. Login
 
-Como o programa utiliza o Chrome já aberto, o ideal é:
+Antes de executar o programa:
 
-1. Abrir o Chrome com a porta `9222`.
-2. Acessar sua conta/vitrine do Magazine Você.
-3. Fazer login normalmente.
-4. Confirmar que a conta está funcionando.
-5. Só então executar o Python.
+1. Inicie o Chrome com a porta `9222`.
+2. Acesse sua vitrine.
+3. Faça login normalmente.
+4. Confirme que sua conta está funcionando.
+5. Execute o programa Python.
 
-O Selenium utilizará essa sessão existente do Chrome.
+O Selenium utilizará a sessão do Chrome já existente.
 
 ---
 
-# 12. Executando o programa
+# 14. Executando
 
 Com o ambiente virtual ativado:
 
@@ -312,19 +333,17 @@ Com o ambiente virtual ativado:
 python coletor.py
 ```
 
-Se o arquivo tiver outro nome, utilize o nome correspondente.
-
-Por exemplo:
+Caso o arquivo tenha outro nome:
 
 ```bash
-python magalu.py
+python nome_do_arquivo.py
 ```
 
 ---
 
-# 13. Fluxo de execução
+# 15. Fluxo durante a execução
 
-Ao iniciar, o programa mostra:
+Ao iniciar:
 
 ```text
 ======================================================================
@@ -335,14 +354,14 @@ Ao iniciar, o programa mostra:
 ...
 ```
 
-Depois abre a vitrine:
+Depois:
 
 ```text
 [1] Abrindo sua vitrine...
 [OK] Vitrine aberta.
 ```
 
-Em seguida começa a primeira categoria:
+O programa começa a processar as categorias:
 
 ```text
 ======================================================================
@@ -350,9 +369,7 @@ CATEGORIA 1/5: ACESSÓRIOS
 ======================================================================
 ```
 
-O programa acessa a categoria e procura os produtos.
-
-Exemplo:
+Depois coleta os produtos:
 
 ```text
 [INFO] Elementos encontrados: 48
@@ -361,18 +378,9 @@ Exemplo:
 
 ---
 
-# 14. Processamento dos produtos
+# 16. Geração do link
 
-Para cada produto, o programa:
-
-1. Abre a URL.
-2. Procura **Gerar link**.
-3. Clica no botão.
-4. Aguarda o modal.
-5. Procura o campo que contém uma URL.
-6. Lê o valor do campo.
-
-Exemplo:
+Para cada produto:
 
 ```text
 ----------------------------------------------------------------------
@@ -386,23 +394,148 @@ https://www.magazinevoce.com.br/...
 https://magazineluiza.onelink.me/...
 ```
 
-O botão **Copiar** não é utilizado.
+O programa não precisa clicar no botão **Copiar**.
 
-O código lê diretamente o valor do campo:
+Ele lê diretamente o valor do campo do modal.
+
+A lógica utiliza:
 
 ```python
 valor = campo.get_attribute("value")
 ```
 
-Isso evita depender do clipboard do Windows.
+---
+
+# 17. Salvamento incremental
+
+Essa é uma das principais diferenças desta versão.
+
+Depois de cada produto processado, o programa executa:
+
+```python
+salvar_excel(resultados)
+```
+
+Isso significa que o arquivo Excel é atualizado continuamente.
+
+Exemplo:
+
+```text
+Produto 1 → salva
+Produto 2 → salva
+Produto 3 → salva
+Produto 4 → salva
+Produto 5 → salva
+...
+```
+
+Portanto, se o programa chegar ao produto 37, os resultados anteriores já estarão gravados no arquivo.
 
 ---
 
-# 15. Tratamento de produtos com erro
+# 18. Interromper com Ctrl+C
 
-Se um produto não conseguir gerar o link, o programa não encerra imediatamente.
+A execução pode ser interrompida manualmente pressionando:
 
-Ele registra:
+```text
+Ctrl+C
+```
+
+Por exemplo:
+
+```text
+Produto 34/20
+Produto 35/20
+Produto 36/20
+Produto 37/20
+```
+
+Você pressiona:
+
+```text
+Ctrl+C
+```
+
+O programa captura a interrupção através de:
+
+```python
+except KeyboardInterrupt:
+```
+
+e realiza um salvamento final.
+
+---
+
+# 19. O que acontece depois do Ctrl+C
+
+O programa exibirá algo semelhante a:
+
+```text
+======================================================================
+       EXECUÇÃO INTERROMPIDA PELO USUÁRIO
+======================================================================
+
+[INFO] CTRL+C detectado.
+[INFO] Salvando os dados coletados...
+[OK] Dados salvos com sucesso.
+```
+
+Depois lista os links obtidos:
+
+```text
+LINKS DE AFILIADO OBTIDOS ATÉ AGORA:
+----------------------------------------------------------------------
+
+001. [acessórios]
+https://magazineluiza.onelink.me/...
+
+002. [acessórios]
+https://magazineluiza.onelink.me/...
+
+003. [acessórios]
+https://magazineluiza.onelink.me/...
+
+...
+
+----------------------------------------------------------------------
+
+TOTAL DE PRODUTOS PROCESSADOS: 36
+TOTAL DE LINKS DE AFILIADO: 36
+
+ARQUIVO SALVO: links_afiliados_magalu.xlsx
+======================================================================
+```
+
+---
+
+# 20. O que é preservado
+
+Ao pressionar `Ctrl+C`, os resultados já processados permanecem no arquivo:
+
+```text
+links_afiliados_magalu.xlsx
+```
+
+Por exemplo, se 36 produtos já tiverem sido processados:
+
+```text
+Produto 1  ✓
+Produto 2  ✓
+Produto 3  ✓
+...
+Produto 36 ✓
+Produto 37 ✗
+```
+
+Os 36 anteriores estarão no Excel.
+
+---
+
+# 21. Produtos com erro
+
+Se um produto não conseguir gerar o link, o programa não encerra toda a execução.
+
+Por exemplo:
 
 ```text
 [ERRO] Não foi possível clicar em 'Gerar link'.
@@ -414,25 +547,25 @@ ou:
 [ERRO] Não consegui encontrar o link no modal.
 ```
 
-Nesse caso, o resultado é registrado com:
+O resultado será armazenado como:
 
 ```python
 "link_afiliado": None
 ```
 
-e o programa continua para o próximo produto.
+E o programa continuará para o próximo produto.
 
 ---
 
-# 16. Arquivo Excel
+# 22. Arquivo Excel
 
-Ao terminar todas as categorias, o programa cria:
+O arquivo gerado é:
 
 ```text
 links_afiliados_magalu.xlsx
 ```
 
-A planilha terá uma aba chamada:
+A planilha possui uma aba:
 
 ```text
 Links Afiliados
@@ -447,17 +580,15 @@ Com as colunas:
 | acessórios |          3 | URL do produto  | URL de afiliado  |
 | cozinha    |          1 | URL do produto  | URL de afiliado  |
 
-As larguras das colunas também são ajustadas automaticamente.
-
 ---
 
-# 17. Relatório final
+# 23. Relatório final
 
-Quando terminar, o programa mostra um resumo semelhante a:
+Quando todas as categorias forem concluídas:
 
 ```text
 ======================================================================
-                    COLETA FINALIZADA
+              COLETA FINALIZADA
 ======================================================================
 ACESSÓRIOS                Produtos: 20 | Links: 20
 COZINHA                   Produtos: 20 | Links: 19
@@ -471,48 +602,25 @@ ARQUIVO GERADO:                links_afiliados_magalu.xlsx
 ======================================================================
 ```
 
-Nesse exemplo, 100 produtos foram processados, mas 3 não conseguiram gerar link.
-
 ---
 
-# 18. Dependências
-
-O `requirements.txt` desta versão é:
-
-```txt
-selenium
-openpyxl
-```
-
-Não é necessário adicionar:
-
-```text
-time
-random
-urllib
-```
-
-porque essas bibliotecas fazem parte do Python.
-
----
-
-# 19. Problemas comuns
+# 24. Problemas comuns
 
 ## Chrome não conecta
 
-Erro semelhante a:
+Se aparecer algo como:
 
 ```text
 cannot connect to chrome at 127.0.0.1:9222
 ```
 
-Verifique se o Chrome foi iniciado com:
+verifique se o Chrome foi iniciado com:
 
 ```text
 --remote-debugging-port=9222
 ```
 
-Também confirme:
+Depois teste:
 
 ```text
 http://127.0.0.1:9222/json/version
@@ -520,37 +628,37 @@ http://127.0.0.1:9222/json/version
 
 ---
 
-## Selenium não encontrado
+## Selenium não instalado
 
-Se aparecer:
+Erro:
 
 ```text
 ModuleNotFoundError: No module named 'selenium'
 ```
 
-ative o ambiente virtual:
-
-```bash
-venv\Scripts\activate
-```
-
-e instale:
+Execute:
 
 ```bash
 pip install selenium
 ```
 
+ou:
+
+```bash
+pip install -r requirements.txt
+```
+
 ---
 
-## OpenPyXL não encontrado
+## OpenPyXL não instalado
 
-Se aparecer:
+Erro:
 
 ```text
 ModuleNotFoundError: No module named 'openpyxl'
 ```
 
-execute:
+Execute:
 
 ```bash
 pip install openpyxl
@@ -560,40 +668,34 @@ pip install openpyxl
 
 ## Botão "Gerar link" não encontrado
 
-Isso pode acontecer se a interface do Magazine Você tiver mudado ou se a página ainda não tiver carregado.
-
-O código utiliza este XPath:
-
-```python
-//*[self::button or self::a][contains(normalize-space(.), 'Gerar link')]
-```
-
-Portanto, ele procura elementos `<button>` ou `<a>` contendo o texto:
+O programa procura elementos contendo:
 
 ```text
 Gerar link
 ```
 
----
-
-## Link não encontrado no modal
-
-O código procura inputs visíveis que contenham uma URL:
+através do XPath:
 
 ```python
-inputs = driver.find_elements(
-    By.CSS_SELECTOR,
-    "input"
-)
+//*[self::button or self::a]
+[contains(normalize-space(.), 'Gerar link')]
 ```
 
-Depois verifica o atributo:
+Se a interface do site mudar, esse seletor poderá precisar ser atualizado.
+
+---
+
+## Link não encontrado
+
+O programa procura inputs visíveis que contenham uma URL.
+
+Ele verifica o atributo:
 
 ```python
 value
 ```
 
-e procura:
+e procura valores contendo:
 
 ```text
 http://
@@ -605,110 +707,199 @@ ou:
 https://
 ```
 
-Isso permite obter o link diretamente do campo sem clicar em **Copiar**.
-
 ---
 
-# 20. Limitações desta versão
+# 25. Importante sobre o Ctrl+C
 
-Esta versão possui uma característica importante:
+O `Ctrl+C` é tratado pelo Python como:
 
-**O Excel só é gerado ao final da execução.**
-
-Se o programa for encerrado no meio do processo, os resultados que ainda estão somente na memória serão perdidos.
-
-Por isso, nesta versão, **não é recomendado interromper o programa com `Ctrl+C`**.
-
-A próxima versão pode implementar:
-
-* salvamento automático após cada produto;
-* interrupção segura com `Ctrl+C`;
-* listagem dos links obtidos até o momento;
-* recuperação da execução;
-* continuação sem repetir produtos já processados.
-
-Esses recursos devem ser adicionados separadamente para não alterar desnecessariamente o fluxo atual.
-
----
-
-# 21. Comando rápido para começar
-
-Depois de configurar o Chrome:
-
-```bash
-cd CAMINHO_DO_PROJETO
+```python
+KeyboardInterrupt
 ```
 
-Ative o ambiente:
+O programa foi preparado para capturar essa interrupção.
 
-```bash
-venv\Scripts\activate
-```
+Por isso, **não é necessário fechar o terminal à força**.
 
-Instale as dependências:
-
-```bash
-pip install -r requirements.txt
-```
-
-Confirme que o Chrome está acessível:
+Use:
 
 ```text
-http://127.0.0.1:9222/json/version
+Ctrl+C
 ```
 
-Depois execute:
+e aguarde o programa mostrar:
+
+```text
+[OK] Dados salvos com sucesso.
+```
+
+Antes de fechar o terminal.
+
+---
+
+# 26. O que esta versão ainda NÃO faz
+
+Esta versão possui salvamento incremental, mas ainda não possui **retomada automática**.
+
+Por exemplo, se o programa parar no produto 37, o Excel terá os dados dos produtos anteriores.
+
+Porém, ao executar novamente:
 
 ```bash
 python coletor.py
 ```
 
----
+o programa ainda começará o processo normalmente e poderá repetir produtos que já foram processados.
 
-## Resumo
+A próxima evolução poderá implementar:
 
 ```text
-Chrome com --remote-debugging-port=9222
-              │
-              ▼
-       Python + Selenium
-              │
-              ▼
-       Abre a vitrine
-              │
-              ▼
-       Percorre categorias
-              │
-              ▼
-       Coleta até 20 produtos
-              │
-              ▼
-       Abre cada produto
-              │
-              ▼
-       Clica "Gerar link"
-              │
-              ▼
-       Lê o campo "Link do produto"
-              │
-              ▼
-       Armazena os resultados
-              │
-              ▼
-       Gera Excel no final
+Execução
+   │
+   ├── Produto 1 ✓
+   ├── Produto 2 ✓
+   ├── Produto 3 ✓
+   ├── ...
+   ├── Produto 37 ✓
+   │
+   └── Ctrl+C
+          │
+          ▼
+      Salva Excel
+          │
+          ▼
+      Execução novamente
+          │
+          ▼
+      Detecta produtos já processados
+          │
+          ▼
+      Continua do próximo
 ```
 
-**Dependências:**
+Essa funcionalidade deve ser adicionada posteriormente para evitar misturar a lógica de **interrupção segura** com a lógica de **retomada**.
+
+---
+
+# 27. Comandos rápidos
+
+## Criar ambiente virtual
+
+```bash
+python -m venv venv
+```
+
+## Ativar
+
+```bash
+venv\Scripts\activate
+```
+
+## Instalar dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+## Executar
+
+```bash
+python coletor.py
+```
+
+## Interromper com segurança
 
 ```text
+Ctrl+C
+```
+
+---
+
+# 28. Dependências
+
+O arquivo `requirements.txt` deve conter:
+
+```txt
 selenium
 openpyxl
 ```
 
-**Entrada:** vitrine do Magazine Você.
+Bibliotecas como:
 
-**Saída:**
+```text
+time
+random
+urllib.parse
+```
+
+fazem parte da biblioteca padrão do Python e não precisam ser instaladas.
+
+---
+
+# 29. Fluxo geral
+
+```text
+                CHROME
+                   │
+                   │
+        --remote-debugging-port=9222
+                   │
+                   ▼
+             SELENIUM
+                   │
+                   ▼
+             SUA VITRINE
+                   │
+                   ▼
+             CATEGORIA
+                   │
+                   ▼
+          ATÉ 20 PRODUTOS
+                   │
+                   ▼
+          ABRE CADA PRODUTO
+                   │
+                   ▼
+             "GERAR LINK"
+                   │
+                   ▼
+          CAMPO "LINK DO PRODUTO"
+                   │
+                   ▼
+          LINK DE AFILIADO
+                   │
+                   ▼
+            SALVA NO EXCEL
+                   │
+                   ├───────────────┐
+                   │               │
+                   ▼               ▼
+              PRÓXIMO          Ctrl+C
+              PRODUTO             │
+                                  ▼
+                           SALVA E LISTA
+                           OS RESULTADOS
+```
+
+---
+
+# 30. Resultado
+
+Ao final, o projeto produz:
 
 ```text
 links_afiliados_magalu.xlsx
 ```
+
+contendo:
+
+* categoria;
+* número do produto;
+* URL original do produto;
+* URL gerada de afiliado.
+
+A principal garantia desta versão é:
+
+> **Cada produto processado é salvo imediatamente no Excel.**
+
+Portanto, uma interrupção no meio da execução não apaga o trabalho que já foi realizado.
