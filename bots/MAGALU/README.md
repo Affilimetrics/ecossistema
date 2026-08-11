@@ -1,8 +1,17 @@
 # Magalu — Coletor de Links de Afiliado
 
-Automação em Python utilizando Selenium para acessar uma vitrine do Magazine Você através de um Chrome já aberto em modo de depuração remota, percorrer categorias, coletar produtos e gerar links de afiliado.
+Automação em Python utilizando Selenium para acessar uma vitrine do Magazine Você através de um Chrome já aberto em modo de depuração remota, selecionar categorias ou palavras-chave, coletar produtos e gerar links de afiliado.
 
-A versão atual possui **salvamento incremental** e **interrupção segura com `Ctrl+C`**, evitando a perda dos dados já coletados.
+A versão atual possui:
+
+* **seleção de categorias pelo terminal**;
+* **palavra-chave personalizada**;
+* **salvamento incremental**;
+* **interrupção segura com `Ctrl+C`**;
+* **retomada automática de processos anteriores**;
+* **detecção de produtos já processados**;
+* **continuidade sem precisar repetir links já obtidos**;
+* geração de arquivo `.xlsx` com os resultados.
 
 ---
 
@@ -10,39 +19,169 @@ A versão atual possui **salvamento incremental** e **interrupção segura com `
 
 O programa executa o seguinte fluxo:
 
-1. Conecta ao Chrome em `127.0.0.1:9222`.
-2. Abre a vitrine configurada.
-3. Entra em cada categoria.
-4. Coleta até 20 URLs de produtos por categoria.
-5. Entra em cada produto individualmente.
-6. Localiza o botão **Gerar link**.
-7. Clica em **Gerar link**.
-8. Aguarda o modal.
-9. Localiza o campo **Link do produto**.
-10. Extrai o link diretamente do campo.
-11. Salva o resultado na memória.
-12. Salva o Excel imediatamente.
-13. Continua para o próximo produto.
-14. Ao terminar todas as categorias, mostra um relatório final.
-
-Também é possível interromper o programa usando:
-
-```text
-Ctrl+C
-```
-
-Nesse caso, o programa:
-
-* interrompe a execução;
-* salva novamente o Excel;
-* preserva os dados coletados;
-* lista os links de afiliado obtidos;
-* informa quantos produtos foram processados;
-* informa quantos links foram obtidos.
+1. Verifica se existe um Excel de uma execução anterior.
+2. Carrega os produtos e links já processados.
+3. Exibe um menu de categorias no terminal.
+4. Permite selecionar uma ou várias categorias.
+5. Permite informar uma **palavra-chave personalizada**.
+6. Conecta ao Chrome em `127.0.0.1:9222`.
+7. Abre a vitrine configurada.
+8. Entra em cada categoria selecionada.
+9. Coleta até 20 URLs de produtos por categoria.
+10. Verifica quais produtos já foram processados anteriormente.
+11. Ignora produtos que já possuem link de afiliado.
+12. Entra nos produtos ainda pendentes.
+13. Localiza o botão **Gerar link**.
+14. Clica em **Gerar link**.
+15. Aguarda o modal.
+16. Localiza o campo **Link do produto**.
+17. Extrai o link diretamente do campo.
+18. Salva o resultado no Excel.
+19. Continua para o próximo produto.
+20. Ao finalizar, mostra um relatório.
 
 ---
 
-# 2. Requisitos
+# 2. Seleção de categorias
+
+Ao iniciar o programa, o terminal apresenta:
+
+```text
+======================================================================
+              MAGALU - COLETOR DE LINKS
+======================================================================
+
+Selecione as categorias que deseja executar.
+
+1 - Cozinha
+2 - Quarto
+3 - Sala
+4 - Banheiro
+5 - Acessórios
+6 - Palavra-chave personalizada
+
+Digite os números separados por espaço.
+Exemplo: 1 3 4 6
+Digite 0 para cancelar.
+
+>
+```
+
+A pessoa pode selecionar várias opções ao mesmo tempo.
+
+Por exemplo:
+
+```text
+> 1 3 4
+```
+
+O programa processará:
+
+```text
+Cozinha
+Sala
+Banheiro
+```
+
+---
+
+# 3. Palavra-chave personalizada
+
+A opção:
+
+```text
+6 - Palavra-chave personalizada
+```
+
+permite informar uma categoria ou termo específico diretamente pelo terminal.
+
+Por exemplo:
+
+```text
+> 1 3 4 6
+```
+
+O programa perguntará:
+
+```text
+Digite a palavra-chave:
+
+>
+```
+
+Se for informado:
+
+```text
+guitarras
+```
+
+o processamento ficará:
+
+```text
+Cozinha
+Sala
+Banheiro
+guitarras
+```
+
+Isso permite utilizar o mesmo coletor para pesquisas específicas sem precisar alterar o código.
+
+Exemplo:
+
+```text
+> 6
+
+Digite a palavra-chave:
+
+> guitarras
+```
+
+O programa trabalhará com:
+
+```text
+guitarras
+```
+
+como termo de busca.
+
+---
+
+# 4. Seleção múltipla
+
+É possível selecionar qualquer combinação das opções.
+
+Exemplo:
+
+```text
+> 1 3 4 6
+```
+
+Resultado:
+
+```text
+1 - cozinha
+2 - sala
+3 - banheiro
+4 - guitarras
+```
+
+A ordem escolhida é preservada.
+
+Também é possível selecionar apenas uma:
+
+```text
+> 2
+```
+
+Ou todas as categorias principais:
+
+```text
+> 1 2 3 4 5
+```
+
+---
+
+# 5. Requisitos
 
 ## Python
 
@@ -60,9 +199,11 @@ ou:
 py --version
 ```
 
+Recomenda-se utilizar uma versão compatível com o ambiente já utilizado no projeto.
+
 ---
 
-# 3. Ambiente virtual
+# 6. Ambiente virtual
 
 É recomendado utilizar um ambiente virtual.
 
@@ -86,22 +227,22 @@ O terminal deverá ficar parecido com:
 
 ---
 
-# 4. Dependências
+# 7. Dependências
 
-Crie o arquivo:
+O arquivo:
 
 ```text
 requirements.txt
 ```
 
-com:
+deve conter:
 
 ```txt
 selenium
 openpyxl
 ```
 
-Instale:
+Instale as dependências com:
 
 ```bash
 pip install -r requirements.txt
@@ -113,18 +254,29 @@ Ou diretamente:
 pip install selenium openpyxl
 ```
 
+Bibliotecas como:
+
+```text
+time
+random
+os
+urllib.parse
+```
+
+fazem parte da biblioteca padrão do Python e não precisam ser instaladas.
+
 ---
 
-# 5. Estrutura do projeto
+# 8. Estrutura atual do projeto
 
-Uma estrutura recomendada:
+Estrutura inicial:
 
 ```text
 MAGALU_COLETOR/
 │
 ├── venv/
 │
-├── coletor.py
+├── MAGALU.py
 │
 ├── requirements.txt
 │
@@ -137,13 +289,13 @@ O arquivo:
 links_afiliados_magalu.xlsx
 ```
 
-não precisa existir antes de executar o programa.
+é criado automaticamente caso ainda não exista.
 
-Ele será criado automaticamente.
+Ele também é utilizado como base para a retomada automática.
 
 ---
 
-# 6. Configuração
+# 9. Configuração
 
 No início do código existem as principais configurações:
 
@@ -154,22 +306,26 @@ MINHA_LOJA = "magazineblackriseco"
 
 BASE_URL = f"https://www.magazinevoce.com.br/{MINHA_LOJA}"
 
-CATEGORIAS = [
-    "acessórios",
-    "cozinha",
-    "banheiro",
-    "sala de estar",
-    "eletrodomesticos",
-]
-
 LIMITE_POR_CATEGORIA = 20
 
 ARQUIVO_SAIDA = "links_afiliados_magalu.xlsx"
 ```
 
+As categorias principais ficam separadas:
+
+```python
+CATEGORIAS_PRINCIPAIS = {
+    "1": "cozinha",
+    "2": "quarto",
+    "3": "sala",
+    "4": "banheiro",
+    "5": "acessórios",
+}
+```
+
 ---
 
-# 7. Configurar sua vitrine
+# 10. Configurar sua vitrine
 
 Altere:
 
@@ -193,39 +349,35 @@ https://www.magazinevoce.com.br/minhavitrine
 
 ---
 
-# 8. Configurar categorias
+# 11. Categorias principais
 
-As categorias são definidas em:
+As categorias padrão são:
 
-```python
-CATEGORIAS = [
-    "acessórios",
-    "cozinha",
-    "banheiro",
-    "sala de estar",
-    "eletrodomesticos",
-]
+```text
+1 - cozinha
+2 - quarto
+3 - sala
+4 - banheiro
+5 - acessórios
 ```
 
-É possível adicionar ou remover categorias.
-
-Exemplo:
+Elas podem ser alteradas diretamente no código:
 
 ```python
-CATEGORIAS = [
-    "acessórios",
-    "cozinha",
-    "celulares",
-    "informática",
-    "televisores",
-]
+CATEGORIAS_PRINCIPAIS = {
+    "1": "cozinha",
+    "2": "quarto",
+    "3": "sala",
+    "4": "banheiro",
+    "5": "acessórios",
+}
 ```
 
-O programa monta automaticamente a URL da categoria.
+A opção `6` é reservada para palavras-chave digitadas pelo usuário.
 
 ---
 
-# 9. Quantidade de produtos
+# 12. Quantidade de produtos
 
 A quantidade máxima de produtos por categoria é definida por:
 
@@ -233,17 +385,24 @@ A quantidade máxima de produtos por categoria é definida por:
 LIMITE_POR_CATEGORIA = 20
 ```
 
-Com cinco categorias:
+Por exemplo, se forem selecionadas:
 
 ```text
-5 × 20 = 100 produtos
+cozinha
+sala
+banheiro
+guitarras
 ```
 
-Portanto, o programa tentará processar até 100 produtos nesse exemplo.
+o programa poderá coletar:
+
+```text
+20 + 20 + 20 + 20 = 80 produtos
+```
 
 ---
 
-# 10. Chrome na porta 9222
+# 13. Chrome na porta 9222
 
 O programa não cria uma sessão independente do Chrome.
 
@@ -261,7 +420,7 @@ O Chrome precisa ser iniciado com:
 
 ---
 
-# 11. Iniciando o Chrome
+# 14. Iniciando o Chrome
 
 Primeiro, feche completamente o Chrome.
 
@@ -289,7 +448,7 @@ O ponto importante é:
 
 ---
 
-# 12. Verificar a porta 9222
+# 15. Verificar a porta 9222
 
 Abra no navegador:
 
@@ -311,7 +470,7 @@ Se essa página não abrir, o Chrome não está disponível na porta `9222`.
 
 ---
 
-# 13. Login
+# 16. Login
 
 Antes de executar o programa:
 
@@ -325,90 +484,138 @@ O Selenium utilizará a sessão do Chrome já existente.
 
 ---
 
-# 14. Executando
+# 17. Executando
 
 Com o ambiente virtual ativado:
 
 ```bash
-python coletor.py
-```
-
-Caso o arquivo tenha outro nome:
-
-```bash
-python nome_do_arquivo.py
+python MAGALU.py
 ```
 
 ---
 
-# 15. Fluxo durante a execução
+# 18. Fluxo de inicialização
 
-Ao iniciar:
+Ao executar:
+
+```bash
+python MAGALU.py
+```
+
+o programa primeiro verifica se existe um Excel anterior.
+
+Se não existir:
+
+```text
+[INFO] Nenhum Excel anterior encontrado.
+```
+
+Se existir:
 
 ```text
 ======================================================================
-        MAGALU - COLETOR DE LINKS DE AFILIADO
+              VERIFICANDO RETOMADA
 ======================================================================
-[OK] Chrome conectado.
-[INFO] Página atual:
+
+[INFO] Arquivo encontrado: links_afiliados_magalu.xlsx
+[OK] 37 registros encontrados.
+[OK] 37 links de afiliado já obtidos.
+[INFO] O programa continuará somente com os produtos ainda pendentes.
+```
+
+Depois disso, o menu de categorias é apresentado.
+
+---
+
+# 19. Retomada automática
+
+A retomada automática utiliza o arquivo:
+
+```text
+links_afiliados_magalu.xlsx
+```
+
+O programa verifica os registros já existentes e identifica produtos que já possuem link de afiliado.
+
+Exemplo:
+
+```text
+Produto 1 ✓
+Produto 2 ✓
+Produto 3 ✓
+Produto 4 ✓
+Produto 5 ✓
 ...
+Produto 37 ✓
+```
+
+Se a execução anterior foi interrompida, ao executar novamente o programa ele verifica os produtos encontrados e pula aqueles que já possuem resultado.
+
+---
+
+# 20. Exemplo de retomada
+
+Imagine que o programa esteja processando:
+
+```text
+Guitarras
+```
+
+E tenha concluído:
+
+```text
+Produto 1 ✓
+Produto 2 ✓
+Produto 3 ✓
+...
+Produto 12 ✓
+```
+
+Você pressiona:
+
+```text
+Ctrl+C
+```
+
+O Excel é salvo.
+
+Na próxima execução, o programa poderá encontrar esses produtos novamente.
+
+Em vez de processá-los novamente, exibirá mensagens como:
+
+```text
+[RETOMADA] Produto já processado. Pulando:
+https://www.magazinevoce.com.br/...
 ```
 
 Depois:
 
 ```text
-[1] Abrindo sua vitrine...
-[OK] Vitrine aberta.
+[RETOMADA] 8 produtos pendentes.
+[RETOMADA] 12 produtos já concluídos.
 ```
 
-O programa começa a processar as categorias:
-
-```text
-======================================================================
-CATEGORIA 1/5: ACESSÓRIOS
-======================================================================
-```
-
-Depois coleta os produtos:
-
-```text
-[INFO] Elementos encontrados: 48
-[OK] 20 produtos encontrados para 'acessórios'.
-```
+E continuará somente com os pendentes.
 
 ---
 
-# 16. Geração do link
+# 21. Importante sobre a retomada
 
-Para cada produto:
+A retomada atual utiliza o conjunto:
 
 ```text
-----------------------------------------------------------------------
-ABRINDO PRODUTO
-----------------------------------------------------------------------
-https://www.magazinevoce.com.br/...
-
-[OK] Botão 'Gerar link' encontrado.
-[OK] Botão 'Gerar link' clicado.
-[OK] Link de afiliado obtido:
-https://magazineluiza.onelink.me/...
+categoria + URL do produto + link de afiliado
 ```
 
-O programa não precisa clicar no botão **Copiar**.
+para identificar um produto já concluído.
 
-Ele lê diretamente o valor do campo do modal.
+Portanto, se o produto já possuir um link de afiliado salvo no Excel, ele será considerado concluído.
 
-A lógica utiliza:
-
-```python
-valor = campo.get_attribute("value")
-```
+Produtos que não possuem link de afiliado continuam podendo ser processados.
 
 ---
 
-# 17. Salvamento incremental
-
-Essa é uma das principais diferenças desta versão.
+# 22. Salvamento incremental
 
 Depois de cada produto processado, o programa executa:
 
@@ -416,7 +623,7 @@ Depois de cada produto processado, o programa executa:
 salvar_excel(resultados)
 ```
 
-Isso significa que o arquivo Excel é atualizado continuamente.
+Isso significa que o Excel é atualizado continuamente.
 
 Exemplo:
 
@@ -429,11 +636,11 @@ Produto 5 → salva
 ...
 ```
 
-Portanto, se o programa chegar ao produto 37, os resultados anteriores já estarão gravados no arquivo.
+Portanto, se o programa chegar ao produto 37, os resultados anteriores já estarão gravados.
 
 ---
 
-# 18. Interromper com Ctrl+C
+# 23. Interromper com Ctrl+C
 
 A execução pode ser interrompida manualmente pressionando:
 
@@ -441,32 +648,17 @@ A execução pode ser interrompida manualmente pressionando:
 Ctrl+C
 ```
 
-Por exemplo:
-
-```text
-Produto 34/20
-Produto 35/20
-Produto 36/20
-Produto 37/20
-```
-
-Você pressiona:
-
-```text
-Ctrl+C
-```
-
-O programa captura a interrupção através de:
+O programa captura:
 
 ```python
-except KeyboardInterrupt:
+KeyboardInterrupt
 ```
 
 e realiza um salvamento final.
 
 ---
 
-# 19. O que acontece depois do Ctrl+C
+# 24. O que acontece depois do Ctrl+C
 
 O programa exibirá algo semelhante a:
 
@@ -475,7 +667,7 @@ O programa exibirá algo semelhante a:
        EXECUÇÃO INTERROMPIDA PELO USUÁRIO
 ======================================================================
 
-[INFO] CTRL+C detectado.
+[INFO] Ctrl+C detectado.
 [INFO] Salvando os dados coletados...
 [OK] Dados salvos com sucesso.
 ```
@@ -486,13 +678,13 @@ Depois lista os links obtidos:
 LINKS DE AFILIADO OBTIDOS ATÉ AGORA:
 ----------------------------------------------------------------------
 
-001. [acessórios]
+001. [cozinha]
 https://magazineluiza.onelink.me/...
 
-002. [acessórios]
+002. [cozinha]
 https://magazineluiza.onelink.me/...
 
-003. [acessórios]
+003. [guitarras]
 https://magazineluiza.onelink.me/...
 
 ...
@@ -500,7 +692,7 @@ https://magazineluiza.onelink.me/...
 ----------------------------------------------------------------------
 
 TOTAL DE PRODUTOS PROCESSADOS: 36
-TOTAL DE LINKS DE AFILIADO: 36
+TOTAL DE LINKS DE AFILIADO:    36
 
 ARQUIVO SALVO: links_afiliados_magalu.xlsx
 ======================================================================
@@ -508,15 +700,15 @@ ARQUIVO SALVO: links_afiliados_magalu.xlsx
 
 ---
 
-# 20. O que é preservado
+# 25. O que é preservado
 
-Ao pressionar `Ctrl+C`, os resultados já processados permanecem no arquivo:
+Ao pressionar `Ctrl+C`, os resultados já processados permanecem no:
 
 ```text
 links_afiliados_magalu.xlsx
 ```
 
-Por exemplo, se 36 produtos já tiverem sido processados:
+Por exemplo:
 
 ```text
 Produto 1  ✓
@@ -529,9 +721,38 @@ Produto 37 ✗
 
 Os 36 anteriores estarão no Excel.
 
+Ao executar novamente, o programa poderá utilizar esses dados para realizar a retomada.
+
 ---
 
-# 21. Produtos com erro
+# 26. Geração do link
+
+Para cada produto:
+
+```text
+----------------------------------------------------------------------
+ABRINDO PRODUTO
+----------------------------------------------------------------------
+
+https://www.magazinevoce.com.br/...
+
+[OK] Botão 'Gerar link' encontrado.
+[OK] Botão 'Gerar link' clicado.
+[OK] Link de afiliado obtido:
+https://magazineluiza.onelink.me/...
+```
+
+O programa não precisa clicar no botão **Copiar**.
+
+Ele lê diretamente o valor do campo do modal:
+
+```python
+valor = campo.get_attribute("value")
+```
+
+---
+
+# 27. Produtos com erro
 
 Se um produto não conseguir gerar o link, o programa não encerra toda a execução.
 
@@ -547,17 +768,17 @@ ou:
 [ERRO] Não consegui encontrar o link no modal.
 ```
 
-O resultado será armazenado como:
+Nesse caso:
 
 ```python
 "link_afiliado": None
 ```
 
-E o programa continuará para o próximo produto.
+e o programa continua para o próximo produto.
 
 ---
 
-# 22. Arquivo Excel
+# 28. Arquivo Excel
 
 O arquivo gerado é:
 
@@ -573,38 +794,37 @@ Links Afiliados
 
 Com as colunas:
 
-| Categoria  | Produto Nº | Link do Produto | Link de Afiliado |
-| ---------- | ---------: | --------------- | ---------------- |
-| acessórios |          1 | URL do produto  | URL de afiliado  |
-| acessórios |          2 | URL do produto  | URL de afiliado  |
-| acessórios |          3 | URL do produto  | URL de afiliado  |
-| cozinha    |          1 | URL do produto  | URL de afiliado  |
+| Categoria | Produto Nº | Link do Produto | Link de Afiliado |
+| --------- | ---------: | --------------- | ---------------- |
+| cozinha   |          1 | URL do produto  | URL de afiliado  |
+| cozinha   |          2 | URL do produto  | URL de afiliado  |
+| sala      |          1 | URL do produto  | URL de afiliado  |
+| guitarras |          1 | URL do produto  | URL de afiliado  |
 
 ---
 
-# 23. Relatório final
+# 29. Relatório final
 
-Quando todas as categorias forem concluídas:
+Quando as categorias selecionadas forem concluídas:
 
 ```text
 ======================================================================
-              COLETA FINALIZADA
+                    COLETA FINALIZADA
 ======================================================================
-ACESSÓRIOS                Produtos: 20 | Links: 20
-COZINHA                   Produtos: 20 | Links: 19
+COZINHA                   Produtos: 20 | Links: 20
+SALA                      Produtos: 20 | Links: 19
 BANHEIRO                  Produtos: 20 | Links: 20
-SALA DE ESTAR             Produtos: 20 | Links: 20
-ELETRODOMESTICOS          Produtos: 20 | Links: 18
+GUITARRAS                 Produtos: 20 | Links: 20
 ----------------------------------------------------------------------
-TOTAL DE PRODUTOS PROCESSADOS: 100
-TOTAL DE LINKS DE AFILIADO:    97
+TOTAL DE PRODUTOS PROCESSADOS: 80
+TOTAL DE LINKS DE AFILIADO:    79
 ARQUIVO GERADO:                links_afiliados_magalu.xlsx
 ======================================================================
 ```
 
 ---
 
-# 24. Problemas comuns
+# 30. Problemas comuns
 
 ## Chrome não conecta
 
@@ -709,79 +929,7 @@ https://
 
 ---
 
-# 25. Importante sobre o Ctrl+C
-
-O `Ctrl+C` é tratado pelo Python como:
-
-```python
-KeyboardInterrupt
-```
-
-O programa foi preparado para capturar essa interrupção.
-
-Por isso, **não é necessário fechar o terminal à força**.
-
-Use:
-
-```text
-Ctrl+C
-```
-
-e aguarde o programa mostrar:
-
-```text
-[OK] Dados salvos com sucesso.
-```
-
-Antes de fechar o terminal.
-
----
-
-# 26. O que esta versão ainda NÃO faz
-
-Esta versão possui salvamento incremental, mas ainda não possui **retomada automática**.
-
-Por exemplo, se o programa parar no produto 37, o Excel terá os dados dos produtos anteriores.
-
-Porém, ao executar novamente:
-
-```bash
-python coletor.py
-```
-
-o programa ainda começará o processo normalmente e poderá repetir produtos que já foram processados.
-
-A próxima evolução poderá implementar:
-
-```text
-Execução
-   │
-   ├── Produto 1 ✓
-   ├── Produto 2 ✓
-   ├── Produto 3 ✓
-   ├── ...
-   ├── Produto 37 ✓
-   │
-   └── Ctrl+C
-          │
-          ▼
-      Salva Excel
-          │
-          ▼
-      Execução novamente
-          │
-          ▼
-      Detecta produtos já processados
-          │
-          ▼
-      Continua do próximo
-```
-
-Essa funcionalidade deve ser adicionada posteriormente para evitar misturar a lógica de **interrupção segura** com a lógica de **retomada**.
-
----
-
-# 27. Comandos rápidos
+# 31. Comandos rápidos
 
 ## Criar ambiente virtual
 
@@ -804,7 +952,7 @@ pip install -r requirements.txt
 ## Executar
 
 ```bash
-python coletor.py
+python MAGALU.py
 ```
 
 ## Interromper com segurança
@@ -815,7 +963,7 @@ Ctrl+C
 
 ---
 
-# 28. Dependências
+# 32. Dependências
 
 O arquivo `requirements.txt` deve conter:
 
@@ -829,6 +977,7 @@ Bibliotecas como:
 ```text
 time
 random
+os
 urllib.parse
 ```
 
@@ -836,54 +985,154 @@ fazem parte da biblioteca padrão do Python e não precisam ser instaladas.
 
 ---
 
-# 29. Fluxo geral
+# 33. Fluxo geral atual
 
 ```text
-                CHROME
-                   │
-                   │
-        --remote-debugging-port=9222
+                       INÍCIO
+                         │
+                         ▼
+                VERIFICA EXCEL
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+           EXISTE                 NÃO EXISTE
+              │                     │
+              ▼                     ▼
+       CARREGA RESULTADOS       COMEÇA LIMPO
+              │                     │
+              └──────────┬──────────┘
+                         │
+                         ▼
+                  MENU DE CATEGORIAS
+                         │
+             ┌───────────┼───────────┐
+             │           │           │
+             ▼           ▼           ▼
+          1-5       6 - PALAVRA    CANCELAR
+       categorias      CHAVE           │
+             │           │             ▼
+             │           ▼           FIM
+             │      pergunta termo
+             │           │
+             └─────┬─────┘
                    │
                    ▼
-             SELENIUM
+            CONFIRMA SELEÇÃO
                    │
                    ▼
-             SUA VITRINE
+             CONECTA CHROME
                    │
                    ▼
-             CATEGORIA
+             ABRE VITRINE
                    │
                    ▼
-          ATÉ 20 PRODUTOS
+              CATEGORIA
                    │
                    ▼
-          ABRE CADA PRODUTO
+            COLETA PRODUTOS
                    │
                    ▼
-             "GERAR LINK"
+            VERIFICA RETOMADA
                    │
-                   ▼
-          CAMPO "LINK DO PRODUTO"
-                   │
-                   ▼
-          LINK DE AFILIADO
-                   │
-                   ▼
-            SALVA NO EXCEL
-                   │
-                   ├───────────────┐
-                   │               │
-                   ▼               ▼
-              PRÓXIMO          Ctrl+C
-              PRODUTO             │
-                                  ▼
-                           SALVA E LISTA
-                           OS RESULTADOS
+          ┌────────┴─────────┐
+          │                  │
+       JÁ FEITO           PENDENTE
+          │                  │
+          ▼                  ▼
+        PULA            ABRE PRODUTO
+                             │
+                             ▼
+                       "GERAR LINK"
+                             │
+                             ▼
+                      EXTRAI LINK
+                             │
+                             ▼
+                       SALVA EXCEL
+                             │
+                             ▼
+                        PRÓXIMO
+                             │
+                             ▼
+                         FINALIZA
+                             │
+                             ▼
+                    RELATÓRIO FINAL
 ```
 
 ---
 
-# 30. Resultado
+# 34. Estrutura conceitual atual
+
+A versão atual ainda está concentrada em um único arquivo:
+
+```text
+MAGALU.py
+```
+
+Isso foi mantido propositalmente neste estágio para validar o fluxo completo antes da fragmentação.
+
+A próxima etapa natural do projeto será separar responsabilidades em módulos, por exemplo:
+
+```text
+MAGALU/
+│
+├── MAGALU.py
+│
+├── config.py
+│
+├── chrome.py
+│
+├── categorias.py
+│
+├── produtos.py
+│
+├── afiliados.py
+│
+├── excel.py
+│
+├── retomada.py
+│
+├── requirements.txt
+│
+└── links_afiliados_magalu.xlsx
+```
+
+A ideia é manter o comportamento atual e apenas dividir o código em responsabilidades menores, facilitando manutenção, testes e futuras expansões.
+
+---
+
+# 35. Próxima evolução planejada
+
+Depois da validação desta versão, o projeto poderá evoluir para uma arquitetura modular.
+
+Um exemplo seria:
+
+```text
+MAGALU.py
+    │
+    ├── Menu
+    │
+    ├── Configuração
+    │
+    ├── Chrome
+    │
+    ├── Categorias
+    │
+    ├── Coleta de produtos
+    │
+    ├── Geração de links
+    │
+    ├── Excel
+    │
+    └── Retomada
+```
+
+Posteriormente, outros marketplaces poderão seguir a mesma estrutura, permitindo que cada bot tenha seu próprio módulo sem misturar as implementações.
+
+---
+
+# 36. Resultado
 
 Ao final, o projeto produz:
 
@@ -898,8 +1147,18 @@ contendo:
 * URL original do produto;
 * URL gerada de afiliado.
 
-A principal garantia desta versão é:
+A versão atual possui quatro mecanismos importantes de segurança:
 
-> **Cada produto processado é salvo imediatamente no Excel, portanto ao parar e retomar um processo, o programa procura por um arquivo excel existente, e se houver, verifica onde o processo anterior encerrou, e parte daquele ponto.**
+1. **Salvamento incremental**
+   Cada produto processado é salvo imediatamente.
 
-Portanto, uma interrupção no meio da execução não apaga o trabalho que já foi realizado.
+2. **Interrupção segura**
+   `Ctrl+C` interrompe o processo sem apagar os dados existentes.
+
+3. **Retomada automática**
+   Ao iniciar novamente, o programa verifica o Excel existente.
+
+4. **Seleção personalizada**
+   O usuário pode escolher quais categorias executar ou informar uma palavra-chave específica.
+
+Dessa forma, uma execução pode ser interrompida e posteriormente retomada sem precisar refazer os produtos que já possuem links de afiliado registrados.
