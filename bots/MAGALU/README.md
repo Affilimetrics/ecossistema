@@ -247,7 +247,7 @@ Depois abra o Prompt de Comando (`cmd`).
 Um exemplo de comando é:
 
 ```cmd
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\ChromeDebug"
 ```
 
 Dependendo da instalação, o Chrome pode estar em:

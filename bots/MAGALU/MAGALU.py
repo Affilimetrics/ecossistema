@@ -43,7 +43,10 @@ print("        MAGALU - COLETOR DE LINKS DE AFILIADO")
 print("=" * 70)
 
 options = Options()
-options.add_experimental_option("debuggerAddress", CHROME_DEBUGGER)
+options.add_experimental_option(
+    "debuggerAddress",
+    CHROME_DEBUGGER
+)
 
 driver = webdriver.Chrome(options=options)
 
@@ -52,6 +55,49 @@ wait = WebDriverWait(driver, 15)
 print("[OK] Chrome conectado.")
 print("[INFO] Página atual:")
 print(driver.current_url)
+
+
+# ============================================================
+# FUNÇÃO: SALVAR EXCEL
+# ============================================================
+
+def salvar_excel(resultados):
+
+    wb = Workbook()
+
+    ws = wb.active
+    ws.title = "Links Afiliados"
+
+    # Cabeçalho
+    ws.append(
+        [
+            "Categoria",
+            "Produto Nº",
+            "Link do Produto",
+            "Link de Afiliado"
+        ]
+    )
+
+    # Dados
+    for resultado in resultados:
+
+        ws.append(
+            [
+                resultado["categoria"],
+                resultado["produto_numero"],
+                resultado["link_produto"],
+                resultado["link_afiliado"]
+            ]
+        )
+
+    # Largura das colunas
+    ws.column_dimensions["A"].width = 25
+    ws.column_dimensions["B"].width = 12
+    ws.column_dimensions["C"].width = 80
+    ws.column_dimensions["D"].width = 80
+
+    # Salva
+    wb.save(ARQUIVO_SAIDA)
 
 
 # ============================================================
@@ -88,7 +134,8 @@ def rolar_pagina(driver, passos=7):
 
         time.sleep(random.uniform(0.8, 1.4))
 
-        # Se a página não aumentou, provavelmente já carregou tudo
+        # Se a página não aumentou,
+        # provavelmente já carregou tudo
         if altura == altura_anterior:
             break
 
@@ -130,7 +177,10 @@ def coletar_produtos_categoria(categoria):
         "a[href*='/p/']"
     )
 
-    print(f"[INFO] Elementos encontrados: {len(elementos)}")
+    print(
+        f"[INFO] Elementos encontrados: "
+        f"{len(elementos)}"
+    )
 
     for elemento in elementos:
 
@@ -144,7 +194,7 @@ def coletar_produtos_categoria(categoria):
             if "/p/" not in link:
                 continue
 
-            # Remove possíveis parâmetros desnecessários
+            # Remove possíveis parâmetros
             link = link.split("?")[0]
 
             if link not in links_set:
@@ -199,7 +249,9 @@ def gerar_link_afiliado(url_produto):
             )
         )
 
-        print("[OK] Botão 'Gerar link' encontrado.")
+        print(
+            "[OK] Botão 'Gerar link' encontrado."
+        )
 
         # Coloca o botão no centro da tela
         driver.execute_script(
@@ -215,26 +267,28 @@ def gerar_link_afiliado(url_produto):
             botao
         )
 
-        print("[OK] Botão 'Gerar link' clicado.")
+        print(
+            "[OK] Botão 'Gerar link' clicado."
+        )
 
     except Exception as erro:
 
-        print("[ERRO] Não foi possível clicar em 'Gerar link'.")
+        print(
+            "[ERRO] Não foi possível clicar "
+            "em 'Gerar link'."
+        )
+
         print(erro)
 
         return None
 
 
     # --------------------------------------------------------
-    # AGUARDA O MODAL
+    # AGUARDA O MODAL E ENCONTRA O LINK
     # --------------------------------------------------------
 
     try:
 
-        # O campo mostrado na imagem é um INPUT.
-        #
-        # Procuramos um input visível que possua valor.
-        #
         def encontrar_input_link(driver):
 
             inputs = driver.find_elements(
@@ -254,8 +308,7 @@ def gerar_link_afiliado(url_produto):
                     if not valor:
                         continue
 
-                    # O link gerado pelo Magalu aparece
-                    # como URL dentro desse campo.
+                    # Verifica se o campo contém uma URL
                     if (
                         "http://" in valor
                         or "https://" in valor
@@ -273,23 +326,32 @@ def gerar_link_afiliado(url_produto):
             10
         ).until(encontrar_input_link)
 
-        link_afiliado = campo_link.get_attribute("value")
+        link_afiliado = campo_link.get_attribute(
+            "value"
+        )
 
-        print("[OK] Link de afiliado obtido:")
+        print(
+            "[OK] Link de afiliado obtido:"
+        )
+
         print(link_afiliado)
 
         return link_afiliado
 
     except Exception as erro:
 
-        print("[ERRO] Não consegui encontrar o link no modal.")
+        print(
+            "[ERRO] Não consegui encontrar "
+            "o link no modal."
+        )
+
         print(erro)
 
         return None
 
 
 # ============================================================
-# COLETA
+# VARIÁVEIS DE CONTROLE
 # ============================================================
 
 resultados = []
@@ -298,156 +360,273 @@ total_produtos = 0
 total_links = 0
 
 
-for numero_categoria, categoria in enumerate(
-    CATEGORIAS,
-    start=1
-):
+# ============================================================
+# COLETA PRINCIPAL
+# ============================================================
+
+try:
+
+    for numero_categoria, categoria in enumerate(
+        CATEGORIAS,
+        start=1
+    ):
+
+        print("\n")
+        print("=" * 70)
+        print(
+            f"CATEGORIA {numero_categoria}/"
+            f"{len(CATEGORIAS)}: "
+            f"{categoria.upper()}"
+        )
+        print("=" * 70)
+
+        # ----------------------------------------------------
+        # 1. COLETAR OS 20 PRODUTOS
+        # ----------------------------------------------------
+
+        produtos = coletar_produtos_categoria(
+            categoria
+        )
+
+        total_produtos += len(produtos)
+
+        # ----------------------------------------------------
+        # 2. ENTRAR EM CADA PRODUTO
+        # ----------------------------------------------------
+
+        for numero_produto, url_produto in enumerate(
+            produtos,
+            start=1
+        ):
+
+            print(
+                f"\n[{categoria}] "
+                f"Produto "
+                f"{numero_produto}/{len(produtos)}"
+            )
+
+            link_afiliado = gerar_link_afiliado(
+                url_produto
+            )
+
+            # ------------------------------------------------
+            # SALVAR RESULTADO NA MEMÓRIA
+            # ------------------------------------------------
+
+            resultados.append(
+                {
+                    "categoria": categoria,
+                    "produto_numero": numero_produto,
+                    "link_produto": url_produto,
+                    "link_afiliado": link_afiliado
+                }
+            )
+
+            # ------------------------------------------------
+            # CONTADOR
+            # ------------------------------------------------
+
+            if link_afiliado:
+
+                total_links += 1
+
+                print(
+                    "[OK] Produto processado "
+                    "com sucesso."
+                )
+
+            else:
+
+                print(
+                    "[AVISO] Produto sem "
+                    "link de afiliado."
+                )
+
+            # ------------------------------------------------
+            # SALVAR IMEDIATAMENTE
+            #
+            # Isso garante que se o usuário apertar
+            # CTRL+C no próximo momento, os dados
+            # anteriores já estarão no Excel.
+            # ------------------------------------------------
+
+            try:
+
+                salvar_excel(resultados)
+
+                print(
+                    "[OK] Progresso salvo no Excel."
+                )
+
+            except Exception as erro:
+
+                print(
+                    "[ERRO] Não foi possível "
+                    "salvar o Excel."
+                )
+
+                print(erro)
+
+            # Pequena pausa antes do próximo produto
+            time.sleep(
+                random.uniform(2, 4)
+            )
+
+
+# ============================================================
+# CTRL+C
+# ============================================================
+
+except KeyboardInterrupt:
+
+    print("\n\n")
+    print("=" * 70)
+    print(
+        "       EXECUÇÃO INTERROMPIDA PELO USUÁRIO"
+    )
+    print("=" * 70)
+
+    print(
+        "\n[INFO] CTRL+C detectado."
+    )
+
+    print(
+        "[INFO] Salvando os dados coletados..."
+    )
+
+    # --------------------------------------------------------
+    # SALVA NOVAMENTE
+    # --------------------------------------------------------
+
+    try:
+
+        salvar_excel(resultados)
+
+        print(
+            "[OK] Dados salvos com sucesso."
+        )
+
+    except Exception as erro:
+
+        print(
+            "[ERRO] Não foi possível salvar "
+            "o Excel final."
+        )
+
+        print(erro)
+
+
+    # --------------------------------------------------------
+    # LISTAR LINKS OBTIDOS
+    # --------------------------------------------------------
+
+    print("\n")
+    print(
+        "LINKS DE AFILIADO OBTIDOS ATÉ AGORA:"
+    )
+
+    print("-" * 70)
+
+    contador_links = 0
+
+    for resultado in resultados:
+
+        link = resultado["link_afiliado"]
+
+        if link:
+
+            contador_links += 1
+
+            print(
+                f"{contador_links:03d}. "
+                f"[{resultado['categoria']}]"
+            )
+
+            print(link)
+
+    print("-" * 70)
+
+    print(
+        f"TOTAL DE PRODUTOS PROCESSADOS: "
+        f"{len(resultados)}"
+    )
+
+    print(
+        f"TOTAL DE LINKS DE AFILIADO: "
+        f"{contador_links}"
+    )
+
+    print(
+        f"\nARQUIVO SALVO: "
+        f"{ARQUIVO_SAIDA}"
+    )
+
+    print("=" * 70)
+
+
+# ============================================================
+# FINALIZAÇÃO NORMAL
+# ============================================================
+
+else:
 
     print("\n")
     print("=" * 70)
     print(
-        f"CATEGORIA {numero_categoria}/{len(CATEGORIAS)}: "
-        f"{categoria.upper()}"
+        "              COLETA FINALIZADA"
     )
     print("=" * 70)
 
     # --------------------------------------------------------
-    # 1. COLETAR OS 20 PRODUTOS
+    # RELATÓRIO POR CATEGORIA
     # --------------------------------------------------------
 
-    produtos = coletar_produtos_categoria(categoria)
+    for categoria in CATEGORIAS:
 
-    total_produtos += len(produtos)
+        dados_categoria = [
+            x
+            for x in resultados
+            if x["categoria"] == categoria
+        ]
 
-    # --------------------------------------------------------
-    # 2. ENTRAR EM CADA PRODUTO
-    # --------------------------------------------------------
-
-    for numero_produto, url_produto in enumerate(
-        produtos,
-        start=1
-    ):
+        links_categoria = [
+            x
+            for x in dados_categoria
+            if x["link_afiliado"]
+        ]
 
         print(
-            f"\n[{categoria}] "
-            f"Produto {numero_produto}/{len(produtos)}"
+            f"{categoria.upper():25} "
+            f"Produtos: "
+            f"{len(dados_categoria):2} | "
+            f"Links: "
+            f"{len(links_categoria):2}"
         )
 
-        link_afiliado = gerar_link_afiliado(
-            url_produto
-        )
-
-        # ----------------------------------------------------
-        # SALVAR RESULTADO
-        # ----------------------------------------------------
-
-        resultados.append(
-            {
-                "categoria": categoria,
-                "produto_numero": numero_produto,
-                "link_produto": url_produto,
-                "link_afiliado": link_afiliado
-            }
-        )
-
-        if link_afiliado:
-            total_links += 1
-            print("[OK] Produto processado com sucesso.")
-        else:
-            print("[AVISO] Produto sem link de afiliado.")
-
-        # Pequena pausa antes do próximo produto
-        time.sleep(random.uniform(2, 4))
-
-
-# ============================================================
-# GERAR EXCEL
-# ============================================================
-
-print("\n")
-print("=" * 70)
-print("GERANDO ARQUIVO EXCEL")
-print("=" * 70)
-
-wb = Workbook()
-
-ws = wb.active
-ws.title = "Links Afiliados"
-
-
-# Cabeçalho
-
-ws.append(
-    [
-        "Categoria",
-        "Produto Nº",
-        "Link do Produto",
-        "Link de Afiliado"
-    ]
-)
-
-
-# Dados
-
-for resultado in resultados:
-
-    ws.append(
-        [
-            resultado["categoria"],
-            resultado["produto_numero"],
-            resultado["link_produto"],
-            resultado["link_afiliado"]
-        ]
-    )
-
-
-# Ajustar largura das colunas
-
-ws.column_dimensions["A"].width = 25
-ws.column_dimensions["B"].width = 12
-ws.column_dimensions["C"].width = 80
-ws.column_dimensions["D"].width = 80
-
-
-# Salvar
-
-wb.save(ARQUIVO_SAIDA)
-
-
-# ============================================================
-# RELATÓRIO FINAL
-# ============================================================
-
-print("\n")
-print("=" * 70)
-print("                    COLETA FINALIZADA")
-print("=" * 70)
-
-for categoria in CATEGORIAS:
-
-    dados_categoria = [
-        x for x in resultados
-        if x["categoria"] == categoria
-    ]
-
-    links_categoria = [
-        x for x in dados_categoria
-        if x["link_afiliado"]
-    ]
+    print("-" * 70)
 
     print(
-        f"{categoria.upper():25} "
-        f"Produtos: {len(dados_categoria):2} | "
-        f"Links: {len(links_categoria):2}"
+        f"TOTAL DE PRODUTOS PROCESSADOS: "
+        f"{total_produtos}"
     )
 
+    print(
+        f"TOTAL DE LINKS DE AFILIADO:    "
+        f"{total_links}"
+    )
 
-print("-" * 70)
+    print(
+        f"ARQUIVO GERADO:                "
+        f"{ARQUIVO_SAIDA}"
+    )
 
-print(f"TOTAL DE PRODUTOS PROCESSADOS: {total_produtos}")
-print(f"TOTAL DE LINKS DE AFILIADO:    {total_links}")
-print(f"ARQUIVO GERADO:                {ARQUIVO_SAIDA}")
+    print("=" * 70)
 
-print("=" * 70)
 
-input("\nPressione ENTER para encerrar...")
+# ============================================================
+# ENCERRAMENTO
+# ============================================================
+
+input(
+    "\nPressione ENTER para encerrar..."
+)
