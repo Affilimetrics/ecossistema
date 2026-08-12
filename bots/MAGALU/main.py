@@ -20,38 +20,126 @@ from relatorios.relatorios import (
     mostrar_relatorio_final,
 )
 
-
     # isso aqui inicializa o Chrome no modo debug on port:9222
 
 chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 
-try:
-    chrome = subprocess.Popen([
-        chrome_path,
-        "--remote-debugging-port=9222",
-        r"--user-data-dir=C:\ChromeDebug"
-    ])
+chrome = None
+chrome_foi_aberto_pelo_programa = False
 
-    time.sleep(2)
 
-    if chrome.poll() is None:
-        print("[OK] Chrome foi aberto com sucesso!")
-    else:
-        print("[ERRO] O Chrome abriu, mas fechou imediatamente.")
+def chrome_9222_esta_aberto():
+    """
+    Verifica se já existe um Chrome respondendo na porta 9222.
+    """
+    import urllib.request
 
-except FileNotFoundError:
-    print("[ERRO] Chrome não encontrado!")
-    print(f"[CAMINHO] {chrome_path}")
+    try:
+        urllib.request.urlopen(
+            "http://127.0.0.1:9222/json/version",
+            timeout=1
+        )
+        return True
 
-except Exception as e:
-    print(f"[ERRO] Não foi possível abrir o Chrome: {e}")
+    except Exception:
+        return False
 
-    time.sleep(5)
+
+def iniciar_chrome_se_necessario():
+    """
+    Só abre o Chrome se a porta 9222 ainda não estiver disponível.
+    """
+
+    global chrome
+    global chrome_foi_aberto_pelo_programa
+
+    print("\n[INFO] Verificando Chrome na porta 9222...")
+
+    if chrome_9222_esta_aberto():
+        print("[OK] Chrome já está aberto na porta 9222.")
+        print("[INFO] Nenhuma nova janela será aberta.")
+        return
+
+    print("[INFO] Porta 9222 não está disponível.")
+    print("[INFO] Iniciando Chrome em modo debug...")
+
+    try:
+        chrome = subprocess.Popen([
+            chrome_path,
+            "--remote-debugging-port=9222",
+            r"--user-data-dir=C:\ChromeDebug"
+        ])
+
+        chrome_foi_aberto_pelo_programa = True
+
+    except FileNotFoundError:
+        print("[ERRO] Chrome não encontrado!")
+        print(f"[CAMINHO] {chrome_path}")
+        raise
+
+    except Exception as e:
+        print(f"[ERRO] Não foi possível abrir o Chrome: {e}")
+        raise
+
+    # Aguarda a porta 9222 ficar disponível
+    for tentativa in range(10):
+
+        if chrome_9222_esta_aberto():
+            print("[OK] Chrome foi aberto com sucesso!")
+            return
+
+        time.sleep(1)
+
+    print("[ERRO] Chrome foi iniciado, mas a porta 9222 não respondeu.")
+    raise RuntimeError(
+        "Não foi possível conectar ao Chrome na porta 9222."
+    )
+
+
+def fechar_chrome_se_necessario():
+    """
+    Fecha o Chrome somente se ELE tiver sido aberto pelo programa.
+    """
+
+    global chrome
+    global chrome_foi_aberto_pelo_programa
+
+    if not chrome_foi_aberto_pelo_programa:
+        print("[INFO] Chrome já estava aberto antes da execução.")
+        print("[INFO] Chrome não será fechado.")
+        return
+
+    print("\n[INFO] Fechando Chrome aberto pelo coletor...")
+
+    try:
+
+        if chrome and chrome.poll() is None:
+            chrome.terminate()
+
+            try:
+                chrome.wait(timeout=5)
+                print("[OK] Chrome encerrado.")
+
+            except subprocess.TimeoutExpired:
+                print("[AVISO] Chrome não encerrou normalmente.")
+                chrome.kill()
+                print("[OK] Chrome finalizado.")
+
+        else:
+            print("[INFO] Processo do Chrome já estava encerrado.")
+
+    except Exception as erro:
+        print(f"[AVISO] Não foi possível fechar o Chrome: {erro}")
+
+    finally:
+        chrome_foi_aberto_pelo_programa = False
 
 # =================aqui conecta ao chrome 9222
 
 def main():
     resultados = carregar_resultados()
+
+    iniciar_chrome_se_necessario()
 
 
 # aqui conta somente os links da execução atual
@@ -257,6 +345,8 @@ def main():
 
     finally:
         print("\n[INFO] Execução encerrada.")
+
+        fechar_chrome_se_necessario()
 
 
 if __name__ == "__main__":
