@@ -148,11 +148,13 @@ def main():
     links_obtidos_nesta_execucao = 0
 # =========
 
-    categorias_selecionadas = selecionar_categorias()
+    selecao = selecionar_categorias()
 
-    if not categorias_selecionadas:
-        print("\n[INFO] Nenhuma categoria selecionada.")
+    if not selecao:
         return
+
+    categorias_selecionadas = selecao["categorias"]
+    keywords_loop = selecao["keywords_loop"]
 
     print("\n")
     print("=" * 70)
