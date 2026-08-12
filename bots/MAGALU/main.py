@@ -10,7 +10,7 @@ from config.config import CHROME_DEBUGGER, BASE_URL
 from interface.menu import selecionar_categorias
 from persistencia.excel import (
     carregar_resultados,
-    salvar_excel,
+    salvar_dados,
     produto_ja_processado,
 )
 from automacao.categorias import coletar_produtos_categoria
@@ -52,6 +52,13 @@ except Exception as e:
 
 def main():
     resultados = carregar_resultados()
+
+
+# aqui conta somente os links da execução atual
+    processados_nesta_execucao = 0
+    
+    links_obtidos_nesta_execucao = 0
+# =========
 
     categorias_selecionadas = selecionar_categorias()
 
@@ -149,6 +156,11 @@ def main():
                     url_produto
                 )
 
+                processados_nesta_execucao += 1
+                # aqui que contabiliza o link no processo atual
+                if link_afiliado:
+                    links_obtidos_nesta_execucao += 1
+
                 resultado_existente = None
 
                 for resultado in resultados:
@@ -158,16 +170,38 @@ def main():
                     ):
                         resultado_existente = resultado
                         break
+# =====================salva informacoes no xlsx e csv==============================
+
+                data_hora = time.strftime("%d/%m/%Y %H:%M:%S")
+
+                if link_afiliado:
+
+                    status = "OK"
+                    detalhes = "Link de afiliado obtido com sucesso."
+
+                else:
+
+                    status = "REVISAR"
+                    detalhes = "Não foi possível obter o link de afiliado."
 
                 if resultado_existente:
                     resultado_existente["link_afiliado"] = link_afiliado
+                    resultado_existente["status"] = status
+                    resultado_existente["data_hora"] = data_hora
+                    resultado_existente["detalhes"] = detalhes
+
                 else:
                     resultados.append({
-                        "categoria": categoria,
-                        "produto_numero": numero_produto,
-                        "link_produto": url_produto,
-                        "link_afiliado": link_afiliado,
-                    })
+                    "categoria": categoria,
+                    "produto_numero": numero_produto,
+                    "link_produto": url_produto,
+                    "link_afiliado": link_afiliado,
+                    "status": status,
+                    "data_hora": data_hora,
+                    "detalhes": detalhes,
+                })
+                    
+# ===================================================
 
                 if link_afiliado:
                     print("[OK] Produto processado com sucesso.")
@@ -175,16 +209,16 @@ def main():
                     print("[AVISO] Produto sem link de afiliado.")
 
                 try:
-                    salvar_excel(resultados)
-                    print("[OK] Dados salvos no Excel.")
+                    salvar_dados(resultados)
+                    print("[OK] Dados salvos no Excel e CSV.")
                 except Exception as erro:
-                    print("[ERRO] Falha ao salvar Excel:")
+                    print("[ERRO] Falha ao salvar dados:")
                     print(erro)
 
                 time.sleep(random.uniform(2, 4))
 
         try:
-            salvar_excel(resultados)
+            salvar_dados(resultados)
             print("\n[OK] Salvamento final concluído.")
         except Exception as erro:
             print("\n[ERRO] Falha no salvamento final:")
@@ -192,11 +226,18 @@ def main():
 
         mostrar_relatorio_final(
             resultados,
-            categorias_selecionadas
+            categorias_selecionadas,
+            processados_nesta_execucao
         )
 
+# isso aqui faz aquilo la de mostrar item do processo atual até com o keyboardinterrupt
+
     except KeyboardInterrupt:
-        mostrar_resultados_interrompidos(resultados)
+            mostrar_resultados_interrompidos(
+            resultados,
+            processados_nesta_execucao,
+            links_obtidos_nesta_execucao
+        )
 
     except Exception as erro:
         print("\n")
@@ -208,11 +249,11 @@ def main():
         print("\n[INFO] Salvando os dados já coletados...")
 
         try:
-            salvar_excel(resultados)
-            print("[OK] Dados preservados no Excel.")
-        except Exception as erro_excel:
-            print("[ERRO] Também não foi possível salvar o Excel:")
-            print(erro_excel)
+            salvar_dados(resultados)
+            print("[OK] Dados preservados nas planilhas.")
+        except Exception as erro_dados:
+            print("[ERRO] Também não foi possível salvar nas planilhas:")
+            print(erro_dados)
 
     finally:
         print("\n[INFO] Execução encerrada.")

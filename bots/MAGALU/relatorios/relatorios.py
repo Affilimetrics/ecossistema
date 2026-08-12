@@ -1,8 +1,13 @@
-from persistencia.excel import salvar_excel
+from persistencia.excel import salvar_dados
 from config.config import ARQUIVO_SAIDA
 
 
-def mostrar_resultados_interrompidos(resultados):
+def mostrar_resultados_interrompidos(
+    resultados,
+    processados_nesta_execucao,
+    links_obtidos_nesta_execucao
+    ):
+
     print("\n")
     print("=" * 70)
     print("       EXECUÇÃO INTERROMPIDA PELO USUÁRIO")
@@ -12,11 +17,23 @@ def mostrar_resultados_interrompidos(resultados):
     print("[INFO] Salvando os dados coletados...")
 
     try:
-        salvar_excel(resultados)
+        salvar_dados(resultados)
         print("[OK] Dados salvos com sucesso.")
     except Exception as erro:
         print("[ERRO] Não foi possível salvar o Excel:")
         print(erro)
+
+
+    print(
+        f"[INFO] Produtos processados nesta execução: "
+        f"{processados_nesta_execucao}"
+    )
+
+    print(
+        f"[INFO] Links obtidos nesta execução: "
+        f"{links_obtidos_nesta_execucao}"
+    )
+
 
     total_links_obtidos = sum(
         1 for resultado in resultados
@@ -38,11 +55,16 @@ def mostrar_resultados_interrompidos(resultados):
     print("-" * 70)
     print(f"TOTAL DE PRODUTOS PROCESSADOS: {len(resultados)}")
     print(f"TOTAL DE LINKS DE AFILIADO:    {total_links_obtidos}")
-    print(f"ARQUIVO SALVO: {ARQUIVO_SAIDA}")
+    print(f"ARQUIVOS SALVO: {ARQUIVO_SAIDA}")
     print("=" * 70)
 
 
-def mostrar_relatorio_final(resultados, categorias_selecionadas):
+def mostrar_relatorio_final(
+        resultados,
+        categorias_selecionadas,
+        processados_nesta_execucao,
+        links_obtidos_nesta_execucao
+):
     print("\n")
     print("=" * 70)
     print("                    COLETA FINALIZADA")
@@ -77,6 +99,12 @@ def mostrar_relatorio_final(resultados, categorias_selecionadas):
         f"TOTAL DE PRODUTOS PROCESSADOS: "
         f"{total_produtos_processados}"
     )
+
+    print(
+        f"[INFO] Links processados nesta execução: "
+        f"{links_obtidos_nesta_execucao}"
+    )
+
     print(
         f"TOTAL DE LINKS DE AFILIADO:    "
         f"{total_links_obtidos}"
