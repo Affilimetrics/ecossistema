@@ -1,5 +1,8 @@
 import time
 import random
+import subprocess
+
+
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -19,6 +22,35 @@ from relatorios.relatorios import (
     mostrar_relatorio_final,
 )
 
+
+    # isso aqui inicializa o Chrome no modo debug on port:9222
+
+chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+try:
+    chrome = subprocess.Popen([
+        chrome_path,
+        "--remote-debugging-port=9222",
+        r"--user-data-dir=C:\ChromeDebug"
+    ])
+
+    time.sleep(2)
+
+    if chrome.poll() is None:
+        print("[OK] Chrome foi aberto com sucesso!")
+    else:
+        print("[ERRO] O Chrome abriu, mas fechou imediatamente.")
+
+except FileNotFoundError:
+    print("[ERRO] Chrome não encontrado!")
+    print(f"[CAMINHO] {chrome_path}")
+
+except Exception as e:
+    print(f"[ERRO] Não foi possível abrir o Chrome: {e}")
+
+    time.sleep(5)
+
+# =================aqui conecta ao chrome 9222
 
 def main():
     resultados = carregar_resultados()
@@ -55,11 +87,13 @@ def main():
         print("[INFO] Página atual:")
         print(driver.current_url)
 
+# abrir o link de vitrine magalu
+
         print("\n[1] Abrindo sua vitrine...")
         driver.get(BASE_URL)
         time.sleep(3)
         print("[OK] Vitrine aberta.")
-
+# escolher categoria/o que o bot vai pesquisar
         for numero_categoria, categoria in enumerate(
             categorias_selecionadas,
             start=1
@@ -77,7 +111,7 @@ def main():
                 driver,
                 categoria
             )
-
+# aqui verifica se existe um processo anterior e se existem produtos que ja foram coletados
             produtos_pendentes = []
 
             for produto in produtos:
