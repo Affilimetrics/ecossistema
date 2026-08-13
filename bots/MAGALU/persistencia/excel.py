@@ -83,7 +83,6 @@ def carregar_resultados():
         print(erro)
         return []
 
-
 # ---------------------------------------------------------
 # SALVAR EXCEL
 # ---------------------------------------------------------
@@ -91,7 +90,9 @@ def carregar_resultados():
 def salvar_excel(resultados):
 
     wb = Workbook()
+
     ws = wb.active
+
     ws.title = "Links Afiliados"
 
     ws.append([
@@ -99,6 +100,8 @@ def salvar_excel(resultados):
         "Produto Nº",
         "Link do Produto",
         "Link de Afiliado",
+        "Preço Anterior",
+        "Preço Atual",
         "Status",
         "Data/Hora",
         "Detalhes",
@@ -111,18 +114,34 @@ def salvar_excel(resultados):
             resultado.get("produto_numero"),
             resultado.get("link_produto"),
             resultado.get("link_afiliado"),
+            resultado.get("preco_anterior"),
+            resultado.get("preco_atual"),
             resultado.get("status"),
             resultado.get("data_hora"),
             resultado.get("detalhes"),
         ])
 
+    # ---------------------------------------------------------
+    # LARGURA DAS COLUNAS
+    # ---------------------------------------------------------
+
     ws.column_dimensions["A"].width = 25
+
     ws.column_dimensions["B"].width = 12
+
     ws.column_dimensions["C"].width = 80
+
     ws.column_dimensions["D"].width = 80
-    ws.column_dimensions["E"].width = 15
-    ws.column_dimensions["F"].width = 22
-    ws.column_dimensions["G"].width = 80
+
+    ws.column_dimensions["E"].width = 18
+
+    ws.column_dimensions["F"].width = 18
+
+    ws.column_dimensions["G"].width = 15
+
+    ws.column_dimensions["H"].width = 22
+
+    ws.column_dimensions["I"].width = 80
 
     wb.save(ARQUIVO_SAIDA)
 
@@ -149,6 +168,8 @@ def salvar_csv(resultados):
                 "Produto Nº",
                 "Link do Produto",
                 "Link de Afiliado",
+                "Preço Anterior",
+                "Preço Atual",
                 "Status",
                 "Data/Hora",
                 "Detalhes",
@@ -161,15 +182,23 @@ def salvar_csv(resultados):
                     resultado.get("produto_numero"),
                     resultado.get("link_produto"),
                     resultado.get("link_afiliado"),
+                    resultado.get("preco_anterior"),
+                    resultado.get("preco_atual"),
                     resultado.get("status"),
                     resultado.get("data_hora"),
                     resultado.get("detalhes"),
                 ])
 
-        print(f"[OK] CSV atualizado: {ARQUIVO_CSV}")
+        print(
+            f"[OK] CSV atualizado: {ARQUIVO_CSV}"
+        )
 
     except Exception as erro:
-        print("[ERRO] Falha ao salvar CSV:")
+
+        print(
+            "[ERRO] Falha ao salvar CSV:"
+        )
+
         print(erro)
 
 
@@ -180,6 +209,7 @@ def salvar_csv(resultados):
 def salvar_dados(resultados):
 
     salvar_excel(resultados)
+
     salvar_csv(resultados)
 
 
@@ -187,7 +217,11 @@ def salvar_dados(resultados):
 # VERIFICAR SE PRODUTO JÁ FOI PROCESSADO
 # ---------------------------------------------------------
 
-def produto_ja_processado(resultados, url_produto, categoria):
+def produto_ja_processado(
+    resultados,
+    url_produto,
+    categoria
+):
 
     for resultado in resultados:
 
@@ -196,6 +230,7 @@ def produto_ja_processado(resultados, url_produto, categoria):
             and resultado["link_produto"] == url_produto
             and resultado["link_afiliado"]
         ):
+
             return True
 
     return False

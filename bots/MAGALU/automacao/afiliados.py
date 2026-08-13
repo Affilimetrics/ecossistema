@@ -21,7 +21,97 @@ def gerar_link_afiliado(driver, wait, url_produto):
     driver.get(url_produto)
     time.sleep(random.uniform(2.5, 4))
 
+    # =========================================================
+    # CAPTURA DOS PREÇOS
+    # =========================================================
+
+    preco_anterior = None
+    preco_atual = None
+
+    # ---------------------------------------------------------
+    # PREÇO ANTERIOR / ORIGINAL
+    # ---------------------------------------------------------
+
     try:
+
+        elemento_preco_anterior = WebDriverWait(
+            driver,
+            5
+        ).until(
+            EC.presence_of_element_located(
+                (
+                    By.CSS_SELECTOR,
+                    '[data-testid="price-original"]'
+                )
+            )
+        )
+
+        preco_anterior = elemento_preco_anterior.text.strip()
+
+        log_ok(
+            f"Preço anterior encontrado: {preco_anterior}"
+        )
+
+        print(
+            f"[PREÇO ANTERIOR] {preco_anterior}"
+        )
+
+    except Exception:
+
+        # Nem todo produto possui preço anterior.
+        preco_anterior = None
+
+        print(
+            "[INFO] Produto sem preço anterior/original."
+        )
+
+    # ---------------------------------------------------------
+    # PREÇO ATUAL
+    # ---------------------------------------------------------
+
+    try:
+
+        elemento_preco_atual = WebDriverWait(
+            driver,
+            5
+        ).until(
+            EC.presence_of_element_located(
+                (
+                By.CSS_SELECTOR,
+                    '[data-testid="price-value"]'
+                )
+            )
+        )
+
+        preco_atual = elemento_preco_atual.text.strip()
+
+        log_ok(
+            f"Preço atual encontrado: {preco_atual}"
+        )
+
+        print(
+            f"[PREÇO ATUAL] {preco_atual}"
+        )
+
+    except Exception as erro:
+
+        preco_atual = None
+
+        log_revisar(
+            f"Não consegui encontrar o preço atual. "
+            f"Produto: {url_produto} | Erro: {erro}"
+        )
+
+        print(
+            "[AVISO] Preço atual não encontrado."
+        )
+
+    # =========================================================
+    # GERAR LINK DE AFILIADO
+    # =========================================================
+
+    try:
+
         botao = wait.until(
             EC.element_to_be_clickable(
                 (
@@ -55,17 +145,29 @@ def gerar_link_afiliado(driver, wait, url_produto):
             f"Produto: {url_produto} | Erro: {erro}"
         )
 
-        return None
+        return {
+            "link_afiliado": None,
+            "preco_anterior": preco_anterior,
+            "preco_atual": preco_atual
+        }
+
+    # =========================================================
+    # ENCONTRAR LINK NO MODAL
+    # =========================================================
 
     try:
 
         def encontrar_input_link(driver):
 
-            inputs = driver.find_elements(By.CSS_SELECTOR, "input")
+            inputs = driver.find_elements(
+                By.CSS_SELECTOR,
+                "input"
+            )
 
             for campo in inputs:
 
                 try:
+
                     if not campo.is_displayed():
                         continue
 
@@ -82,7 +184,10 @@ def gerar_link_afiliado(driver, wait, url_produto):
 
             return False
 
-        campo_link = WebDriverWait(driver, 10).until(
+        campo_link = WebDriverWait(
+            driver,
+            10
+        ).until(
             encontrar_input_link
         )
 
@@ -95,7 +200,11 @@ def gerar_link_afiliado(driver, wait, url_produto):
         print("[OK] Link de afiliado obtido:")
         print(link_afiliado)
 
-        return link_afiliado
+        return {
+            "link_afiliado": link_afiliado,
+            "preco_anterior": preco_anterior,
+            "preco_atual": preco_atual
+        }
 
     except Exception as erro:
 
@@ -104,4 +213,8 @@ def gerar_link_afiliado(driver, wait, url_produto):
             f"Produto: {url_produto} | Erro: {erro}"
         )
 
-        return None
+        return {
+            "link_afiliado": None,
+            "preco_anterior": preco_anterior,
+            "preco_atual": preco_atual
+        }

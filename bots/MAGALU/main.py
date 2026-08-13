@@ -135,18 +135,17 @@ def fechar_chrome_se_necessario():
         chrome_foi_aberto_pelo_programa = False
 
 # =================aqui conecta ao chrome 9222
-
 def main():
+
     resultados = carregar_resultados()
 
     iniciar_chrome_se_necessario()
 
-
-# aqui conta somente os links da execução atual
+    # aqui conta somente os links da execução atual
     processados_nesta_execucao = 0
-    
+
     links_obtidos_nesta_execucao = 0
-# =========
+    # =========
 
     selecao = selecionar_categorias()
 
@@ -169,54 +168,86 @@ def main():
     print("\n[INFO] Conectando ao Chrome...")
 
     options = Options()
+
     options.add_experimental_option(
         "debuggerAddress",
         CHROME_DEBUGGER
     )
 
     try:
-        driver = webdriver.Chrome(options=options)
-        wait = WebDriverWait(driver, 15)
+
+        driver = webdriver.Chrome(
+            options=options
+        )
+
+        wait = WebDriverWait(
+            driver,
+            15
+        )
 
         print("[OK] Chrome conectado.")
+
         print("[INFO] Página atual:")
         print(driver.current_url)
 
-# abrir o link de vitrine magalu
+        # =====================================================
+        # ABRIR O LINK DE VITRINE MAGALU
+        # =====================================================
 
         print("\n[1] Abrindo sua vitrine...")
+
         driver.get(BASE_URL)
+
         time.sleep(3)
+
         print("[OK] Vitrine aberta.")
-# escolher categoria/o que o bot vai pesquisar
+
+        # =====================================================
+        # ESCOLHER CATEGORIA / O QUE O BOT VAI PESQUISAR
+        # =====================================================
+
         for numero_categoria, categoria in enumerate(
             categorias_selecionadas,
             start=1
         ):
+
             print("\n")
             print("=" * 70)
+
             print(
                 f"CATEGORIA {numero_categoria}/"
                 f"{len(categorias_selecionadas)}: "
                 f"{categoria.upper()}"
             )
+
             print("=" * 70)
 
             produtos = coletar_produtos_categoria(
                 driver,
                 categoria
             )
-# aqui verifica se existe um processo anterior e se existem produtos que ja foram coletados
+
+            # =================================================
+            # RETOMADA
+            # =================================================
+
             produtos_pendentes = []
 
             for produto in produtos:
+
                 if produto_ja_processado(
                     resultados,
                     produto,
                     categoria
                 ):
-                    print("[RETOMADA] Produto já processado. Pulando:")
+
+                    print(
+                        "[RETOMADA] Produto já processado. "
+                        "Pulando:"
+                    )
+
                     print(produto)
+
                     continue
 
                 produtos_pendentes.append(produto)
@@ -225,128 +256,317 @@ def main():
                 f"\n[RETOMADA] {len(produtos_pendentes)} "
                 "produtos pendentes."
             )
+
             print(
                 f"[RETOMADA] "
                 f"{len(produtos) - len(produtos_pendentes)} "
                 "produtos já concluídos."
             )
 
+            # =================================================
+            # PROCESSAR PRODUTOS
+            # =================================================
+
             for numero_produto, url_produto in enumerate(
                 produtos_pendentes,
                 start=1
             ):
+
                 print(
                     f"\n[{categoria}] Produto pendente "
                     f"{numero_produto}/{len(produtos_pendentes)}"
                 )
 
-                link_afiliado = gerar_link_afiliado(
+                # =================================================
+                # GERAR LINK + CAPTURAR PREÇOS
+                # =================================================
+
+                dados_afiliado = gerar_link_afiliado(
                     driver,
                     wait,
                     url_produto
                 )
 
+                # -------------------------------------------------
+                # RECEBER OS DADOS RETORNADOS
+                # -------------------------------------------------
+
+                link_afiliado = dados_afiliado.get(
+                    "link_afiliado"
+                )
+
+                preco_anterior = dados_afiliado.get(
+                    "preco_anterior"
+                )
+
+                preco_atual = dados_afiliado.get(
+                    "preco_atual"
+                )
+
+                # =================================================
+                # CONTADORES
+                # =================================================
+
                 processados_nesta_execucao += 1
+
                 # aqui que contabiliza o link no processo atual
+
                 if link_afiliado:
                     links_obtidos_nesta_execucao += 1
+
+                # =================================================
+                # VERIFICAR SE JÁ EXISTE RESULTADO
+                # =================================================
 
                 resultado_existente = None
 
                 for resultado in resultados:
+
                     if (
                         resultado["categoria"] == categoria
                         and resultado["link_produto"] == url_produto
                     ):
-                        resultado_existente = resultado
-                        break
-# =====================salva informacoes no xlsx e csv==============================
 
-                data_hora = time.strftime("%d/%m/%Y %H:%M:%S")
+                        resultado_existente = resultado
+
+                        break
+
+                # =================================================
+                # SALVA INFORMAÇÕES NO XLSX E CSV
+                # =================================================
+
+                data_hora = time.strftime(
+                    "%d/%m/%Y %H:%M:%S"
+                )
 
                 if link_afiliado:
 
                     status = "OK"
-                    detalhes = "Link de afiliado obtido com sucesso."
+
+                    detalhes = (
+                        "Link de afiliado obtido com sucesso."
+                    )
 
                 else:
 
                     status = "REVISAR"
-                    detalhes = "Não foi possível obter o link de afiliado."
+
+                    detalhes = (
+                        "Não foi possível obter "
+                        "o link de afiliado."
+                    )
+
+                # =================================================
+                # ATUALIZAR RESULTADO EXISTENTE
+                # =================================================
 
                 if resultado_existente:
-                    resultado_existente["link_afiliado"] = link_afiliado
-                    resultado_existente["status"] = status
-                    resultado_existente["data_hora"] = data_hora
-                    resultado_existente["detalhes"] = detalhes
+
+                    resultado_existente[
+                        "link_afiliado"
+                    ] = link_afiliado
+
+                    resultado_existente[
+                        "preco_anterior"
+                    ] = preco_anterior
+
+                    resultado_existente[
+                        "preco_atual"
+                    ] = preco_atual
+
+                    resultado_existente[
+                        "status"
+                    ] = status
+
+                    resultado_existente[
+                        "data_hora"
+                    ] = data_hora
+
+                    resultado_existente[
+                        "detalhes"
+                    ] = detalhes
+
+                # =================================================
+                # CRIAR NOVO RESULTADO
+                # =================================================
 
                 else:
+
                     resultados.append({
-                    "categoria": categoria,
-                    "produto_numero": numero_produto,
-                    "link_produto": url_produto,
-                    "link_afiliado": link_afiliado,
-                    "status": status,
-                    "data_hora": data_hora,
-                    "detalhes": detalhes,
-                })
-                    
-# ===================================================
+
+                        "categoria": categoria,
+
+                        "produto_numero": numero_produto,
+
+                        "link_produto": url_produto,
+
+                        "link_afiliado": link_afiliado,
+
+                        "preco_anterior": preco_anterior,
+
+                        "preco_atual": preco_atual,
+
+                        "status": status,
+
+                        "data_hora": data_hora,
+
+                        "detalhes": detalhes,
+
+                    })
+
+                # =================================================
+                # MOSTRAR RESULTADO NO TERMINAL
+                # =================================================
+
+                if preco_anterior:
+                    print(
+                        f"[PREÇO ANTERIOR] "
+                        f"{preco_anterior}"
+                    )
+                else:
+                    print(
+                        "[PREÇO ANTERIOR] "
+                        "Não informado"
+                    )
+
+                if preco_atual:
+                    print(
+                        f"[PREÇO ATUAL] "
+                        f"{preco_atual}"
+                    )
+                else:
+                    print(
+                        "[PREÇO ATUAL] "
+                        "Não encontrado"
+                    )
 
                 if link_afiliado:
-                    print("[OK] Produto processado com sucesso.")
+
+                    print(
+                        "[OK] Produto processado com sucesso."
+                    )
+
                 else:
-                    print("[AVISO] Produto sem link de afiliado.")
+
+                    print(
+                        "[AVISO] Produto sem link de afiliado."
+                    )
+
+                # =================================================
+                # SALVAR IMEDIATAMENTE
+                # =================================================
 
                 try:
+
                     salvar_dados(resultados)
-                    print("[OK] Dados salvos no Excel e CSV.")
+
+                    print(
+                        "[OK] Dados salvos no Excel e CSV."
+                    )
+
                 except Exception as erro:
-                    print("[ERRO] Falha ao salvar dados:")
+
+                    print(
+                        "[ERRO] Falha ao salvar dados:"
+                    )
+
                     print(erro)
 
-                time.sleep(random.uniform(2, 4))
+                time.sleep(
+                    random.uniform(2, 4)
+                )
+
+        # =========================================================
+        # SALVAMENTO FINAL
+        # =========================================================
 
         try:
+
             salvar_dados(resultados)
-            print("\n[OK] Salvamento final concluído.")
+
+            print(
+                "\n[OK] Salvamento final concluído."
+            )
+
         except Exception as erro:
-            print("\n[ERRO] Falha no salvamento final:")
+
+            print(
+                "\n[ERRO] Falha no salvamento final:"
+            )
+
             print(erro)
+
+        # =========================================================
+        # RELATÓRIO FINAL
+        # =========================================================
 
         mostrar_relatorio_final(
             resultados,
             categorias_selecionadas,
-            processados_nesta_execucao
+            processados_nesta_execucao,
+            links_obtidos_nesta_execucao
         )
 
-# isso aqui faz aquilo la de mostrar item do processo atual até com o keyboardinterrupt
+    # =============================================================
+    # CTRL + C
+    # =============================================================
 
     except KeyboardInterrupt:
-            mostrar_resultados_interrompidos(
+
+        mostrar_resultados_interrompidos(
             resultados,
             processados_nesta_execucao,
             links_obtidos_nesta_execucao
         )
 
+    # =============================================================
+    # ERRO FATAL
+    # =============================================================
+
     except Exception as erro:
+
         print("\n")
         print("=" * 70)
         print("                    ERRO FATAL")
         print("=" * 70)
-        print("\n[ERRO] A execução encontrou um erro inesperado:")
+
+        print(
+            "\n[ERRO] A execução encontrou "
+            "um erro inesperado:"
+        )
+
         print(erro)
-        print("\n[INFO] Salvando os dados já coletados...")
+
+        print(
+            "\n[INFO] Salvando os dados já coletados..."
+        )
 
         try:
+
             salvar_dados(resultados)
-            print("[OK] Dados preservados nas planilhas.")
+
+            print(
+                "[OK] Dados preservados nas planilhas."
+            )
+
         except Exception as erro_dados:
-            print("[ERRO] Também não foi possível salvar nas planilhas:")
+
+            print(
+                "[ERRO] Também não foi possível "
+                "salvar nas planilhas:"
+            )
+
             print(erro_dados)
 
+    # =============================================================
+    # FINALMENTE
+    # =============================================================
+
     finally:
-        print("\n[INFO] Execução encerrada.")
+
+        print(
+            "\n[INFO] Execução encerrada."
+        )
 
         fechar_chrome_se_necessario()
 
