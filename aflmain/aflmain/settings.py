@@ -56,7 +56,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
-ROOT_URLCONF = 'aflmain.urls'
+ROOT_URLCONF = 'urls'
 
 TEMPLATES = [
     {
@@ -73,7 +73,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'aflmain.wsgi.application'
+WSGI_APPLICATION = 'wsgi.application'
 
 
 # Database
