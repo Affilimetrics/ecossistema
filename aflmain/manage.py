@@ -5,6 +5,10 @@ import sys
 
 
 def main():
+
+    current_path = Path(__file__).resolve().parent
+    sys.path.append(str(current_path / "aflmain"))
+
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'aflmain.settings')
     try:
