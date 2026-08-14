@@ -14,6 +14,6 @@ from django.core.asgi import get_asgi_application
 
 sys.path.append(str(Path(__file__).resolve().parent))
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'aflmain.settings')
 
 application = get_asgi_application()
