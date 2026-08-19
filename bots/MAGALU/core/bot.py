@@ -23,6 +23,9 @@ from relatorios.relatorios import (
 )
 
 
+from core.estados import GerenciadorEstados, EstadoBot
+
+
 # =========================================================
 # CONFIGURAÇÃO DO CHROME
 # =========================================================
@@ -36,6 +39,7 @@ chrome_foi_aberto_pelo_programa = False
 # =========================================================
 # VERIFICAR CHROME NA PORTA 9222
 # =========================================================
+
 
 def chrome_9222_esta_aberto():
 
@@ -231,10 +235,41 @@ def fechar_chrome_se_necessario():
 # EXECUTAR BOT
 # =========================================================
 
-def executar_bot(
-    categorias_selecionadas,
-    keywords_loop=None
-):
+def executar_bot(categorias_selecionadas=None, keywords_loop=None):
+    # Instancia o gerenciador de estados
+    gerenciador_estado = GerenciadorEstados(EstadoBot.INICIANDO)
+    executar_bot.gerenciador_estado = gerenciador_estado
+
+    try:
+        # --- ETAPA DE INICIALIZAÇÃO DO CHROME ---
+        # (Seu código original de verificar porta 9222 e abrir Chrome)
+
+        # --- ETAPA DE CONEXÃO E NAVEGAÇÃO ---
+        gerenciador_estado.definir_estado(EstadoBot.VERIFICANDO_LOGIN)
+
+        # Checagem de login
+        usuario_logado = True 
+
+        if usuario_logado:
+            gerenciador_estado.definir_estado(EstadoBot.LOGADO)
+        else:
+            gerenciador_estado.definir_estado(EstadoBot.AGUARDANDO_LOGIN)
+
+        # --- ETAPA DE COLETA ---
+        gerenciador_estado.definir_estado(EstadoBot.EXECUTANDO)
+
+        # (Seu loop original que utiliza categorias_selecionadas e keywords_loop)
+
+        # --- FINALIZAÇÃO NORMAL ---
+        gerenciador_estado.definir_estado(EstadoBot.FINALIZADO)
+
+    except KeyboardInterrupt:
+        gerenciador_estado.definir_estado(EstadoBot.PARADO)
+        raise
+
+    except Exception as e:
+        gerenciador_estado.definir_estado(EstadoBot.ERRO)
+        raise e
 
     """
     Executa o coletor Magalu.
