@@ -1,12 +1,21 @@
 import time
 import random
 import subprocess
+import urllib.request
+import re
 
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-from config.config import CHROME_DEBUGGER, BASE_URL
+from config.config import (
+    CHROME_DEBUGGER,
+    BASE_URL,
+    LOGIN_URL,
+    LOGIN_TIMEOUT,
+)
 
 from persistencia.excel import (
     carregar_resultados,
@@ -14,23 +23,32 @@ from persistencia.excel import (
     produto_ja_processado,
 )
 
-from automacao.categorias import coletar_produtos_categoria
-from automacao.afiliados import gerar_link_afiliado
+from automacao.categorias import (
+    coletar_produtos_categoria
+)
+
+from automacao.afiliados import (
+    gerar_link_afiliado
+)
 
 from relatorios.relatorios import (
     mostrar_resultados_interrompidos,
     mostrar_relatorio_final,
 )
 
-
-from core.estados import GerenciadorEstados, EstadoBot
+from core.estados import (
+    GerenciadorEstados,
+    EstadoBot,
+)
 
 
 # =========================================================
 # CONFIGURAÇÃO DO CHROME
 # =========================================================
 
-chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+chrome_path = (
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+)
 
 chrome = None
 chrome_foi_aberto_pelo_programa = False
@@ -40,15 +58,12 @@ chrome_foi_aberto_pelo_programa = False
 # VERIFICAR CHROME NA PORTA 9222
 # =========================================================
 
-
 def chrome_9222_esta_aberto():
 
     """
     Verifica se já existe um Chrome respondendo
     na porta 9222.
     """
-
-    import urllib.request
 
     try:
 
@@ -69,11 +84,6 @@ def chrome_9222_esta_aberto():
 # =========================================================
 
 def iniciar_chrome_se_necessario():
-
-    """
-    Só abre o Chrome se a porta 9222 ainda não
-    estiver disponível.
-    """
 
     global chrome
     global chrome_foi_aberto_pelo_programa
@@ -164,11 +174,6 @@ def iniciar_chrome_se_necessario():
 
 def fechar_chrome_se_necessario():
 
-    """
-    Fecha o Chrome somente se ele tiver sido
-    aberto pelo programa.
-    """
-
     global chrome
     global chrome_foi_aberto_pelo_programa
 
@@ -232,97 +237,510 @@ def fechar_chrome_se_necessario():
 
 
 # =========================================================
+# DETECTAR SE A PÁGINA É DE LOGIN
+# =========================================================
+
+def pagina_eh_login(driver):
+
+    """
+    Determina se o navegador ainda está na tela
+    de autenticação.
+
+    Não depende somente da URL.
+    """
+
+    try:
+
+        url_atual = driver.current_url.lower()
+
+        # -------------------------------------------------
+        # Indicador principal: URL
+        # -------------------------------------------------
+
+        if "/login" in url_atual:
+
+            return True
+
+        # -------------------------------------------------
+        # Texto da página
+        # -------------------------------------------------
+
+        body = driver.find_element(
+            By.TAG_NAME,
+            "body"
+        )
+
+        texto = body.text.lower()
+
+        indicadores = [
+            "entrar",
+            "senha",
+            "e-mail",
+            "email",
+            "cpf",
+        ]
+
+        encontrados = 0
+
+        for indicador in indicadores:
+
+            if indicador in texto:
+
+                encontrados += 1
+
+        # Vários indicadores juntos reduzem falsos positivos.
+        if encontrados >= 3:
+
+            return True
+
+        return False
+
+    except Exception:
+
+        return False
+
+
+# =========================================================
+# VERIFICAR LOGIN
+# =========================================================
+
+def verificar_login(driver):
+
+    """
+    Abre a página de login do Influenciador.
+
+    Se já houver uma sessão válida, o próprio site poderá
+    redirecionar o navegador para uma área autenticada.
+
+    Retorna:
+
+        True  -> usuário autenticado
+        False -> ainda precisa fazer login
+    """
+
+    print("\n")
+    print("=" * 70)
+    print("                 VERIFICAÇÃO DE LOGIN")
+    print("=" * 70)
+
+    print(
+        "\n[LOGIN] Abrindo página de login..."
+    )
+
+    driver.get(LOGIN_URL)
+
+    time.sleep(3)
+
+    print(
+        "[LOGIN] URL atual:"
+    )
+
+    print(
+        driver.current_url
+    )
+
+    # -----------------------------------------------------
+    # Ainda está na tela de login?
+    # -----------------------------------------------------
+
+    if pagina_eh_login(driver):
+
+        print(
+            "[LOGIN] Nenhuma sessão autenticada foi detectada."
+        )
+
+        return False
+
+    # -----------------------------------------------------
+    # Foi redirecionado para uma área autenticada
+    # -----------------------------------------------------
+
+    print(
+        "[OK] Sessão autenticada detectada."
+    )
+
+    return True
+
+
+# =========================================================
+# AGUARDAR LOGIN MANUAL
+# =========================================================
+
+def aguardar_login(
+    driver,
+    gerenciador_estado,
+    timeout=LOGIN_TIMEOUT
+):
+
+    """
+    Aguarda o usuário realizar o login manualmente.
+
+    O bot NÃO preenche usuário, senha ou código.
+
+    O usuário realiza todo o processo manualmente
+    no Chrome.
+    """
+
+    gerenciador_estado.definir_estado(
+        EstadoBot.AGUARDANDO_LOGIN
+    )
+
+    print("\n")
+    print("=" * 70)
+    print("                 LOGIN NECESSÁRIO")
+    print("=" * 70)
+
+    print(
+        "\n[LOGIN] Faça o login manualmente no Chrome."
+    )
+
+    print(
+        "[LOGIN] O bot está aguardando..."
+    )
+
+    print(
+        f"[LOGIN] Tempo máximo: {timeout} segundos."
+    )
+
+    print("=" * 70)
+
+    inicio = time.time()
+    ultimo_aviso = 0
+
+    while True:
+
+        tempo_decorrido = time.time() - inicio
+
+        # -------------------------------------------------
+        # TIMEOUT
+        # -------------------------------------------------
+
+        if tempo_decorrido >= timeout:
+
+            print(
+                "\n[ERRO] Tempo máximo de login atingido."
+            )
+
+            return False
+
+        # -------------------------------------------------
+        # VERIFICAR SE LOGIN TERMINOU
+        # -------------------------------------------------
+
+        if not pagina_eh_login(driver):
+
+            print(
+                "\n[OK] Login concluído."
+            )
+
+            gerenciador_estado.definir_estado(
+                EstadoBot.LOGADO
+            )
+
+            return True
+
+        # -------------------------------------------------
+        # AVISO PERIÓDICO
+        # -------------------------------------------------
+
+        agora = time.time()
+
+        if agora - ultimo_aviso >= 10:
+
+            restante = int(
+                timeout - tempo_decorrido
+            )
+
+            print(
+                f"[AGUARDANDO_LOGIN] "
+                f"Faça o login no Chrome. "
+                f"Restante: {restante}s"
+            )
+
+            ultimo_aviso = agora
+
+        time.sleep(2)
+
+
+# =========================================================
+# DESCOBRIR LOJA VINCULADA À CONTA
+# =========================================================
+
+def descobrir_loja_vinculada(driver):
+
+    """
+    Tenta descobrir a URL da Loja Virtual vinculada
+    à conta autenticada.
+
+    A descoberta é feita através dos links presentes
+    na área autenticada.
+
+    Retorna:
+
+        URL da loja
+
+    ou:
+
+        None
+    """
+
+    print("\n")
+    print("=" * 70)
+    print("              DESCOBRINDO SUA LOJA")
+    print("=" * 70)
+
+    # -----------------------------------------------------
+    # Primeiro tenta a página atual
+    # -----------------------------------------------------
+
+    url_loja = procurar_link_loja_na_pagina(
+        driver
+    )
+
+    if url_loja:
+
+        print(
+            f"[OK] Loja encontrada: {url_loja}"
+        )
+
+        return url_loja
+
+    # -----------------------------------------------------
+    # Tenta a página principal
+    # -----------------------------------------------------
+
+    print(
+        "[INFO] Loja não encontrada na página atual."
+    )
+
+    print(
+        "[INFO] Consultando página principal..."
+    )
+
+    try:
+
+        driver.get(
+            "https://www.magazinevoce.com.br/"
+        )
+
+        time.sleep(3)
+
+        url_loja = procurar_link_loja_na_pagina(
+            driver
+        )
+
+        if url_loja:
+
+            print(
+                f"[OK] Loja encontrada: {url_loja}"
+            )
+
+            return url_loja
+
+    except Exception as erro:
+
+        print(
+            f"[AVISO] Falha ao consultar página principal: {erro}"
+        )
+
+    # -----------------------------------------------------
+    # Não encontrou
+    # -----------------------------------------------------
+
+    print(
+        "[ERRO] Não foi possível descobrir "
+        "a loja vinculada à conta."
+    )
+
+    return None
+
+
+# =========================================================
+# PROCURAR LINK DA LOJA NA PÁGINA
+# =========================================================
+
+def procurar_link_loja_na_pagina(driver):
+
+    """
+    Procura links que tenham o formato:
+
+        https://www.magazinevoce.com.br/NOME_DA_LOJA/
+
+    Ignora páginas que não representam uma loja.
+    """
+
+    try:
+
+        links = driver.find_elements(
+            By.TAG_NAME,
+            "a"
+        )
+
+        for link in links:
+
+            try:
+
+                href = link.get_attribute(
+                    "href"
+                )
+
+                if not href:
+
+                    continue
+
+                href = href.strip()
+
+                # -------------------------------------------------
+                # Verificar domínio
+                # -------------------------------------------------
+
+                if not href.startswith(
+                    "https://www.magazinevoce.com.br/"
+                ):
+
+                    continue
+
+                # -------------------------------------------------
+                # Remover query/hash
+                # -------------------------------------------------
+
+                href_limpo = href.split("?")[0]
+                href_limpo = href_limpo.split("#")[0]
+
+                # -------------------------------------------------
+                # Procurar estrutura /slug/
+                # -------------------------------------------------
+
+                padrao = re.match(
+                    r"^https://www\.magazinevoce\.com\.br/"
+                    r"([^/]+)/?$",
+                    href_limpo,
+                    re.IGNORECASE
+                )
+
+                if not padrao:
+
+                    continue
+
+                slug = padrao.group(1).lower()
+
+                # -------------------------------------------------
+                # Ignorar páginas especiais
+                # -------------------------------------------------
+
+                ignorados = {
+                    "",
+                    "login",
+                    "cadastro",
+                    "blog",
+                    "static",
+                    "termos",
+                    "privacidade",
+                }
+
+                if slug in ignorados:
+
+                    continue
+
+                # -------------------------------------------------
+                # Evitar a raiz
+                # -------------------------------------------------
+
+                if slug == "www":
+
+                    continue
+
+                return href_limpo.rstrip("/") + "/"
+
+            except Exception:
+
+                continue
+
+    except Exception:
+
+        pass
+
+    return None
+
+
+# =========================================================
 # EXECUTAR BOT
 # =========================================================
 
-def executar_bot(categorias_selecionadas=None, keywords_loop=None):
-    # Instancia o gerenciador de estados
-    gerenciador_estado = GerenciadorEstados(EstadoBot.INICIANDO)
-    executar_bot.gerenciador_estado = gerenciador_estado
+def executar_bot(
+    categorias_selecionadas=None,
+    keywords_loop=None
+):
 
-    try:
-        # --- ETAPA DE INICIALIZAÇÃO DO CHROME ---
-        # (Seu código original de verificar porta 9222 e abrir Chrome)
+    gerenciador_estado = GerenciadorEstados(
+        EstadoBot.INICIANDO
+    )
 
-        # --- ETAPA DE CONEXÃO E NAVEGAÇÃO ---
-        gerenciador_estado.definir_estado(EstadoBot.VERIFICANDO_LOGIN)
+    executar_bot.gerenciador_estado = (
+        gerenciador_estado
+    )
 
-        # Checagem de login
-        usuario_logado = True 
-
-        if usuario_logado:
-            gerenciador_estado.definir_estado(EstadoBot.LOGADO)
-        else:
-            gerenciador_estado.definir_estado(EstadoBot.AGUARDANDO_LOGIN)
-
-        # --- ETAPA DE COLETA ---
-        gerenciador_estado.definir_estado(EstadoBot.EXECUTANDO)
-
-        # (Seu loop original que utiliza categorias_selecionadas e keywords_loop)
-
-        # --- FINALIZAÇÃO NORMAL ---
-        gerenciador_estado.definir_estado(EstadoBot.FINALIZADO)
-
-    except KeyboardInterrupt:
-        gerenciador_estado.definir_estado(EstadoBot.PARADO)
-        raise
-
-    except Exception as e:
-        gerenciador_estado.definir_estado(EstadoBot.ERRO)
-        raise e
-
-    """
-    Executa o coletor Magalu.
-
-    Esta função é a principal porta de entrada do bot.
-
-    Futuramente o Django poderá chamar esta função
-    diretamente, sem precisar executar o main.py.
-    """
-
-    resultados = carregar_resultados()
-
-    iniciar_chrome_se_necessario()
-
-    # -----------------------------------------------------
-    # CONTADORES DA EXECUÇÃO ATUAL
-    # -----------------------------------------------------
+    resultados = []
 
     processados_nesta_execucao = 0
 
     links_obtidos_nesta_execucao = 0
 
-    print("\n")
-    print("=" * 70)
-
-    print(
-        "        MAGALU - COLETOR DE LINKS DE AFILIADO"
-    )
-
-    print("=" * 70)
-
-    print(
-        "\n[INFO] Categorias que serão processadas:"
-    )
-
-    for categoria in categorias_selecionadas:
-
-        print(
-            f"  - {categoria}"
-        )
-
-    print(
-        "\n[INFO] Conectando ao Chrome..."
-    )
-
-    options = Options()
-
-    options.add_experimental_option(
-        "debuggerAddress",
-        CHROME_DEBUGGER
-    )
+    driver = None
 
     try:
+
+        # =================================================
+        # VALIDAR CATEGORIAS
+        # =================================================
+
+        if not categorias_selecionadas:
+
+            print(
+                "[AVISO] Nenhuma categoria foi selecionada."
+            )
+
+            gerenciador_estado.definir_estado(
+                EstadoBot.PARADO
+            )
+
+            return
+
+        # =================================================
+        # CARREGAR RESULTADOS
+        # =================================================
+
+        resultados = carregar_resultados()
+
+        # =================================================
+        # CHROME
+        # =================================================
+
+        iniciar_chrome_se_necessario()
+
+        print("\n")
+        print("=" * 70)
+
+        print(
+            "        MAGALU - COLETOR DE LINKS DE AFILIADO"
+        )
+
+        print("=" * 70)
+
+        # =================================================
+        # CONECTAR SELENIUM
+        # =================================================
+
+        print(
+            "\n[INFO] Conectando ao Chrome..."
+        )
+
+        options = Options()
+
+        options.add_experimental_option(
+            "debuggerAddress",
+            CHROME_DEBUGGER
+        )
 
         driver = webdriver.Chrome(
             options=options
@@ -337,32 +755,138 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
             "[OK] Chrome conectado."
         )
 
-        print(
-            "[INFO] Página atual:"
+        # =================================================
+        # LOGIN — PRIMEIRA ETAPA REAL
+        # =================================================
+
+        gerenciador_estado.definir_estado(
+            EstadoBot.VERIFICANDO_LOGIN
         )
 
+        usuario_ja_logado = verificar_login(
+            driver
+        )
+
+        # -------------------------------------------------
+        # NÃO LOGADO
+        # -------------------------------------------------
+
+        if not usuario_ja_logado:
+
+            login_realizado = aguardar_login(
+                driver,
+                gerenciador_estado,
+                LOGIN_TIMEOUT
+            )
+
+            if not login_realizado:
+
+                gerenciador_estado.definir_estado(
+                    EstadoBot.ERRO
+                )
+
+                raise RuntimeError(
+                    "O usuário não realizou o login "
+                    "dentro do tempo permitido."
+                )
+
+        # -------------------------------------------------
+        # LOGADO
+        # -------------------------------------------------
+
+        else:
+
+            gerenciador_estado.definir_estado(
+                EstadoBot.LOGADO
+            )
+
+        # =================================================
+        # CONFIRMAÇÃO
+        # =================================================
+
+        if (
+            gerenciador_estado.estado
+            != EstadoBot.LOGADO
+        ):
+
+            raise RuntimeError(
+                "Não foi possível confirmar "
+                "o login do usuário."
+            )
+
         print(
-            driver.current_url
+            "\n[OK] Autenticação confirmada."
         )
 
         # =================================================
-        # ABRIR VITRINE
+        # DESCOBRIR LOJA
+        # =================================================
+
+        loja_url = descobrir_loja_vinculada(
+            driver
+        )
+
+        if not loja_url:
+
+            gerenciador_estado.definir_estado(
+                EstadoBot.ERRO
+            )
+
+            raise RuntimeError(
+                "Não foi possível descobrir "
+                "a loja vinculada à conta."
+            )
+
+        # =================================================
+        # ABRIR LOJA DA CONTA
         # =================================================
 
         print(
-            "\n[1] Abrindo sua vitrine..."
+            "\n[INFO] Abrindo loja vinculada à conta..."
         )
 
-        driver.get(BASE_URL)
+        print(
+            f"[LOJA] {loja_url}"
+        )
+
+        driver.get(
+            loja_url
+        )
 
         time.sleep(3)
 
         print(
-            "[OK] Vitrine aberta."
+            "[OK] Loja da conta aberta."
+        )
+
+        print(
+            f"[URL] {driver.current_url}"
+        )
+
+        # =================================================
+        # EXECUTANDO
+        # =================================================
+
+        gerenciador_estado.definir_estado(
+            EstadoBot.EXECUTANDO
         )
 
         # =================================================
         # CATEGORIAS
+        # =================================================
+
+        print(
+            "\n[INFO] Categorias que serão processadas:"
+        )
+
+        for categoria in categorias_selecionadas:
+
+            print(
+                f"  - {categoria}"
+            )
+
+        # =================================================
+        # LOOP DAS CATEGORIAS
         # =================================================
 
         for numero_categoria, categoria in enumerate(
@@ -381,14 +905,18 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
 
             print("=" * 70)
 
+            # -------------------------------------------------
+            # Coletar produtos
+            # -------------------------------------------------
+
             produtos = coletar_produtos_categoria(
                 driver,
                 categoria
             )
 
-            # =============================================
-            # RETOMADA
-            # =============================================
+            # -------------------------------------------------
+            # Retomada
+            # -------------------------------------------------
 
             produtos_pendentes = []
 
@@ -405,7 +933,9 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                         "Pulando:"
                     )
 
-                    print(produto)
+                    print(
+                        produto
+                    )
 
                     continue
 
@@ -414,19 +944,20 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                 )
 
             print(
-                f"\n[RETOMADA] {len(produtos_pendentes)} "
-                "produtos pendentes."
+                f"\n[RETOMADA] "
+                f"{len(produtos_pendentes)} "
+                f"produtos pendentes."
             )
 
             print(
                 f"[RETOMADA] "
                 f"{len(produtos) - len(produtos_pendentes)} "
-                "produtos já concluídos."
+                f"produtos já concluídos."
             )
 
-            # =============================================
-            # PRODUTOS
-            # =============================================
+            # -------------------------------------------------
+            # Produtos
+            # -------------------------------------------------
 
             for numero_produto, url_produto in enumerate(
                 produtos_pendentes,
@@ -449,10 +980,6 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                     url_produto
                 )
 
-                # -------------------------------------------------
-                # Proteção caso afiliados.py retorne None
-                # -------------------------------------------------
-
                 if not dados_afiliado:
 
                     dados_afiliado = {
@@ -461,16 +988,22 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                         "preco_atual": None,
                     }
 
-                link_afiliado = dados_afiliado.get(
-                    "link_afiliado"
+                link_afiliado = (
+                    dados_afiliado.get(
+                        "link_afiliado"
+                    )
                 )
 
-                preco_anterior = dados_afiliado.get(
-                    "preco_anterior"
+                preco_anterior = (
+                    dados_afiliado.get(
+                        "preco_anterior"
+                    )
                 )
 
-                preco_atual = dados_afiliado.get(
-                    "preco_atual"
+                preco_atual = (
+                    dados_afiliado.get(
+                        "preco_atual"
+                    )
                 )
 
                 # =========================================
@@ -484,7 +1017,7 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                     links_obtidos_nesta_execucao += 1
 
                 # =========================================
-                # VERIFICAR RESULTADO EXISTENTE
+                # RESULTADO EXISTENTE
                 # =========================================
 
                 resultado_existente = None
@@ -493,7 +1026,8 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
 
                     if (
                         resultado["categoria"] == categoria
-                        and resultado["link_produto"] == url_produto
+                        and resultado["link_produto"]
+                        == url_produto
                     ):
 
                         resultado_existente = resultado
@@ -513,7 +1047,8 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                     status = "OK"
 
                     detalhes = (
-                        "Link de afiliado obtido com sucesso."
+                        "Link de afiliado obtido "
+                        "com sucesso."
                     )
 
                 else:
@@ -526,7 +1061,7 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                     )
 
                 # =========================================
-                # ATUALIZAR RESULTADO
+                # ATUALIZAR EXISTENTE
                 # =========================================
 
                 if resultado_existente:
@@ -618,13 +1153,15 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                 if link_afiliado:
 
                     print(
-                        "[OK] Produto processado com sucesso."
+                        "[OK] Produto processado "
+                        "com sucesso."
                     )
 
                 else:
 
                     print(
-                        "[AVISO] Produto sem link de afiliado."
+                        "[AVISO] Produto sem "
+                        "link de afiliado."
                     )
 
                 # =========================================
@@ -638,7 +1175,8 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                     )
 
                     print(
-                        "[OK] Dados salvos no Excel e CSV."
+                        "[OK] Dados salvos "
+                        "no Excel e CSV."
                     )
 
                 except Exception as erro:
@@ -647,7 +1185,9 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                         "[ERRO] Falha ao salvar dados:"
                     )
 
-                    print(erro)
+                    print(
+                        erro
+                    )
 
                 time.sleep(
                     random.uniform(2, 4)
@@ -673,10 +1213,12 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                 "\n[ERRO] Falha no salvamento final:"
             )
 
-            print(erro)
+            print(
+                erro
+            )
 
         # =================================================
-        # RELATÓRIO FINAL
+        # RELATÓRIO
         # =================================================
 
         mostrar_relatorio_final(
@@ -686,11 +1228,45 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
             links_obtidos_nesta_execucao
         )
 
+        # =================================================
+        # FINALIZADO
+        # =================================================
+
+        gerenciador_estado.definir_estado(
+            EstadoBot.FINALIZADO
+        )
+
     # =====================================================
     # CTRL + C
     # =====================================================
 
     except KeyboardInterrupt:
+
+        gerenciador_estado.definir_estado(
+            EstadoBot.PARADO
+        )
+
+        print(
+            "\n[INFO] Ctrl+C detectado."
+        )
+
+        try:
+
+            salvar_dados(
+                resultados
+            )
+
+            print(
+                "[OK] Dados salvos antes "
+                "da interrupção."
+            )
+
+        except Exception as erro:
+
+            print(
+                f"[ERRO] Falha ao salvar "
+                f"após Ctrl+C: {erro}"
+            )
 
         mostrar_resultados_interrompidos(
             resultados,
@@ -704,6 +1280,10 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
 
     except Exception as erro:
 
+        gerenciador_estado.definir_estado(
+            EstadoBot.ERRO
+        )
+
         print("\n")
         print("=" * 70)
         print("                    ERRO FATAL")
@@ -714,10 +1294,13 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
             "um erro inesperado:"
         )
 
-        print(erro)
+        print(
+            erro
+        )
 
         print(
-            "\n[INFO] Salvando os dados já coletados..."
+            "\n[INFO] Salvando os dados "
+            "já coletados..."
         )
 
         try:
@@ -727,7 +1310,8 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
             )
 
             print(
-                "[OK] Dados preservados nas planilhas."
+                "[OK] Dados preservados "
+                "nas planilhas."
             )
 
         except Exception as erro_dados:
@@ -737,7 +1321,9 @@ def executar_bot(categorias_selecionadas=None, keywords_loop=None):
                 "salvar nas planilhas:"
             )
 
-            print(erro_dados)
+            print(
+                erro_dados
+            )
 
     finally:
 
