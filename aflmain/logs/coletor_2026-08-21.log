@@ -1,0 +1,75 @@
+09:09:09 | INFO | C:\Users\025863\Documents\ecossistema\aflmain\core\views.py changed, reloading.
+09:13:52 | INFO | C:\Users\025863\Documents\ecossistema\aflmain\core\urls.py changed, reloading.
+09:14:02 | INFO | C:\Users\025863\Documents\ecossistema\aflmain\core\urls.py changed, reloading.
+09:14:19 | INFO | [ESTADO] -> INICIANDO
+09:14:19 | INFO | [ESTADO] -> INICIANDO
+09:14:26 | WARNING | Error sending stats to Plausible: error sending request for url (https://plausible.io/api/event)
+09:14:27 | INFO | [ESTADO] -> VERIFICANDO_LOGIN
+09:14:39 | INFO | [ESTADO] -> LOGADO
+09:14:43 | INFO | [ESTADO] -> EXECUTANDO
+09:15:04 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-aramoveis-cleo-8-portas/p/235418000/mo/mcoz/
+09:15:17 | INFO | OK | Preço anterior encontrado: R$ 680,00
+09:15:17 | INFO | OK | Preço atual encontrado: ou R$ 522,49
+09:15:33 | ERROR | Não foi possível clicar em 'Gerar link'. Produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-aramoveis-cleo-8-portas/p/235418000/mo/mcoz/ | Erro: Message: 
+
+09:15:35 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-rustic-preto-emilly-pop-madesa-xa/p/gb8e3b0ahd/mo/moac/
+09:15:46 | INFO | OK | Preço anterior encontrado: R$ 889,99
+09:15:46 | INFO | OK | Preço atual encontrado: ou R$ 710,99
+09:15:46 | INFO | OK | Botão 'Gerar link' encontrado.
+09:15:47 | INFO | OK | Botão 'Gerar link' clicado.
+09:15:49 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/nk0eeuch
+09:15:52 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacto-8-portas-2-gavetass-com-nicho-vogue-kits-parana/p/jhfe09bh6k/mo/moac/
+09:15:57 | INFO | OK | Preço anterior encontrado: R$ 615,88
+09:15:57 | INFO | OK | Preço atual encontrado: ou R$ 431,11
+09:15:57 | INFO | OK | Botão 'Gerar link' encontrado.
+09:15:57 | INFO | OK | Botão 'Gerar link' clicado.
+09:15:58 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/53vlf84b
+09:16:01 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-completa-com-armario-e-balcao-229cm-emilly-madesa/p/chk99b55ka/mo/moac/
+09:16:07 | INFO | OK | Preço anterior encontrado: R$ 919,99
+09:16:07 | INFO | OK | Preço atual encontrado: ou R$ 737,99
+09:16:07 | INFO | OK | Botão 'Gerar link' encontrado.
+09:16:07 | INFO | OK | Botão 'Gerar link' clicado.
+09:16:09 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/delyqvg9
+09:16:12 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-aereo-itatiaia-rose-arm-105-3-portas-105x40cm/p/237989400/mo/moac/
+09:16:18 | INFO | OK | Preço anterior encontrado: R$ 300,00
+09:16:18 | INFO | OK | Preço atual encontrado: ou R$ 256,49
+09:16:33 | ERROR | Não foi possível clicar em 'Gerar link'. Produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-aereo-itatiaia-rose-arm-105-3-portas-105x40cm/p/237989400/mo/moac/ | Erro: Message: 
+
+09:16:36 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-196cm-aura-madesa/p/bba6734eeh/mo/moac/
+09:16:41 | INFO | OK | Preço anterior encontrado: R$ 799,99
+09:16:41 | INFO | OK | Preço atual encontrado: ou R$ 611,99
+09:16:41 | INFO | OK | Botão 'Gerar link' encontrado.
+09:16:42 | INFO | OK | Botão 'Gerar link' clicado.
+09:16:44 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/e1k0pbkp
+09:16:47 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-demobile-select-com-balcao-nicho-para-micro-ondas-6-portas-2-gavetas/p/234470600/mo/moac/
+09:16:54 | INFO | OK | Preço anterior encontrado: R$ 1.099,00
+09:16:54 | INFO | OK | Preço atual encontrado: ou R$ 759,99
+09:17:10 | ERROR | Não foi possível clicar em 'Gerar link'. Produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-demobile-select-com-balcao-nicho-para-micro-ondas-6-portas-2-gavetas/p/234470600/mo/moac/ | Erro: Message: 
+
+09:17:13 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-itatiaia-amanda-aco-com-balcao-10-portas-1-gaveta/p/237989500/mo/moac/
+09:17:18 | INFO | OK | Preço anterior encontrado: R$ 1.199,00
+09:17:18 | INFO | OK | Preço atual encontrado: ou R$ 989,99
+09:17:33 | ERROR | Não foi possível clicar em 'Gerar link'. Produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-itatiaia-amanda-aco-com-balcao-10-portas-1-gaveta/p/237989500/mo/moac/ | Erro: Message: 
+
+09:17:36 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-sofia-multimoveis-preta/p/cj42317a5a/mo/moac/
+09:17:48 | INFO | OK | Preço atual encontrado: ou R$ 494,99
+09:17:48 | INFO | OK | Botão 'Gerar link' encontrado.
+09:17:49 | INFO | OK | Botão 'Gerar link' clicado.
+09:17:51 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/ktwblbe0
+09:17:54 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-120cm-life-madesa/p/fd42g9196f/mo/moac/
+09:18:02 | INFO | OK | Preço anterior encontrado: R$ 539,99
+09:18:02 | INFO | OK | Preço atual encontrado: ou R$ 443,69
+09:18:02 | INFO | OK | Botão 'Gerar link' encontrado.
+09:18:02 | INFO | OK | Botão 'Gerar link' clicado.
+09:18:04 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/c2ocbzve
+09:18:07 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-196cm-aura-madesa-xl/p/hd7fh94a6j/mo/moac/
+09:18:15 | INFO | OK | Preço anterior encontrado: R$ 739,99
+09:18:15 | INFO | OK | Preço atual encontrado: ou R$ 611,99
+09:18:15 | INFO | OK | Botão 'Gerar link' encontrado.
+09:18:16 | INFO | OK | Botão 'Gerar link' clicado.
+09:18:17 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/xddw0uy8
+09:18:20 | INFO | Abrindo produto: https://www.magazinevoce.com.br/magazineblackriseco/armario-de-cozinha-compacta-smart-multimoveis-mp2183/p/dac4chdd96/mo/moac/
+09:18:34 | INFO | OK | Preço atual encontrado: ou R$ 594,99
+09:18:34 | INFO | OK | Botão 'Gerar link' encontrado.
+09:18:35 | INFO | OK | Botão 'Gerar link' clicado.
+09:18:36 | INFO | OK | Link de afiliado obtido: https://magazineluiza.onelink.me/589508454/ey1ubse9
