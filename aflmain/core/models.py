@@ -44,6 +44,7 @@ class Execucao(models.Model):
     links_obtidos = models.PositiveIntegerField(default=0)
     categorias = models.JSONField(default=list, blank=True)
     keywords = models.JSONField(default=list, blank=True)
+    keywords_loop = models.JSONField(default=list, blank=True)
     erro = models.TextField(blank=True, default="")
 
     class Meta:

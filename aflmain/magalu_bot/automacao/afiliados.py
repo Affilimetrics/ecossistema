@@ -37,9 +37,10 @@ def validar_link_afiliado(link):
         return False
 
     host = parsed.netloc.lower().split(":", 1)[0].rstrip(".")
+    # Somente domínios de saída gerados pelo mecanismo de afiliados.
+    # A URL da vitrine/produto (magazinevoce.com.br) NÃO é afiliada e
+    # não pode ser aceita como fallback.
     hosts_permitidos = (
-        "magazineluiza.com.br",
-        "magazinevoce.com.br",
         "divulgador.magalu.com",
         "magazineluiza.onelink.me",
     )
@@ -209,61 +210,51 @@ def gerar_link_afiliado(driver, wait, url_produto):
     # =========================================================
 
     try:
+        def encontrar_link_valido(driver):
+            # O Magalu pode preencher o campo alguns segundos depois
+            # de o modal aparecer. Por isso procuramos repetidamente
+            # pelo VALOR da URL, e não apenas pela presença do input.
+            candidatos = []
+            elementos = driver.find_elements(By.CSS_SELECTOR, "input, textarea, a[href], [data-testid]")
 
-        def encontrar_input_link(driver):
-
-            inputs = driver.find_elements(
-                By.CSS_SELECTOR,
-                "input"
-            )
-
-            for campo in inputs:
-
+            for elemento in elementos:
                 try:
-
-                    if not campo.is_displayed():
+                    if not elemento.is_displayed():
                         continue
-
-                    valor = campo.get_attribute("value")
-
-                    if not valor:
-                        continue
-
-                    if "http://" in valor or "https://" in valor:
-                        return campo
-
+                    valores = [
+                        elemento.get_attribute("value"),
+                        elemento.get_attribute("href"),
+                        elemento.get_attribute("data-url"),
+                        elemento.get_attribute("data-href"),
+                        elemento.text,
+                    ]
+                    for valor in valores:
+                        valor = (valor or "").strip()
+                        if valor.startswith(("http://", "https://")):
+                            candidatos.append(valor)
                 except Exception:
                     continue
 
+            # Prioriza os formatos conhecidos de link afiliado.
+            for candidato in candidatos:
+                if validar_link_afiliado(candidato):
+                    return candidato
             return False
 
-        campo_link = None
-        seletores_link = [
-            (By.CSS_SELECTOR, '[data-testid="copy-to-clipboard-input"]'),
-            (By.CSS_SELECTOR, 'input[value*="divulgador.magalu"]'),
-        ]
-        for seletor in seletores_link:
-            try:
-                campo_link = WebDriverWait(driver, 5).until(EC.presence_of_element_located(seletor))
-                if campo_link:
-                    break
-            except Exception:
-                continue
-        if campo_link is None:
-            campo_link = WebDriverWait(driver, 5).until(encontrar_input_link)
+        link_afiliado = WebDriverWait(
+            driver, 12, poll_frequency=0.25
+        ).until(encontrar_link_valido)
 
-        link_afiliado = (campo_link.get_attribute("value") or "").strip()
-        if not link_afiliado.startswith("http://") and not link_afiliado.startswith("https://"):
-            raise RuntimeError("O campo retornado pelo modal não contém uma URL válida.")
-        if not validar_link_afiliado(link_afiliado):
-            raise RuntimeError(f"URL inesperada retornada pelo modal: {link_afiliado}")
-
-        log_ok(
-            f"Link de afiliado obtido: {link_afiliado}"
-        )
-
+        log_ok(f"Link de afiliado obtido: {link_afiliado}")
         print("[OK] Link de afiliado obtido:")
         print(link_afiliado)
+
+        # Fecha o modal para evitar que o estado do produto seguinte seja
+        # contaminado pelo modal anterior.
+        try:
+            driver.execute_script("document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', code:'Escape', bubbles:true}));")
+        except Exception:
+            pass
 
         return {
             "link_afiliado": link_afiliado,

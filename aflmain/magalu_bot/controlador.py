@@ -57,6 +57,7 @@ class ControladorBot:
                 estado=EstadoBot.INICIANDO.value,
                 categorias=self.categorias,
                 keywords=self.keywords,
+                keywords_loop=self.keywords_loop,
                 owner_id=owner_id,
             )
             self.execucao_id = execucao.pk
@@ -216,6 +217,7 @@ class ControladorBot:
             "categorias": list(self.categorias),
             "keywords": list(self.keywords),
             "keywords_loop": list(self.keywords_loop),
+            "persistido": bool(self.execucao_id),
             "execucao_id": self.execucao_id,
             "inicio": self.inicio.isoformat() if self.inicio else None,
             "progresso": self._progresso(),

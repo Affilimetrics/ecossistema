@@ -669,35 +669,58 @@ Nunca coloque senha real do banco no Git.
 
 # 20. Render
 
-O deploy deve usar as variáveis de ambiente do Render.
+O Django web está preparado para deploy no Render com PostgreSQL. O coletor Selenium, porém, **não deve ser considerado pronto para produção no mesmo Web Service**: ele precisa de um ambiente com Chrome/Chromium e sessão gráfica/automação apropriada. Em produção, mantenha o Django Web separado do worker Selenium.
 
-Variável principal:
+## Deploy do Django Web no Render
+
+1. Suba o projeto para um repositório GitHub privado ou público.
+2. No Render, crie um **PostgreSQL**.
+3. Crie um **Web Service** apontando para o repositório.
+4. Selecione o runtime Python.
+5. O projeto já possui `render.yaml` e `build.sh`; eles instalam dependências, coletam estáticos e executam migrations.
+6. Configure as variáveis de ambiente:
 
 ```text
-DATABASE_URL
+SECRET_KEY=<gerada pelo Render ou secret seguro>
+DEBUG=False
+ALLOWED_HOSTS=.onrender.com
+CSRF_TRUSTED_ORIGINS=https://SEU-SERVICO.onrender.com
+DATABASE_URL=<Internal Database URL do PostgreSQL do Render>
+TIME_ZONE=America/Sao_Paulo
 ```
 
-O build deve executar as migrations antes de iniciar o Gunicorn.
-
-Fluxo esperado:
+7. Faça o deploy. O build executará:
 
 ```text
-GitHub
-  ↓
-Render Build
-  ↓
 pip install -r requirements.txt
-  ↓
-python manage.py migrate
-  ↓
 python manage.py collectstatic --noinput
-  ↓
-Gunicorn
-  ↓
-PostgreSQL
+python manage.py migrate --noinput
 ```
 
-> O Selenium/Chrome não deve ser considerado resolvido apenas pelo Web Service Django. Para o coletor em produção, use um worker/serviço apropriado para Chrome.
+8. Após o primeiro deploy, crie o administrador pelo Shell do Render:
+
+```bash
+python manage.py createsuperuser
+```
+
+9. Acesse o domínio do serviço e teste cadastro/login, Home, gráficos e banco.
+
+## PostgreSQL
+
+O projeto usa automaticamente PostgreSQL quando `DATABASE_URL` existe. Sem essa variável, desenvolvimento local usa SQLite.
+
+## Selenium no Render
+
+O `render.yaml` atual publica o Django Web. Isso não garante Chrome/Selenium operacional. Para o coletor, crie posteriormente um **worker dedicado** com Chrome/Chromium e as variáveis/sessões necessárias. O worker deve comunicar-se com o Django/DB, em vez de depender da thread do processo web. Essa separação também evita perder uma execução quando o Web Service for reiniciado.
+
+## Persistência da tela do coletor
+
+As categorias, palavras-chave e palavras do loop são persistidas em dois níveis:
+
+- `localStorage`: mantém a configuração ao sair e voltar para a página no mesmo navegador;
+- `Execucao` no banco: registra a configuração usada pela execução, incluindo `keywords_loop`.
+
+Isso é diferente do estado do Selenium: navegar para outra página **não deveria parar o bot**. Reiniciar o processo web, reiniciar o computador ou derrubar o worker encerra uma execução Selenium em memória; por isso o worker separado é recomendado para produção.
 
 ---
 

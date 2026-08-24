@@ -452,6 +452,53 @@ let categoriasSelecionadas = [];
 let keywords = [];
 
 let keywordsLoop = [];
+let configuracaoEditada = false;
+
+const CONFIG_CACHE_KEY = "aflmain_magalu_config_v1";
+
+function salvarConfiguracaoLocal() {
+    try {
+        localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+            categorias: categoriasSelecionadas,
+            keywords: keywords,
+            keywords_loop: keywordsLoop,
+        }));
+    } catch (erro) {
+        console.warn("Não foi possível salvar a configuração local:", erro);
+    }
+}
+
+function carregarConfiguracaoLocal() {
+    try {
+        const bruto = localStorage.getItem(CONFIG_CACHE_KEY);
+        if (!bruto) return false;
+        const dados = JSON.parse(bruto);
+        categoriasSelecionadas = Array.isArray(dados.categorias) ? dados.categorias : [];
+        keywords = Array.isArray(dados.keywords) ? dados.keywords : [];
+        keywordsLoop = Array.isArray(dados.keywords_loop) ? dados.keywords_loop : [];
+        return true;
+    } catch (erro) {
+        console.warn("Não foi possível restaurar a configuração local:", erro);
+        return false;
+    }
+}
+
+function aplicarConfiguracaoDoServidor(resultado) {
+    if (!resultado) return;
+    if (Array.isArray(resultado.categorias)) categoriasSelecionadas = resultado.categorias;
+    if (Array.isArray(resultado.keywords)) keywords = resultado.keywords;
+    if (Array.isArray(resultado.keywords_loop)) {
+        const porIndice = keywordsLoop;
+        // O backend armazena os termos do loop; a UI trabalha com índices.
+        keywordsLoop = resultado.keywords_loop.map((termo) => keywords.findIndex(k => String(k).trim() === String(termo).trim())).filter(i => i >= 0);
+        if (!keywordsLoop.length && porIndice.length) keywordsLoop = porIndice;
+    }
+    configuracaoEditada = false;
+    salvarConfiguracaoLocal();
+    renderizarCategorias();
+    renderizarKeywords();
+    atualizarResumo();
+}
 
 
 // ======================================================
@@ -548,10 +595,20 @@ function renderizarCategorias() {
                 );
 
 
+            const checkbox = card.querySelector("input[type=\"checkbox\"]");
+            checkbox.addEventListener("click", (evento) => {
+                // A seleção é controlada pelo card. Impede o toggle nativo
+                // do input, evitando a duplicação visual/estado inconsistente.
+                evento.preventDefault();
+                evento.stopPropagation();
+                card.click();
+            });
+
             card.addEventListener(
                 "click",
                 () => {
 
+                    configuracaoEditada = true;
 
                     if (
                         categoriasSelecionadas.includes(
@@ -713,7 +770,7 @@ function renderizarKeywords() {
                 "input",
                 () => {
 
-
+                    configuracaoEditada = true;
                     keywords[index] =
                         input.value;
 
@@ -747,6 +804,7 @@ function renderizarKeywords() {
                 "click",
                 () => {
 
+                    configuracaoEditada = true;
 
                     keywords.splice(
                         index,
@@ -955,6 +1013,7 @@ document
         "click",
         () => {
 
+            configuracaoEditada = true;
 
             if (
                 keywords.length >= 10
@@ -1010,6 +1069,7 @@ document
 // ======================================================
 
 function atualizarResumo() {
+    salvarConfiguracaoLocal();
 
     const resumo =
         document.getElementById(
@@ -1618,6 +1678,8 @@ iniciarBotao.addEventListener(
                     "Coletor iniciado com sucesso.";
 
 
+                configuracaoEditada = false;
+
                 atualizarInterfaceStatus(
                     resultado.status ||
                     "executando"
@@ -1744,6 +1806,9 @@ async function consultarStatus() {
         const resultado = await resposta.json();
 
         if (resultado.status) atualizarInterfaceStatus(resultado.status);
+        if (!configuracaoEditada && (Array.isArray(resultado.categorias) || Array.isArray(resultado.keywords))) {
+            aplicarConfiguracaoDoServidor(resultado);
+        }
         if (resultado.mensagem) statusBox.textContent = resultado.mensagem;
 
         const progresso = resultado.progresso || {};
@@ -1777,6 +1842,16 @@ async function consultarLogs(execucaoId) {
     }
 }
 
+
+// ======================================================
+// RESTAURAÇÃO DA CONFIGURAÇÃO
+// ======================================================
+
+carregarConfiguracaoLocal();
+renderizarCategorias();
+renderizarKeywords();
+atualizarResumo();
+consultarStatus();
 
 // ======================================================
 // POLLING

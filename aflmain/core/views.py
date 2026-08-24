@@ -358,7 +358,26 @@ def status_bot_view(request):
     if _bot_de_outro_usuario(request):
         return JsonResponse({"sucesso": True, "executando": True, "estado": "ocupado", "status": "ocupado", "erro": None, "execucao_id": None, "progresso": {"processados": 0, "links": 0, "total": 0}})
 
-    return JsonResponse(controlador_bot.status())
+    status = controlador_bot.status()
+
+    # Se o processo web foi reiniciado, a thread Selenium não pode ser recuperada,
+    # mas a última configuração continua disponível no banco para a interface.
+    if not status.get("execucao_id"):
+        ultima = Execucao.objects.filter(owner=request.user).first()
+        if ultima:
+            status.update({
+                "execucao_id": ultima.pk,
+                "categorias": ultima.categorias or [],
+                "keywords": ultima.keywords or [],
+                "keywords_loop": ultima.keywords_loop or [],
+                "progresso": {
+                    "processados": ultima.produtos_processados,
+                    "links": ultima.links_obtidos,
+                    "total": ultima.produtos_total,
+                },
+            })
+
+    return JsonResponse(status)
 
 
 @require_GET
