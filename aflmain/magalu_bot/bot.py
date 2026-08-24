@@ -3,12 +3,12 @@ import random
 import subprocess
 import urllib.request
 import re
+import threading
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from magalu_bot.config.config import (
     CHROME_DEBUGGER,
@@ -24,11 +24,12 @@ from magalu_bot.persistencia.excel import (
 )
 
 from magalu_bot.automacao.categorias import (
-    coletar_produtos_categoria
+    coletar_produtos_categoria,
+    coletar_produtos_keyword,
 )
 
 from magalu_bot.automacao.afiliados import (
-    gerar_link_afiliado
+    gerar_link_afiliado,
 )
 
 from magalu_bot.relatorios.relatorios import (
@@ -36,11 +37,17 @@ from magalu_bot.relatorios.relatorios import (
     mostrar_relatorio_final,
 )
 
+from magalu_bot.persistencia.django_db import registrar_log, atualizar_execucao, salvar_produto_resultado, finalizar_execucao
+
 from magalu_bot.estados import (
     GerenciadorEstados,
     EstadoBot,
 )
 
+
+# =========================================================
+# ESTADO GLOBAL
+# =========================================================
 
 gerenciador_estado_atual = None
 
@@ -56,31 +63,26 @@ chrome_path = (
 chrome = None
 chrome_foi_aberto_pelo_programa = False
 
-gerenciador_estado_atual = None
-
 
 # =========================================================
 # VERIFICAR CHROME NA PORTA 9222
 # =========================================================
 
 def chrome_9222_esta_aberto():
-
     """
     Verifica se já existe um Chrome respondendo
     na porta 9222.
     """
 
     try:
-
         urllib.request.urlopen(
             "http://127.0.0.1:9222/json/version",
-            timeout=1
+            timeout=1,
         )
 
         return True
 
     except Exception:
-
         return False
 
 
@@ -93,49 +95,34 @@ def iniciar_chrome_se_necessario():
     global chrome
     global chrome_foi_aberto_pelo_programa
 
-    print(
-        "\n[INFO] Verificando Chrome na porta 9222..."
-    )
+    print("\n[INFO] Verificando Chrome na porta 9222...")
 
     if chrome_9222_esta_aberto():
 
-        print(
-            "[OK] Chrome já está aberto na porta 9222."
-        )
-
-        print(
-            "[INFO] Nenhuma nova janela será aberta."
-        )
+        print("[OK] Chrome já está aberto na porta 9222.")
+        print("[INFO] Nenhuma nova janela será aberta.")
 
         return
 
-    print(
-        "[INFO] Porta 9222 não está disponível."
-    )
-
-    print(
-        "[INFO] Iniciando Chrome em modo debug..."
-    )
+    print("[INFO] Porta 9222 não está disponível.")
+    print("[INFO] Iniciando Chrome em modo debug...")
 
     try:
 
-        chrome = subprocess.Popen([
-            chrome_path,
-            "--remote-debugging-port=9222",
-            r"--user-data-dir=C:\ChromeDebug"
-        ])
+        chrome = subprocess.Popen(
+            [
+                chrome_path,
+                "--remote-debugging-port=9222",
+                r"--user-data-dir=C:\ChromeDebug",
+            ]
+        )
 
         chrome_foi_aberto_pelo_programa = True
 
     except FileNotFoundError:
 
-        print(
-            "[ERRO] Chrome não encontrado!"
-        )
-
-        print(
-            f"[CAMINHO] {chrome_path}"
-        )
+        print("[ERRO] Chrome não encontrado!")
+        print(f"[CAMINHO] {chrome_path}")
 
         raise
 
@@ -208,9 +195,7 @@ def fechar_chrome_se_necessario():
 
                 chrome.wait(timeout=5)
 
-                print(
-                    "[OK] Chrome encerrado."
-                )
+                print("[OK] Chrome encerrado.")
 
             except subprocess.TimeoutExpired:
 
@@ -220,9 +205,7 @@ def fechar_chrome_se_necessario():
 
                 chrome.kill()
 
-                print(
-                    "[OK] Chrome finalizado."
-                )
+                print("[OK] Chrome finalizado.")
 
         else:
 
@@ -250,8 +233,6 @@ def pagina_eh_login(driver):
     """
     Determina se o navegador ainda está na tela
     de autenticação.
-
-    Não depende somente da URL.
     """
 
     try:
@@ -272,7 +253,7 @@ def pagina_eh_login(driver):
 
         body = driver.find_element(
             By.TAG_NAME,
-            "body"
+            "body",
         )
 
         texto = body.text.lower()
@@ -293,7 +274,6 @@ def pagina_eh_login(driver):
 
                 encontrados += 1
 
-        # Vários indicadores juntos reduzem falsos positivos.
         if encontrados >= 3:
 
             return True
@@ -311,18 +291,6 @@ def pagina_eh_login(driver):
 
 def verificar_login(driver):
 
-    """
-    Abre a página de login do Influenciador.
-
-    Se já houver uma sessão válida, o próprio site poderá
-    redirecionar o navegador para uma área autenticada.
-
-    Retorna:
-
-        True  -> usuário autenticado
-        False -> ainda precisa fazer login
-    """
-
     print("\n")
     print("=" * 70)
     print("                 VERIFICAÇÃO DE LOGIN")
@@ -336,13 +304,8 @@ def verificar_login(driver):
 
     time.sleep(3)
 
-    print(
-        "[LOGIN] URL atual:"
-    )
-
-    print(
-        driver.current_url
-    )
+    print("[LOGIN] URL atual:")
+    print(driver.current_url)
 
     # -----------------------------------------------------
     # Ainda está na tela de login?
@@ -357,7 +320,7 @@ def verificar_login(driver):
         return False
 
     # -----------------------------------------------------
-    # Foi redirecionado para uma área autenticada
+    # Foi redirecionado para área autenticada
     # -----------------------------------------------------
 
     print(
@@ -374,17 +337,8 @@ def verificar_login(driver):
 def aguardar_login(
     driver,
     gerenciador_estado,
-    timeout=LOGIN_TIMEOUT
+    timeout=LOGIN_TIMEOUT,
 ):
-
-    """
-    Aguarda o usuário realizar o login manualmente.
-
-    O bot NÃO preenche usuário, senha ou código.
-
-    O usuário realiza todo o processo manualmente
-    no Chrome.
-    """
 
     gerenciador_estado.definir_estado(
         EstadoBot.AGUARDANDO_LOGIN
@@ -392,7 +346,7 @@ def aguardar_login(
 
     print("\n")
     print("=" * 70)
-    print("                 LOGIN NECESSÁRIO")
+    print("                    LOGIN NECESSÁRIO")
     print("=" * 70)
 
     print(
@@ -429,7 +383,7 @@ def aguardar_login(
             return False
 
         # -------------------------------------------------
-        # VERIFICAR SE LOGIN TERMINOU
+        # VERIFICAR LOGIN
         # -------------------------------------------------
 
         if not pagina_eh_login(driver):
@@ -468,204 +422,201 @@ def aguardar_login(
 
 
 # =========================================================
-# DESCOBRIR LOJA VINCULADA À CONTA
+# DESCOBRIR LOJA VINCULADA
 # =========================================================
 
-def descobrir_loja_vinculada(driver):
-
-    """
-    Tenta descobrir a URL da Loja Virtual vinculada
-    à conta autenticada.
-
-    A descoberta é feita através dos links presentes
-    na área autenticada.
-
-    Retorna:
-
-        URL da loja
-
-    ou:
-
-        None
-    """
-
-    print("\n")
-    print("=" * 70)
-    print("              DESCOBRINDO SUA LOJA")
-    print("=" * 70)
-
-    # -----------------------------------------------------
-    # Primeiro tenta a página atual
-    # -----------------------------------------------------
-
-    url_loja = procurar_link_loja_na_pagina(
-        driver
-    )
-
-    if url_loja:
-
-        print(
-            f"[OK] Loja encontrada: {url_loja}"
-        )
-
-        return url_loja
-
-    # -----------------------------------------------------
-    # Tenta a página principal
-    # -----------------------------------------------------
-
-    print(
-        "[INFO] Loja não encontrada na página atual."
-    )
-
-    print(
-        "[INFO] Consultando página principal..."
-    )
-
+def _normalizar_url_vitrine(url):
+    if not url:
+        return None
     try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url.strip())
+        if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() != "www.magazinevoce.com.br":
+            return None
+        path = parsed.path.strip("/")
+        partes = path.split("/") if path else []
+        if len(partes) != 1:
+            return None
+        slug = partes[0].lower()
+        reservados = {
+            "admin", "login", "logout", "cadastro", "blog", "static",
+            "termos", "privacidade", "ajuda", "busca", "favicon.ico",
+            "robots.txt", "sitemap.xml", "api", "contato",
+        }
+        if not slug or slug in reservados:
+            return None
+        return f"https://www.magazinevoce.com.br/{slug}/"
+    except Exception:
+        return None
 
-        driver.get(
-            "https://www.magazinevoce.com.br/"
-        )
 
+def descobrir_loja_vinculada(driver):
+    """Descobre a vitrine da sessão autenticada sem aceitar /admin como loja.
+
+    A descoberta usa primeiro links contextualizados como 'Minha loja/vitrine'
+    e só depois candidatos genéricos. Cada candidato é normalizado e validado
+    contra a sessão atual antes de ser aceito.
+    """
+    print("\n" + "=" * 70)
+    print("              DESCOBRINDO SUA VITRINE AUTENTICADA")
+    print("=" * 70)
+
+    candidatos = []
+    vistos = set()
+
+    def adicionar(url, prioridade=0):
+        url = _normalizar_url_vitrine(url)
+        if url and url not in vistos:
+            vistos.add(url)
+            candidatos.append((prioridade, url))
+
+    # 1) A página autenticada atual pode conter o atalho da vitrine.
+    try:
+        links = driver.find_elements(By.TAG_NAME, "a")
+        for link in links:
+            href = link.get_attribute("href") or ""
+            texto = (link.text or "").strip().lower()
+            if any(chave in texto for chave in ("minha loja", "minha vitrine", "minha loja magalu", "vitrine")):
+                adicionar(href, 100)
+    except Exception:
+        pass
+
+    # 2) Links da página autenticada: candidatos de raiz têm prioridade menor.
+    try:
+        for link in driver.find_elements(By.TAG_NAME, "a"):
+            adicionar(link.get_attribute("href"), 30)
+    except Exception:
+        pass
+
+    # 3) A homepage autenticada costuma expor a vitrine vinculada à conta.
+    try:
+        driver.get("https://www.magazinevoce.com.br/")
         time.sleep(3)
-
-        url_loja = procurar_link_loja_na_pagina(
-            driver
-        )
-
-        if url_loja:
-
-            print(
-                f"[OK] Loja encontrada: {url_loja}"
-            )
-
-            return url_loja
-
+        for link in driver.find_elements(By.TAG_NAME, "a"):
+            href = link.get_attribute("href") or ""
+            texto = (link.text or "").strip().lower()
+            prioridade = 90 if any(chave in texto for chave in ("minha loja", "minha vitrine", "vitrine")) else 20
+            adicionar(href, prioridade)
     except Exception as erro:
+        print(f"[AVISO] Não foi possível consultar a homepage autenticada: {erro}")
 
-        print(
-            f"[AVISO] Falha ao consultar página principal: {erro}"
-        )
+    candidatos.sort(key=lambda item: item[0], reverse=True)
 
-    # -----------------------------------------------------
-    # Não encontrou
-    # -----------------------------------------------------
+    if not candidatos:
+        print("[ERRO] Nenhuma vitrine válida foi encontrada na sessão autenticada.")
+        return None
 
-    print(
-        "[ERRO] Não foi possível descobrir "
-        "a loja vinculada à conta."
-    )
+    for _, candidato in candidatos:
+        try:
+            print(f"[INFO] Validando vitrine candidata: {candidato}")
+            driver.get(candidato)
+            time.sleep(2.5)
 
+            atual = driver.current_url.lower()
+            if "/admin" in atual or "/login" in atual or pagina_eh_login(driver):
+                print(f"[AVISO] Candidato rejeitado por redirecionamento: {atual}")
+                continue
+
+            normalizada_atual = _normalizar_url_vitrine(driver.current_url)
+            if normalizada_atual != candidato:
+                print(f"[AVISO] Candidato rejeitado: URL final não corresponde à vitrine: {driver.current_url}")
+                continue
+
+            print(f"[OK] Vitrine autenticada confirmada: {normalizada_atual}")
+            return normalizada_atual
+        except Exception as erro:
+            print(f"[AVISO] Falha ao validar candidata {candidato}: {erro}")
+
+    print("[ERRO] A sessão foi autenticada, mas nenhuma vitrine vinculada pôde ser validada.")
     return None
 
 
 # =========================================================
-# PROCURAR LINK DA LOJA NA PÁGINA
+# PROCURAR LINK DA LOJA
 # =========================================================
 
 def procurar_link_loja_na_pagina(driver):
+    """Compatibilidade: retorna apenas uma vitrine raiz válida.
 
+    Nunca considera /admin, /login ou outras rotas de sistema como vitrine.
     """
-    Procura links que tenham o formato:
-
-        https://www.magazinevoce.com.br/NOME_DA_LOJA/
-
-    Ignora páginas que não representam uma loja.
-    """
-
     try:
-
-        links = driver.find_elements(
-            By.TAG_NAME,
-            "a"
-        )
-
-        for link in links:
-
-            try:
-
-                href = link.get_attribute(
-                    "href"
-                )
-
-                if not href:
-
-                    continue
-
-                href = href.strip()
-
-                # -------------------------------------------------
-                # Verificar domínio
-                # -------------------------------------------------
-
-                if not href.startswith(
-                    "https://www.magazinevoce.com.br/"
-                ):
-
-                    continue
-
-                # -------------------------------------------------
-                # Remover query/hash
-                # -------------------------------------------------
-
-                href_limpo = href.split("?")[0]
-                href_limpo = href_limpo.split("#")[0]
-
-                # -------------------------------------------------
-                # Procurar estrutura /slug/
-                # -------------------------------------------------
-
-                padrao = re.match(
-                    r"^https://www\.magazinevoce\.com\.br/"
-                    r"([^/]+)/?$",
-                    href_limpo,
-                    re.IGNORECASE
-                )
-
-                if not padrao:
-
-                    continue
-
-                slug = padrao.group(1).lower()
-
-                # -------------------------------------------------
-                # Ignorar páginas especiais
-                # -------------------------------------------------
-
-                ignorados = {
-                    "",
-                    "login",
-                    "cadastro",
-                    "blog",
-                    "static",
-                    "termos",
-                    "privacidade",
-                }
-
-                if slug in ignorados:
-
-                    continue
-
-                # -------------------------------------------------
-                # Evitar a raiz
-                # -------------------------------------------------
-
-                if slug == "www":
-
-                    continue
-
-                return href_limpo.rstrip("/") + "/"
-
-            except Exception:
-
-                continue
-
+        for link in driver.find_elements(By.TAG_NAME, "a"):
+            candidato = _normalizar_url_vitrine(link.get_attribute("href"))
+            if candidato:
+                return candidato
     except Exception:
-
         pass
-
     return None
+
+
+# =========================================================
+# VERIFICAR CONTROLE DO BOT
+# =========================================================
+
+def verificar_controle_bot(
+    parar_evento,
+    pausar_evento,
+    gerenciador_estado,
+):
+    """
+    Verifica PAUSAR/PARAR somente em pontos seguros.
+
+    True  -> continua.
+    False -> encerra a execução.
+    """
+
+    if parar_evento.is_set():
+        gerenciador_estado.definir_estado(EstadoBot.PARANDO)
+        print("\n[BOT] Parada solicitada. Finalizando no ponto seguro...")
+        return False
+
+    if pausar_evento.is_set():
+        gerenciador_estado.definir_estado(EstadoBot.PAUSADO)
+
+        print("\n[BOT] Execução pausada em ponto seguro.")
+        print("[BOT] Clique em 'Retomar' para continuar.")
+
+        while pausar_evento.is_set():
+            if parar_evento.is_set():
+                gerenciador_estado.definir_estado(EstadoBot.PARANDO)
+                print("\n[BOT] Parada solicitada durante a pausa.")
+                return False
+            pausar_evento.wait(0.5)
+
+        if parar_evento.is_set():
+            gerenciador_estado.definir_estado(EstadoBot.PARANDO)
+            return False
+
+        gerenciador_estado.definir_estado(EstadoBot.EXECUTANDO)
+        print("\n[BOT] Execução retomada.")
+
+    return True
+
+
+# =========================================================
+# AGUARDAR RETOMADA
+# =========================================================
+
+def aguardar_retomada(
+    parar_evento,
+    pausar_evento,
+    gerenciador_estado,
+):
+
+    """
+    Mantém o bot pausado até o evento de pausa ser
+    liberado.
+
+    True  -> continuar
+    False -> parar
+    """
+
+    return verificar_controle_bot(
+        parar_evento,
+        pausar_evento,
+        gerenciador_estado,
+    )
 
 
 # =========================================================
@@ -673,9 +624,37 @@ def procurar_link_loja_na_pagina(driver):
 # =========================================================
 
 def executar_bot(
-    categorias_selecionadas=None,
-    keywords_loop=None
+    categorias_selecionadas,
+    keywords=None,
+    keywords_loop=None,
+    parar_evento=None,
+    pausar_evento=None,
+    execution_id=None,
+    owner_id=None,
 ):
+
+    # =====================================================
+    # EVENTOS
+    # =====================================================
+
+    if parar_evento is None:
+        parar_evento = threading.Event()
+
+    if pausar_evento is None:
+        pausar_evento = threading.Event()
+
+    if keywords is None:
+        keywords = []
+
+    if keywords_loop is None:
+        keywords_loop = []
+
+    if categorias_selecionadas is None:
+        categorias_selecionadas = []
+
+    # =====================================================
+    # GERENCIADOR DE ESTADO
+    # =====================================================
 
     global gerenciador_estado_atual
 
@@ -684,43 +663,55 @@ def executar_bot(
     )
 
     gerenciador_estado_atual = gerenciador_estado
+    def registrar_evento(mensagem, nivel="INFO"):
+        registrar_log(execution_id, mensagem, nivel)
+        print(f"[{nivel}] {mensagem}")
 
-    executar_bot.gerenciador_estado = gerenciador_estado
+    def atualizar_estado_db(estado):
+        atualizar_execucao(execution_id, estado=estado.value)
+        registrar_log(execution_id, f"Estado: {estado.value}", "INFO")
 
 
-    gerenciador_estado = GerenciadorEstados(
-        EstadoBot.INICIANDO
-    )
-
-    executar_bot.gerenciador_estado = (
-        gerenciador_estado
-    )
+    # =====================================================
+    # VARIÁVEIS
+    # =====================================================
 
     resultados = []
 
     processados_nesta_execucao = 0
 
     links_obtidos_nesta_execucao = 0
+    produtos_totais_nesta_execucao = 0
 
     driver = None
+
+    execucao_parada = False
+
+    # =====================================================
+    # TRY PRINCIPAL
+    # =====================================================
 
     try:
 
         # =================================================
-        # VALIDAR CATEGORIAS
+        # VALIDAR ALVOS
         # =================================================
 
-        if not categorias_selecionadas:
+        categorias_selecionadas = [str(v).strip() for v in categorias_selecionadas if str(v).strip()]
+        keywords = [str(v).strip() for v in keywords if str(v).strip()]
+        keywords_loop = [str(v).strip() for v in keywords_loop if str(v).strip()]
 
-            print(
-                "[AVISO] Nenhuma categoria foi selecionada."
-            )
-
-            gerenciador_estado.definir_estado(
-                EstadoBot.PARADO
-            )
-
+        if not categorias_selecionadas and not keywords:
+            registrar_evento("Nenhuma categoria ou palavra-chave foi selecionada.", "ERROR")
+            gerenciador_estado.definir_estado(EstadoBot.PARADO)
+            finalizar_execucao(execution_id, EstadoBot.PARADO.value)
             return
+
+        # O loop usa somente palavras-chave explicitamente marcadas.
+        # A ordem enviada pela interface é preservada. Um novo ciclo
+        # só começa depois que TODOS os termos do ciclo anterior foram
+        # concluídos, evitando prender a execução em uma única chave.
+        keywords_loop = [kw for kw in keywords if kw in set(keywords_loop)]
 
         # =================================================
         # CARREGAR RESULTADOS
@@ -736,11 +727,9 @@ def executar_bot(
 
         print("\n")
         print("=" * 70)
-
         print(
             "        MAGALU - COLETOR DE LINKS DE AFILIADO"
         )
-
         print("=" * 70)
 
         # =================================================
@@ -755,7 +744,7 @@ def executar_bot(
 
         options.add_experimental_option(
             "debuggerAddress",
-            CHROME_DEBUGGER
+            CHROME_DEBUGGER,
         )
 
         driver = webdriver.Chrome(
@@ -764,15 +753,13 @@ def executar_bot(
 
         wait = WebDriverWait(
             driver,
-            15
+            15,
         )
 
-        print(
-            "[OK] Chrome conectado."
-        )
+        registrar_evento("Chrome conectado.", "OK")
 
         # =================================================
-        # LOGIN — PRIMEIRA ETAPA REAL
+        # LOGIN
         # =================================================
 
         gerenciador_estado.definir_estado(
@@ -783,16 +770,16 @@ def executar_bot(
             driver
         )
 
-        # -------------------------------------------------
+        # =================================================
         # NÃO LOGADO
-        # -------------------------------------------------
+        # =================================================
 
         if not usuario_ja_logado:
 
             login_realizado = aguardar_login(
                 driver,
                 gerenciador_estado,
-                LOGIN_TIMEOUT
+                LOGIN_TIMEOUT,
             )
 
             if not login_realizado:
@@ -806,9 +793,9 @@ def executar_bot(
                     "dentro do tempo permitido."
                 )
 
-        # -------------------------------------------------
-        # LOGADO
-        # -------------------------------------------------
+        # =================================================
+        # JÁ LOGADO
+        # =================================================
 
         else:
 
@@ -817,7 +804,7 @@ def executar_bot(
             )
 
         # =================================================
-        # CONFIRMAÇÃO
+        # CONFIRMAÇÃO LOGIN
         # =================================================
 
         if (
@@ -830,9 +817,7 @@ def executar_bot(
                 "o login do usuário."
             )
 
-        print(
-            "\n[OK] Autenticação confirmada."
-        )
+        registrar_evento("Login confirmado.", "OK")
 
         # =================================================
         # DESCOBRIR LOJA
@@ -854,7 +839,7 @@ def executar_bot(
             )
 
         # =================================================
-        # ABRIR LOJA DA CONTA
+        # ABRIR LOJA
         # =================================================
 
         print(
@@ -888,330 +873,187 @@ def executar_bot(
         )
 
         # =================================================
-        # CATEGORIAS
+        # FILA DE ALVOS
         # =================================================
 
-        print(
-            "\n[INFO] Categorias que serão processadas:"
-        )
+        alvos_uma_vez = [("categoria", valor) for valor in categorias_selecionadas]
+        alvos_uma_vez += [("keyword", valor) for valor in keywords if valor not in keywords_loop]
+        ciclo_loop = 0
+        primeiro_ciclo_loop = True
 
-        for categoria in categorias_selecionadas:
+        while True:
+            if not verificar_controle_bot(parar_evento, pausar_evento, gerenciador_estado):
+                execucao_parada = True
+                break
 
-            print(
-                f"  - {categoria}"
-            )
+            if primeiro_ciclo_loop:
+                alvos = list(alvos_uma_vez)
+                primeiro_ciclo_loop = False
+            else:
+                alvos = []
 
-        # =================================================
-        # LOOP DAS CATEGORIAS
-        # =================================================
-
-        for numero_categoria, categoria in enumerate(
-            categorias_selecionadas,
-            start=1
-        ):
-
-            print("\n")
-            print("=" * 70)
-
-            print(
-                f"CATEGORIA {numero_categoria}/"
-                f"{len(categorias_selecionadas)}: "
-                f"{categoria.upper()}"
-            )
-
-            print("=" * 70)
-
-            # -------------------------------------------------
-            # Coletar produtos
-            # -------------------------------------------------
-
-            produtos = coletar_produtos_categoria(
-                driver,
-                categoria
-            )
-
-            # -------------------------------------------------
-            # Retomada
-            # -------------------------------------------------
-
-            produtos_pendentes = []
-
-            for produto in produtos:
-
-                if produto_ja_processado(
-                    resultados,
-                    produto,
-                    categoria
-                ):
-
-                    print(
-                        "[RETOMADA] Produto já processado. "
-                        "Pulando:"
+            # Cada ciclo do loop contém a lista completa de keywords marcadas.
+            # Não existe avanço para a próxima chave enquanto a atual não termina.
+            if keywords_loop:
+                ciclo_loop += 1
+                if ciclo_loop > 1 or not alvos:
+                    registrar_evento(
+                        f"Iniciando ciclo de palavras-chave #{ciclo_loop}: "
+                        + " → ".join(keywords_loop),
+                        "INFO",
                     )
+                alvos += [("keyword", valor) for valor in keywords_loop]
 
-                    print(
-                        produto
-                    )
+            if not alvos:
+                break
 
+            for numero_alvo, (tipo_alvo, alvo) in enumerate(alvos, start=1):
+                if not verificar_controle_bot(parar_evento, pausar_evento, gerenciador_estado):
+                    execucao_parada = True
+                    break
+
+                categoria_resultado = alvo if tipo_alvo == "categoria" else f"keyword:{alvo}"
+                registrar_evento(
+                    f"Processando {tipo_alvo}: {alvo.upper()} ({numero_alvo}/{len(alvos)}).",
+                    "INFO",
+                )
+
+                if tipo_alvo == "categoria":
+                    produtos = coletar_produtos_categoria(driver, alvo, base_url=loja_url)
+                else:
+                    produtos = coletar_produtos_keyword(driver, alvo, base_url=loja_url)
+
+                produtos_totais_nesta_execucao += len(produtos)
+                atualizar_execucao(execution_id, produtos_total=produtos_totais_nesta_execucao)
+
+                if not produtos:
+                    registrar_evento(f"Nenhum produto encontrado para {alvo}.", "WARNING")
                     continue
 
-                produtos_pendentes.append(
-                    produto
+                produtos_pendentes = [
+                    produto for produto in produtos
+                    if not produto_ja_processado(resultados, produto, categoria_resultado)
+                ]
+
+                registrar_evento(
+                    f"{len(produtos_pendentes)} produtos pendentes; "
+                    f"{len(produtos) - len(produtos_pendentes)} já processados.",
+                    "INFO",
                 )
 
-            print(
-                f"\n[RETOMADA] "
-                f"{len(produtos_pendentes)} "
-                f"produtos pendentes."
-            )
-
-            print(
-                f"[RETOMADA] "
-                f"{len(produtos) - len(produtos_pendentes)} "
-                f"produtos já concluídos."
-            )
-
-            # -------------------------------------------------
-            # Produtos
-            # -------------------------------------------------
-
-            for numero_produto, url_produto in enumerate(
-                produtos_pendentes,
-                start=1
-            ):
-
-                print(
-                    f"\n[{categoria}] Produto pendente "
-                    f"{numero_produto}/"
-                    f"{len(produtos_pendentes)}"
-                )
-
-                # =========================================
-                # GERAR LINK + PREÇOS
-                # =========================================
-
-                dados_afiliado = gerar_link_afiliado(
-                    driver,
-                    wait,
-                    url_produto
-                )
-
-                if not dados_afiliado:
-
-                    dados_afiliado = {
-                        "link_afiliado": None,
-                        "preco_anterior": None,
-                        "preco_atual": None,
-                    }
-
-                link_afiliado = (
-                    dados_afiliado.get(
-                        "link_afiliado"
-                    )
-                )
-
-                preco_anterior = (
-                    dados_afiliado.get(
-                        "preco_anterior"
-                    )
-                )
-
-                preco_atual = (
-                    dados_afiliado.get(
-                        "preco_atual"
-                    )
-                )
-
-                # =========================================
-                # CONTADORES
-                # =========================================
-
-                processados_nesta_execucao += 1
-
-                if link_afiliado:
-
-                    links_obtidos_nesta_execucao += 1
-
-                # =========================================
-                # RESULTADO EXISTENTE
-                # =========================================
-
-                resultado_existente = None
-
-                for resultado in resultados:
-
-                    if (
-                        resultado["categoria"] == categoria
-                        and resultado["link_produto"]
-                        == url_produto
-                    ):
-
-                        resultado_existente = resultado
-
+                for numero_produto, url_produto in enumerate(produtos_pendentes, start=1):
+                    if not verificar_controle_bot(parar_evento, pausar_evento, gerenciador_estado):
+                        execucao_parada = True
                         break
 
-                # =========================================
-                # STATUS
-                # =========================================
+                    print(f"\n[{categoria_resultado}] Produto pendente {numero_produto}/{len(produtos_pendentes)}")
+                    dados_afiliado = gerar_link_afiliado(driver, wait, url_produto) or {}
+                    link_afiliado = dados_afiliado.get("link_afiliado")
+                    preco_anterior = dados_afiliado.get("preco_anterior")
+                    preco_atual = dados_afiliado.get("preco_atual")
 
-                data_hora = time.strftime(
-                    "%d/%m/%Y %H:%M:%S"
-                )
+                    processados_nesta_execucao += 1
+                    if link_afiliado:
+                        links_obtidos_nesta_execucao += 1
+                        registrar_evento(f"Link obtido para {url_produto}", "OK")
+                        status = "OK"
+                        detalhes = "Link de afiliado obtido com sucesso."
+                    else:
+                        registrar_evento(
+                            f"Link de afiliado não detectado: {url_produto}",
+                            "WARNING",
+                        )
+                        status = "REVISAR"
+                        detalhes = "Não foi possível obter o link de afiliado."
 
-                if link_afiliado:
-
-                    status = "OK"
-
-                    detalhes = (
-                        "Link de afiliado obtido "
-                        "com sucesso."
+                    data_hora = time.strftime("%d/%m/%Y %H:%M:%S")
+                    resultado_existente = next(
+                        (r for r in resultados
+                         if r.get("categoria") == categoria_resultado
+                         and r.get("link_produto") == url_produto),
+                        None,
                     )
 
-                else:
+                    if resultado_existente:
+                        resultado_existente.update({
+                            "link_afiliado": link_afiliado,
+                            "preco_anterior": preco_anterior,
+                            "preco_atual": preco_atual,
+                            "status": status,
+                            "data_hora": data_hora,
+                            "detalhes": detalhes,
+                        })
+                    else:
+                        resultados.append({
+                            "categoria": categoria_resultado,
+                            "produto_numero": numero_produto,
+                            "link_produto": url_produto,
+                            "link_afiliado": link_afiliado,
+                            "preco_anterior": preco_anterior,
+                            "preco_atual": preco_atual,
+                            "status": status,
+                            "data_hora": data_hora,
+                            "detalhes": detalhes,
+                        })
 
-                    status = "REVISAR"
+                    try:
+                        salvar_produto_resultado(
+                            execution_id,
+                            categoria_resultado,
+                            url_produto,
+                            {
+                                "nome": resultado_existente.get("nome", "") if resultado_existente else "",
+                                "link_afiliado": link_afiliado,
+                                "preco_anterior": preco_anterior,
+                                "preco_atual": preco_atual,
+                                "status": status,
+                                "marketplace": "MAGALU",
+                            },
+                            numero=processados_nesta_execucao,
+                            owner_id=owner_id,
+                        )
+                        atualizar_execucao(
+                            execution_id,
+                            produtos_processados=processados_nesta_execucao,
+                            links_obtidos=links_obtidos_nesta_execucao,
+                        )
+                    except Exception as erro_db:
+                        registrar_evento(f"Falha ao persistir produto no banco: {erro_db}", "ERROR")
 
-                    detalhes = (
-                        "Não foi possível obter "
-                        "o link de afiliado."
-                    )
+                    try:
+                        salvar_dados(resultados)
+                        registrar_evento("Dados salvos no Excel e CSV.", "OK")
+                    except Exception as erro:
+                        registrar_evento(f"Falha ao salvar Excel/CSV: {erro}", "ERROR")
 
-                # =========================================
-                # ATUALIZAR EXISTENTE
-                # =========================================
+                    for _ in range(int(random.uniform(2, 4) * 10)):
+                        if not verificar_controle_bot(parar_evento, pausar_evento, gerenciador_estado):
+                            execucao_parada = True
+                            break
+                        time.sleep(0.1)
+                    if execucao_parada:
+                        break
 
-                if resultado_existente:
+                if execucao_parada:
+                    break
 
-                    resultado_existente[
-                        "link_afiliado"
-                    ] = link_afiliado
+            if execucao_parada:
+                break
 
-                    resultado_existente[
-                        "preco_anterior"
-                    ] = preco_anterior
+            # Sem loop, a execução termina depois de uma passagem.
+            if not keywords_loop:
+                break
 
-                    resultado_existente[
-                        "preco_atual"
-                    ] = preco_atual
+            # Com loop, só chegamos aqui depois que TODAS as keywords do ciclo
+            # foram processadas. O próximo ciclo então começa pela primeira.
+            registrar_evento(
+                f"Ciclo de palavras-chave #{ciclo_loop} concluído. Avançando para o próximo ciclo.",
+                "OK",
+            )
 
-                    resultado_existente[
-                        "status"
-                    ] = status
-
-                    resultado_existente[
-                        "data_hora"
-                    ] = data_hora
-
-                    resultado_existente[
-                        "detalhes"
-                    ] = detalhes
-
-                # =========================================
-                # NOVO RESULTADO
-                # =========================================
-
-                else:
-
-                    resultados.append({
-
-                        "categoria": categoria,
-
-                        "produto_numero": numero_produto,
-
-                        "link_produto": url_produto,
-
-                        "link_afiliado": link_afiliado,
-
-                        "preco_anterior": preco_anterior,
-
-                        "preco_atual": preco_atual,
-
-                        "status": status,
-
-                        "data_hora": data_hora,
-
-                        "detalhes": detalhes,
-
-                    })
-
-                # =========================================
-                # TERMINAL
-                # =========================================
-
-                if preco_anterior:
-
-                    print(
-                        f"[PREÇO ANTERIOR] "
-                        f"{preco_anterior}"
-                    )
-
-                else:
-
-                    print(
-                        "[PREÇO ANTERIOR] "
-                        "Não informado"
-                    )
-
-                if preco_atual:
-
-                    print(
-                        f"[PREÇO ATUAL] "
-                        f"{preco_atual}"
-                    )
-
-                else:
-
-                    print(
-                        "[PREÇO ATUAL] "
-                        "Não encontrado"
-                    )
-
-                if link_afiliado:
-
-                    print(
-                        "[OK] Produto processado "
-                        "com sucesso."
-                    )
-
-                else:
-
-                    print(
-                        "[AVISO] Produto sem "
-                        "link de afiliado."
-                    )
-
-                # =========================================
-                # SALVAMENTO
-                # =========================================
-
-                try:
-
-                    salvar_dados(
-                        resultados
-                    )
-
-                    print(
-                        "[OK] Dados salvos "
-                        "no Excel e CSV."
-                    )
-
-                except Exception as erro:
-
-                    print(
-                        "[ERRO] Falha ao salvar dados:"
-                    )
-
-                    print(
-                        erro
-                    )
-
-                time.sleep(
-                    random.uniform(2, 4)
-                )
-
-        # =================================================
+        # =====================================================
         # SALVAMENTO FINAL
-        # =================================================
+        # =====================================================
 
         try:
 
@@ -1229,28 +1071,45 @@ def executar_bot(
                 "\n[ERRO] Falha no salvamento final:"
             )
 
-            print(
-                erro
+            print(erro)
+
+        # =====================================================
+        # SE FOI PARADO
+        # =====================================================
+
+        if execucao_parada or parar_evento.is_set():
+
+            gerenciador_estado.definir_estado(
+                EstadoBot.PARADO
             )
 
-        # =================================================
-        # RELATÓRIO
-        # =================================================
+            mostrar_resultados_interrompidos(
+                resultados,
+                processados_nesta_execucao,
+                links_obtidos_nesta_execucao,
+            )
+
+            return
+
+        # =====================================================
+        # RELATÓRIO FINAL
+        # =====================================================
 
         mostrar_relatorio_final(
             resultados,
             categorias_selecionadas,
             processados_nesta_execucao,
-            links_obtidos_nesta_execucao
+            links_obtidos_nesta_execucao,
         )
 
-        # =================================================
+        # =====================================================
         # FINALIZADO
-        # =================================================
+        # =====================================================
 
         gerenciador_estado.definir_estado(
             EstadoBot.FINALIZADO
         )
+        finalizar_execucao(execution_id, EstadoBot.FINALIZADO.value)
 
     # =====================================================
     # CTRL + C
@@ -1259,7 +1118,7 @@ def executar_bot(
     except KeyboardInterrupt:
 
         gerenciador_estado.definir_estado(
-            EstadoBot.PARADO
+            EstadoBot.PARANDO
         )
 
         print(
@@ -1284,10 +1143,23 @@ def executar_bot(
                 f"após Ctrl+C: {erro}"
             )
 
-        mostrar_resultados_interrompidos(
-            resultados,
-            processados_nesta_execucao,
-            links_obtidos_nesta_execucao
+        try:
+
+            mostrar_resultados_interrompidos(
+                resultados,
+                processados_nesta_execucao,
+                links_obtidos_nesta_execucao,
+            )
+
+        except Exception as erro:
+
+            print(
+                f"[ERRO] Falha ao gerar relatório "
+                f"de interrupção: {erro}"
+            )
+
+        gerenciador_estado.definir_estado(
+            EstadoBot.PARADO
         )
 
     # =====================================================
@@ -1299,6 +1171,7 @@ def executar_bot(
         gerenciador_estado.definir_estado(
             EstadoBot.ERRO
         )
+        finalizar_execucao(execution_id, EstadoBot.ERRO.value, str(erro))
 
         print("\n")
         print("=" * 70)
@@ -1310,9 +1183,7 @@ def executar_bot(
             "um erro inesperado:"
         )
 
-        print(
-            erro
-        )
+        print(erro)
 
         print(
             "\n[INFO] Salvando os dados "
@@ -1337,9 +1208,11 @@ def executar_bot(
                 "salvar nas planilhas:"
             )
 
-            print(
-                erro_dados
-            )
+            print(erro_dados)
+
+    # =====================================================
+    # FINALMENTE
+    # =====================================================
 
     finally:
 

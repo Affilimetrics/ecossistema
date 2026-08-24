@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: afillimetrics
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: gunicorn aflmain.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: TIME_ZONE
+        value: America/Sao_Paulo

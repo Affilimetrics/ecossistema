@@ -1,3 +1,5 @@
 from django.contrib import admin
+from .models import Produto, Afiliado, Execucao, Mensagem, Oferta, ConfiguracaoCanal, LogExecucao
 
-# Register your models here.
+for model in (Produto, Afiliado, Execucao, Mensagem, Oferta, ConfiguracaoCanal, LogExecucao):
+    admin.site.register(model)

@@ -1,3 +1,7 @@
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 CHROME_DEBUGGER = "127.0.0.1:9222"
 
 # =========================================================
@@ -14,11 +18,9 @@ LOGIN_TIMEOUT = 300
 # LOJA
 # =========================================================
 
-# Usada apenas como referência/teste durante a fase atual.
-# O bot NÃO deve depender dela para descobrir a conta.
-MINHA_LOJA = "magazineblackriseco"
-
-BASE_URL = f"https://www.magazinevoce.com.br/{MINHA_LOJA}"
+# Fallback público; a execução autenticada sempre substitui este valor
+# pela vitrine validada da sessão do usuário.
+BASE_URL = "https://www.magazinevoce.com.br"
 
 
 # =========================================================
@@ -27,7 +29,7 @@ BASE_URL = f"https://www.magazinevoce.com.br/{MINHA_LOJA}"
 
 LIMITE_POR_CATEGORIA = 20
 
-ARQUIVO_SAIDA = "links_afiliados_magalu.xlsx"
+ARQUIVO_SAIDA = str(PROJECT_ROOT / "links_afiliados_magalu.xlsx")
 
 
 # =========================================================

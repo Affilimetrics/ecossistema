@@ -5,35 +5,64 @@ from . import views
 
 urlpatterns = [
 
-    # Página principal
+    # =====================================================
+    # PÁGINAS
+    # =====================================================
+
     path(
         "",
         views.index,
         name="index"
     ),
 
-    # Login
     path(
         "login/",
         views.login,
         name="login"
     ),
 
-    # =====================================================
-    # MAGALU
-    # =====================================================
+    path("cadastro/", views.cadastro, name="cadastro"),
+    path("home/", views.home, name="home"),
+    path("logout/", views.logout_view, name="logout"),
 
-    # Interface do coletor
     path(
         "magalu/",
         views.magalu_bot,
         name="magalu_bot"
     ),
 
-    # API para iniciar o bot
+    # =====================================================
+    # BOT MAGALU
+    # =====================================================
+
     path(
         "magalu/iniciar/",
         views.iniciar_bot_view,
         name="iniciar_bot"
     ),
+
+    path(
+        "magalu/pausar/",
+        views.pausar_bot_view,
+        name="pausar_bot"
+    ),
+
+    path(
+        "magalu/retomar/",
+        views.retomar_bot_view,
+        name="retomar_bot"
+    ),
+
+    path(
+        "magalu/parar/",
+        views.parar_bot_view,
+        name="parar_bot"
+    ),
+
+    path("magalu/status/", views.status_bot_view, name="status_bot"),
+    path("magalu/logs/", views.logs_bot_view, name="logs_bot"),
+    path("dashboard/", views.dashboard, name="dashboard"),
+    path("ofertas/", views.ofertas_view, name="ofertas"),
+    path("ofertas/<int:oferta_id>/enviar/", views.enviar_oferta_view, name="enviar_oferta"),
+
 ]
