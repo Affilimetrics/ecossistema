@@ -1,6 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
-from core.models import Produto, Afiliado, Execucao, LogExecucao
+from core.models import Produto, Afiliado, Execucao, LogExecucao, HistoricoPreco
 
 
 def decimal_or_none(value):
@@ -54,12 +54,15 @@ def salvar_produto_resultado(execucao_id, categoria, url_produto, dados, numero=
             "nome": nome,
             "preco_anterior": preco_anterior,
             "preco_atual": preco_atual,
+            "imagem_url": dados.get("imagem_url") or "",
         },
     )
     Afiliado.objects.update_or_create(
         produto=produto,
         defaults={"link_afiliado": link, "status": status},
     )
+    if preco_atual is not None:
+        HistoricoPreco.objects.create(produto=produto, preco=preco_atual)
     if execucao_id:
         Execucao.objects.filter(pk=execucao_id).update(
             produtos_processados=numero or 0,

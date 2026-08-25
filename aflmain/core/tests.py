@@ -45,3 +45,20 @@ class AuthenticationFlowTests(TestCase):
         response = self.client.get("/magalu/")
         self.assertEqual(response.status_code, 302)
         self.assertIn("/login/", response["Location"])
+
+class TelegramPublicationTests(TestCase):
+    def test_mensagem_telegram_escapa_dados_dinamicos(self):
+        produto = Produto.objects.create(
+            categoria="cozinha",
+            nome='Cafeteira <Inox> & "Top"',
+            url_produto="https://example.com/produto-telegram",
+            preco_atual="99.90",
+        )
+        Afiliado.objects.create(
+            produto=produto,
+            link_afiliado="https://divulgador.magalu.com/oferta?a=1&b=2",
+        )
+        oferta = criar_oferta(produto)
+        self.assertIn("&lt;Inox&gt;", oferta.mensagem)
+        self.assertIn("&amp;", oferta.mensagem)
+        self.assertIn("a=1&amp;b=2", oferta.mensagem)

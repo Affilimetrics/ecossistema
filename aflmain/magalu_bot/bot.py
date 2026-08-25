@@ -951,20 +951,23 @@ def executar_bot(
                     link_afiliado = dados_afiliado.get("link_afiliado")
                     preco_anterior = dados_afiliado.get("preco_anterior")
                     preco_atual = dados_afiliado.get("preco_atual")
+                    status = dados_afiliado.get("status") or ("OK" if link_afiliado else "REVISAR")
+                    detalhes = dados_afiliado.get("detalhes") or (
+                        "Link de afiliado obtido com sucesso." if link_afiliado
+                        else "Não foi possível obter o link de afiliado após as tentativas configuradas."
+                    )
 
+                    # Um produto só conta como LINK obtido quando a URL foi
+                    # efetivamente capturada e validada pelo módulo de afiliados.
                     processados_nesta_execucao += 1
                     if link_afiliado:
                         links_obtidos_nesta_execucao += 1
                         registrar_evento(f"Link obtido para {url_produto}", "OK")
-                        status = "OK"
-                        detalhes = "Link de afiliado obtido com sucesso."
                     else:
                         registrar_evento(
-                            f"Link de afiliado não detectado: {url_produto}",
+                            f"Produto marcado para revisão após tentativas limitadas: {url_produto}",
                             "WARNING",
                         )
-                        status = "REVISAR"
-                        detalhes = "Não foi possível obter o link de afiliado."
 
                     data_hora = time.strftime("%d/%m/%Y %H:%M:%S")
                     resultado_existente = next(
@@ -1002,10 +1005,11 @@ def executar_bot(
                             categoria_resultado,
                             url_produto,
                             {
-                                "nome": resultado_existente.get("nome", "") if resultado_existente else "",
+                                "nome": dados_afiliado.get("nome") or (resultado_existente.get("nome", "") if resultado_existente else ""),
                                 "link_afiliado": link_afiliado,
                                 "preco_anterior": preco_anterior,
                                 "preco_atual": preco_atual,
+                                "imagem_url": dados_afiliado.get("imagem_url", ""),
                                 "status": status,
                                 "marketplace": "MAGALU",
                             },
@@ -1019,6 +1023,22 @@ def executar_bot(
                         )
                     except Exception as erro_db:
                         registrar_evento(f"Falha ao persistir produto no banco: {erro_db}", "ERROR")
+
+                    # Publicação automática: dispara imediatamente após o link afiliado
+                    # ser coletado e persistido com sucesso, sem depender da tela
+                    # "Gerar oferta" ou de uma configuração manual para habilitar o fluxo.
+                    if link_afiliado:
+                        try:
+                            from core.models import Produto as ProdutoModel
+                            from core.services import criar_oferta
+                            from core.publicacao import publicar_oferta
+                            produto_db = ProdutoModel.objects.get(owner_id=owner_id, url_produto=url_produto)
+                            oferta_db = criar_oferta(produto_db, turno=__import__("os").getenv("TURNO_PADRAO") or None, campanha=__import__("os").getenv("CAMPANHA_SAZONAL", "NENHUM"))
+                            canais_auto = [c.strip().upper() for c in __import__("os").getenv("CANAIS_AUTOMATICOS", "TELEGRAM").split(",") if c.strip()]
+                            resultado_publicacao = publicar_oferta(oferta_db, canais=canais_auto, driver=driver, campanha=__import__("os").getenv("CAMPANHA_SAZONAL", "NENHUM"))
+                            registrar_evento(f"Publicação inteligente: {resultado_publicacao}", "OK")
+                        except Exception as erro_publicacao:
+                            registrar_evento(f"Falha na publicação automática (coleta preservada): {erro_publicacao}", "WARNING")
 
                     try:
                         salvar_dados(resultados)

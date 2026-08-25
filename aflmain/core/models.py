@@ -11,6 +11,7 @@ class Produto(models.Model):
     url_produto = models.URLField(max_length=2000)
     preco_anterior = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     preco_atual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    imagem_url = models.URLField(max_length=3000, blank=True, default="")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -125,3 +126,13 @@ class LogExecucao(models.Model):
 
     class Meta:
         ordering = ["id"]
+
+
+class HistoricoPreco(models.Model):
+    produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name="historico_precos")
+    preco = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    registrado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-registrado_em"]
+

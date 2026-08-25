@@ -824,3 +824,85 @@ Isso mantém o coletor independente dos canais de divulgação e evita acoplamen
 # Licença / uso
 
 Projeto destinado ao uso privado e desenvolvimento da plataforma Afillimetrics. Verifique os termos de uso e as políticas dos marketplaces e provedores de mensagens antes de operar automações em produção.
+
+## Política de captura de links de afiliado
+
+O coletor não considera um produto como sucesso apenas porque conseguiu abrir a página ou clicar em `Gerar link`. O sucesso exige uma URL afiliada válida.
+
+A captura utiliza múltiplas estratégias, nesta ordem geral:
+
+1. elementos do modal (`input`, `textarea`, `href` e atributos `data-*`);
+2. elementos visíveis relevantes do DOM;
+3. shadow DOM aberto;
+4. URL atual, caso a geração tenha redirecionado o navegador;
+5. `page_source` como último recurso.
+
+Cada produto possui um número limitado de tentativas (`MAX_TENTATIVAS_AFILIADO`, atualmente 4). A cada nova tentativa o produto é reaberto e o processo de geração é repetido. Se todas as tentativas falharem, o produto é salvo como `REVISAR`, com diagnóstico, e o coletor segue para o próximo produto. Isso evita tanto perder silenciosamente a falha quanto travar a execução indefinidamente.
+
+Somente links dos domínios de saída conhecidos do afiliado Magalu são aceitos pela validação atual:
+
+- `divulgador.magalu.com`
+- `magazineluiza.onelink.me`
+
+A camada de ofertas também não usa mais a URL normal do produto como fallback: sem link afiliado, a oferta não é criada para divulgação.
+
+---
+
+# Divulgação inteligente (integrada)
+
+O projeto agora incorpora o motor de divulgação do Smart Affiliate Bot de referência, sem depender de o usuário escrever as mensagens.
+
+## O que já vem pronto
+
+- Templates automáticos por categoria e tipo de produto.
+- Chamadas dinâmicas para beleza, casa, cozinha, celulares, eletrônicos, games, informática, livros e achadinhos gerais.
+- Regras especiais para produtos baratos e palavras-chave como perfume, air fryer, fone, notebook, celular, smartwatch, games, TV e fraldas.
+- Blocos automáticos `De/Por`, percentual de desconto e CTA.
+- Turnos automáticos: MANHÃ, ALMOÇO, TARDE, NOITE e RELÂMPAGO.
+- Campanha sazonal por variável `CAMPANHA_SAZONAL`.
+- Histórico de preços para futura evolução da validação de oportunidade.
+- Cache de 120 horas por produto/canal para evitar repetição.
+- Telegram com envio de texto e tentativa de envio com imagem via `sendPhoto`, com fallback para `sendMessage`.
+- WhatsApp por API configurada ou, no fluxo Selenium, por WhatsApp Web usando a sessão já aberta.
+- Publicação automática opcional depois que o link afiliado foi validado.
+
+## Ativar publicação automática
+
+No `.env`:
+
+```env
+AUTO_PUBLICAR_OFERTAS=true
+CANAIS_AUTOMATICOS=TELEGRAM,WHATSAPP
+CACHE_RETENCAO_HOURS=120
+CAMPANHA_SAZONAL=NENHUM
+```
+
+A publicação **nunca acontece antes de existir um link afiliado válido**. Se o produto ficar `REVISAR`, ele não é divulgado.
+
+## Publicar manualmente ofertas prontas
+
+```powershell
+python manage.py publicar_ofertas --limite 20 --canal TELEGRAM
+```
+
+Ou:
+
+```powershell
+python manage.py publicar_ofertas --limite 20 --canal TELEGRAM --canal WHATSAPP
+```
+
+Forçar uma nova publicação ignorando o cache:
+
+```powershell
+python manage.py publicar_ofertas --limite 20 --forcar
+```
+
+## Estratégia de turnos incorporada
+
+- MANHA: 08:30–10:30 — utilidades, casa, beleza e achadinhos baratos.
+- ALMOCO: 12:00–14:00 — celulares, games e tecnologia pessoal.
+- TARDE: 15:30–18:30 — notebooks, periféricos, áudio e produtividade.
+- NOITE: 20:00–01:00 — TV, eletrodomésticos, PC gamer e itens de maior ticket.
+- RELAMPAGO: campanhas com teto de preço.
+
+A copy é escolhida automaticamente; não é necessário cadastrar um texto por produto.
