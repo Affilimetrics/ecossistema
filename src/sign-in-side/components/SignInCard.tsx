@@ -13,7 +13,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import ForgotPassword from './ForgotPassword';
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from './CustomIcons';
+import { GoogleIcon } from './CustomIcons';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -23,7 +23,7 @@ const Card = styled(MuiCard)(({ theme }) => ({
   padding: theme.spacing(4),
   gap: theme.spacing(2),
   boxShadow:
-    'hsla(220, 30%, 5%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px',
+    'hsla(312, 56%, 2%, 0.05) 0px 5px 15px 0px, hsla(220, 25%, 10%, 0.05) 0px 15px 35px -5px',
   [theme.breakpoints.up('sm')]: {
     width: '450px',
   },
@@ -102,14 +102,24 @@ export default function SignInCard() {
   return (
     <Card variant="outlined">
       <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
-        <SitemarkIcon />
+        <Typography
+          component="h1"
+          variant="h5"
+          sx={{ fontWeight: 700, letterSpacing: '-0.02em' }}
+        >
+          A
+          <Box component="span" sx={{ color: '#ffffff' }}>
+            ff
+          </Box>
+          limetrics
+        </Typography>
       </Box>
       <Typography
         component="h1"
         variant="h4"
         sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
       >
-        Sign in
+        Entrar
       </Typography>
       <Box
         component="form"
@@ -125,7 +135,7 @@ export default function SignInCard() {
             id="email"
             type="email"
             name="email"
-            placeholder="your@email.com"
+            placeholder="suaconta@email.com"
             autoComplete="email"
             autoFocus
             required
@@ -136,7 +146,7 @@ export default function SignInCard() {
         </FormControl>
         <FormControl>
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <FormLabel htmlFor="password">Password</FormLabel>
+            <FormLabel htmlFor="password">Senha</FormLabel>
             <Link
               component="button"
               type="button"
@@ -144,7 +154,7 @@ export default function SignInCard() {
               variant="body2"
               sx={{ alignSelf: 'baseline' }}
             >
-              Forgot your password?
+              Esqueceu sua senha?
             </Link>
           </Box>
           <TextField
@@ -164,14 +174,14 @@ export default function SignInCard() {
         </FormControl>
         <FormControlLabel
           control={<Checkbox value="remember" color="primary" />}
-          label="Remember me"
+          label="Lembrar de mim"
         />
         <ForgotPassword open={open} handleClose={handleClose} />
         <Button type="submit" fullWidth variant="contained">
-          Sign in
+          Entrar
         </Button>
         <Typography sx={{ textAlign: 'center' }}>
-          Don&apos;t have an account?{' '}
+          Não tem uma conta?{' '}
           <span>
             <Link
               component={RouterLink}
@@ -179,12 +189,12 @@ export default function SignInCard() {
               variant="body2"
               sx={{ alignSelf: 'center' }}
             >
-              Sign up
+              Cadastre-se
             </Link>
           </span>
         </Typography>
       </Box>
-      <Divider>or</Divider>
+      <Divider>ou</Divider>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Button
           fullWidth
@@ -192,15 +202,7 @@ export default function SignInCard() {
           onClick={() => alert('Sign in with Google')}
           startIcon={<GoogleIcon />}
         >
-          Sign in with Google
-        </Button>
-        <Button
-          fullWidth
-          variant="outlined"
-          onClick={() => alert('Sign in with Facebook')}
-          startIcon={<FacebookIcon />}
-        >
-          Sign in with Facebook
+          Entrar com google
         </Button>
       </Box>
     </Card>

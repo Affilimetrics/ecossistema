@@ -16,7 +16,7 @@ import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import AppTheme from '../shared-theme/AppTheme';
 import ColorModeSelect from '../shared-theme/ColorModeSelect';
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from './components/CustomIcons';
+import { GoogleIcon, SitemarkIcon } from './components/CustomIcons';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -55,7 +55,7 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
     backgroundRepeat: 'no-repeat',
     ...theme.applyStyles('dark', {
       backgroundImage:
-        'radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))',
+        'radial-gradient(at 50% 50%, hsla(182, 100%, 30%, 0.50), hsl(219, 100%, 14%))',
     }),
   },
 }));
@@ -77,7 +77,7 @@ export default function SignUp(props) {
 
     if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
       setEmailError(true);
-      setEmailErrorMessage('Please enter a valid email address.');
+      setEmailErrorMessage('Por favor, adicione um endereço E-mail válido!.');
       isValid = false;
     } else {
       setEmailError(false);
@@ -86,7 +86,7 @@ export default function SignUp(props) {
 
     if (!password.value || password.value.length < 6) {
       setPasswordError(true);
-      setPasswordErrorMessage('Password must be at least 6 characters long.');
+      setPasswordErrorMessage('Sua senha deve conter 6 caracteres, 1 letra maiuscula e 1 caractere especial!');
       isValid = false;
     } else {
       setPasswordError(false);
@@ -131,7 +131,7 @@ export default function SignUp(props) {
             variant="h4"
             sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
           >
-            Sign up
+            Cadastre-se
           </Typography>
           <Box
             component="form"
@@ -139,7 +139,7 @@ export default function SignUp(props) {
             sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
           >
             <FormControl>
-              <FormLabel htmlFor="name">Full name</FormLabel>
+              <FormLabel htmlFor="name">Nome completo</FormLabel>
               <TextField
                 autoComplete="name"
                 name="name"
@@ -168,7 +168,7 @@ export default function SignUp(props) {
               />
             </FormControl>
             <FormControl>
-              <FormLabel htmlFor="password">Password</FormLabel>
+              <FormLabel htmlFor="password">Senha</FormLabel>
               <TextField
                 required
                 fullWidth
@@ -185,7 +185,7 @@ export default function SignUp(props) {
             </FormControl>
             <FormControlLabel
               control={<Checkbox value="allowExtraEmails" color="primary" />}
-              label="I want to receive updates via email."
+              label="Concondo em receber atualizações via E-mail."
             />
             <Button
               type="submit"
@@ -193,7 +193,7 @@ export default function SignUp(props) {
               variant="contained"
               onClick={validateInputs}
             >
-              Sign up
+              Cadastre-se
             </Button>
           </Box>
           <Divider>
@@ -206,25 +206,18 @@ export default function SignUp(props) {
               onClick={() => alert('Sign up with Google')}
               startIcon={<GoogleIcon />}
             >
-              Sign up with Google
+              Entrar com o Google
             </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert('Sign up with Facebook')}
-              startIcon={<FacebookIcon />}
-            >
-              Sign up with Facebook
-            </Button>
+        
             <Typography sx={{ textAlign: 'center' }}>
-              Already have an account?{' '}
+              Já tem uma conta?{' '}
               <Link
                 component={RouterLink}
                 to="/"
                 variant="body2"
                 sx={{ alignSelf: 'center' }}
               >
-                Sign in
+                Entrar
               </Link>
             </Typography>
           </Box>

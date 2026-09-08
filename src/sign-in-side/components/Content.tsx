@@ -5,32 +5,32 @@ import AutoFixHighRoundedIcon from '@mui/icons-material/AutoFixHighRounded';
 import ConstructionRoundedIcon from '@mui/icons-material/ConstructionRounded';
 import SettingsSuggestRoundedIcon from '@mui/icons-material/SettingsSuggestRounded';
 import ThumbUpAltRoundedIcon from '@mui/icons-material/ThumbUpAltRounded';
-import { SitemarkIcon } from './CustomIcons';
+import * as React from 'react';
 
 const items = [
   {
     icon: <SettingsSuggestRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Adaptable performance',
+    title: 'Dados que geram resultados',
     description:
-      'Our product effortlessly adjusts to your needs, boosting efficiency and simplifying your tasks.',
+      'Transforme suas métricas em estratégias para crescer.',
   },
   {
     icon: <ConstructionRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Built to last',
+    title: 'Transforme dados em resultados.',
     description:
-      'Experience unmatched durability that goes above and beyond with lasting investment.',
+      'Acompanhe suas métricas, gerencie seus ganhos e tome decisões mais inteligentes.',
   },
   {
     icon: <ThumbUpAltRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Great user experience',
+    title: 'Seu crescimento começa com bons dados.',
     description:
-      'Integrate our product into your routine with an intuitive and easy-to-use interface.',
+      'Tenha controle sobre suas campanhas, vendas e resultados em um só lugar.',
   },
   {
     icon: <AutoFixHighRoundedIcon sx={{ color: 'text.secondary' }} />,
-    title: 'Innovative functionality',
+    title: 'Voce evolui conosco',
     description:
-      'Stay ahead with features that set new standards, addressing your evolving needs better than the rest.',
+      'Gerencie suas vendas, e evolua gradativamente',
   },
 ];
 
@@ -40,7 +40,17 @@ export default function Content() {
       sx={{ flexDirection: 'column', alignSelf: 'center', gap: 4, maxWidth: 450 }}
     >
       <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-        <SitemarkIcon />
+        <Typography
+          component="h1"
+          variant="h5"
+          sx={{ fontWeight: 700, letterSpacing: '-0.02em' }}
+        >
+          A
+          <Box component="span" sx={{ color: '#00D3AB' }}>
+            ff
+          </Box>
+          limetrics
+        </Typography>
       </Box>
       {items.map((item, index) => (
         <Stack key={index} direction="row" sx={{ gap: 2 }}>
