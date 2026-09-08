@@ -13,15 +13,17 @@ import InfoRoundedIcon from '@mui/icons-material/InfoRounded';
 import HelpRoundedIcon from '@mui/icons-material/HelpRounded';
 
 const mainListItems = [
-  { text: 'Home', icon: <HomeRoundedIcon /> },
-  { text: 'Analytics', icon: <AnalyticsRoundedIcon /> },
-  { text: 'Clients', icon: <PeopleRoundedIcon /> },
-  { text: 'Tasks', icon: <AssignmentRoundedIcon /> },
+  { text: 'Inicio', icon: <HomeRoundedIcon /> },
+  { text: 'Avançado', icon: <AnalyticsRoundedIcon /> },
+  { text: 'Produtos', icon: <PeopleRoundedIcon /> },
+  { text: 'Modelos', icon: <AssignmentRoundedIcon /> },
+  { text: 'Divulgação', icon: <AssignmentRoundedIcon /> },
+  { text: 'Remarketing', icon: <AssignmentRoundedIcon /> },
 ];
 
 const secondaryListItems = [
-  { text: 'Settings', icon: <SettingsRoundedIcon /> },
-  { text: 'About', icon: <InfoRoundedIcon /> },
+  { text: 'Configurações', icon: <SettingsRoundedIcon /> },
+  { text: 'Sobre', icon: <InfoRoundedIcon /> },
   { text: 'Feedback', icon: <HelpRoundedIcon /> },
 ];
 

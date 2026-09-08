@@ -40,7 +40,7 @@ AreaGradient.propTypes = {
   id: PropTypes.string.isRequired,
 };
 
-function StatCard({ title, value, interval, trend, data }) {
+function StatCard({ title, value, interval, trend, data, items }) {
   const theme = useTheme();
   const daysInWeek = getDaysInMonth(4, 2024);
 
@@ -65,10 +65,40 @@ function StatCard({ title, value, interval, trend, data }) {
     neutral: 'default',
   };
 
-  const color = labelColors[trend];
-  const chartColor = trendColors[trend];
+  const color = trend ? labelColors[trend] : undefined;
+  const chartColor = trend ? trendColors[trend] : undefined;
   const trendValues = { up: '+25%', down: '-25%', neutral: '+5%' };
 
+  // Formato "Resumo": lista de itens (ex: Custo/Retorno/Meta), sem gráfico
+  if (items) {
+    return (
+      <Card variant="outlined" sx={{ height: '100%', flexGrow: 1 }}>
+        <CardContent>
+          <Typography component="h2" variant="subtitle2" gutterBottom>
+            {title}
+          </Typography>
+          <Stack direction="column" sx={{ gap: 1.5, mt: 1 }}>
+            {items.map((item) => (
+              <Stack
+                key={item.label}
+                direction="row"
+                sx={{ justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {item.label}
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                  {item.value}
+                </Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Formato padrão: valor + variação + gráfico
   return (
     <Card variant="outlined" sx={{ height: '100%', flexGrow: 1 }}>
       <CardContent>
@@ -120,11 +150,17 @@ function StatCard({ title, value, interval, trend, data }) {
 }
 
 StatCard.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.number).isRequired,
-  interval: PropTypes.string.isRequired,
+  data: PropTypes.arrayOf(PropTypes.number),
+  interval: PropTypes.string,
+  items: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      value: PropTypes.string.isRequired,
+    }),
+  ),
   title: PropTypes.string.isRequired,
-  trend: PropTypes.oneOf(['down', 'neutral', 'up']).isRequired,
-  value: PropTypes.string.isRequired,
+  trend: PropTypes.oneOf(['down', 'neutral', 'up']),
+  value: PropTypes.string,
 };
 
 export default StatCard;

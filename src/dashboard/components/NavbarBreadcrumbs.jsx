@@ -22,7 +22,7 @@ export default function NavbarBreadcrumbs() {
     >
       <Typography variant="body1">Dashboard</Typography>
       <Typography variant="body1" sx={{ color: 'text.primary', fontWeight: 600 }}>
-        Home
+        Inicio
       </Typography>
     </StyledBreadcrumbs>
   );
