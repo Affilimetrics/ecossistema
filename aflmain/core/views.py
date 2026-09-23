@@ -144,6 +144,11 @@ def logout_view(request):
 
 
 @login_required
+def coleta_geral(request):
+    return render(request, "core/coleta_geral.html", {"categorias": list(CATEGORIAS_PRINCIPAIS.items())})
+
+
+@login_required
 def magalu_bot(request):
     return render(request, "core/magalu_bot.html")
 
@@ -395,7 +400,7 @@ def status_bot_view(request):
                 },
             })
 
-    status["alertas"] = list(AlertaSistema.objects.filter(owner=request.user, resolvido=False).values("id", "titulo", "mensagem", "canal")[:5])
+    status["alertas"] = list(AlertaSistema.objects.filter(owner=request.user, resolvido=False).values("id", "titulo", "mensagem", "canal", "nivel")[:5])
     return JsonResponse(status)
 
 

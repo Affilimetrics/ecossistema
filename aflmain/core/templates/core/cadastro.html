@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br" data-bs-theme="dark">
 <head>
@@ -14,8 +15,10 @@
     .btn-green:hover { background:#27ae60; color:#fff; }
     .form-control:focus { border-color:var(--brand-green); box-shadow:0 0 0 .25rem rgba(46,204,113,.2); }
   </style>
+<link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head>
 <body class="min-vh-100 d-flex align-items-center justify-content-center p-3">
+<div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
 <main class="w-100" style="max-width:460px">
   <div class="text-center mb-4">
     <a href="{% url 'index' %}" class="text-decoration-none text-white fs-2 fw-bold">Afillimetrics</a>
@@ -50,5 +53,6 @@
   </div>
   <div class="text-center mt-4"><a href="{% url 'index' %}" class="text-secondary text-decoration-none small">&larr; Voltar para home</a></div>
 </main>
+<script src="{% static 'core/ui-loader.js' %}"></script>
 </body>
 </html>

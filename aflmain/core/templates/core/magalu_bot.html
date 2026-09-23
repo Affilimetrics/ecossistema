@@ -77,12 +77,28 @@
             color: #2ECC71;
         }
 
+        /* Alerta operacional: fica visível mesmo durante uma execução longa. */
+        #alertaCanalLive {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            width: min(520px, calc(100vw - 36px));
+            z-index: 2000;
+        }
+        #alertaCanalLive .channel-alert {
+            box-shadow: 0 14px 45px rgba(0,0,0,.55);
+            border-width: 2px;
+            border-radius: 14px;
+        }
+
     </style>
 
+<link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head>
 
 
 <body>
+<div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
 {% csrf_token %}
 
 
@@ -102,8 +118,8 @@
         </a>
 
         <div class="d-flex align-items-center gap-3">
-            <span class="text-secondary">Coletor Magalu</span>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm">Home</a>
+            <span class="text-secondary">Central Magalu</span>
+            <a href="{% url 'coleta_geral' %}" class="btn btn-success btn-sm">Ir para coleta</a><a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">Home</a>
             <form method="post" action="{% url 'logout' %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-outline-secondary btn-sm">Sair</button></form>
         </div>
 
@@ -117,8 +133,7 @@
 <!-- ===================================================== -->
 
 <main class="container py-5">
-{% include "core/_alertas.html" %}
-<div id="alertaCanalLive"></div>
+<div id="alertaCanalLive" aria-live="assertive" aria-atomic="true">{% include "core/_alertas.html" %}</div>
 
 
     <!-- ================================================= -->
@@ -128,7 +143,7 @@
     <div class="mb-5">
 
         <h1 class="fw-bold">
-            Coletor de Links Magalu
+            Central Magalu
         </h1>
 
         <p class="text-secondary">
@@ -320,10 +335,8 @@
                 class="badge bg-secondary fs-6"
             >
                 PARADO
-            </span>
-
+            </span><span id="statusMiniSpinner" class="status-mini-spinner d-none"></span>
         </div>
-
 
         <!-- BOTÕES -->
 
@@ -524,6 +537,7 @@ const statusBox =
 
 const statusBadge =
     document.getElementById("statusBadge");
+const statusMiniSpinner = document.getElementById("statusMiniSpinner");
 
 const contadorCategorias =
     document.getElementById("contadorCategorias");
@@ -1263,6 +1277,7 @@ function atualizarResumo() {
 function atualizarInterfaceStatus(status) {
 
     status = String(status || "parado").toLowerCase();
+    if(statusMiniSpinner) statusMiniSpinner.classList.toggle("d-none", !["iniciando","verificando_login","aguardando_login","logado","executando"].includes(status));
 
     // Estados transitórios / execução
     if ([
@@ -1821,7 +1836,21 @@ async function consultarStatus() {
         if (resultado.mensagem) statusBox.textContent = resultado.mensagem;
         const alertaBox = document.getElementById("alertaCanalLive");
         if (alertaBox && Array.isArray(resultado.alertas) && resultado.alertas.length) {
-            alertaBox.innerHTML = resultado.alertas.map(a => `<div class="alert alert-danger"><strong>${a.titulo}</strong><div class="small">${a.mensagem}</div></div>`).join("");
+            alertaBox.innerHTML = resultado.alertas.map(a => {
+                const warning = a.nivel === "WARNING";
+                const classe = warning ? "alert-warning" : "alert-danger";
+                const icone = warning ? "bi-wifi-off" : "bi-exclamation-octagon-fill";
+                return `<div class="alert ${classe} channel-alert mb-3" role="alert">
+                    <div class="d-flex gap-3 align-items-start">
+                        <i class="bi ${icone} fs-2 flex-shrink-0"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold fs-5">${escapeHtml(a.titulo || "Problema na divulgação")}</div>
+                            <div class="mt-1">${escapeHtml(a.mensagem || "Verifique as configurações do canal.")}</div>
+                            <a href="{% url 'configuracoes' %}" class="btn btn-sm ${warning ? "btn-dark" : "btn-light"} mt-3"><i class="bi bi-gear me-1"></i> Ver configurações</a>
+                        </div>
+                    </div>
+                </div>`;
+            }).join("");
         } else if (alertaBox) {
             alertaBox.innerHTML = "";
         }
@@ -1917,6 +1946,7 @@ consultarStatus();
 </script>
 
 
+<script src="{% static 'core/ui-loader.js' %}"></script>
 </body>
 
 </html>

@@ -1,9 +1,19 @@
 {% if alertas_sistema %}
 <div class="mb-4" id="alertasSistema">
   {% for alerta in alertas_sistema %}
-  <div class="alert alert-danger border-danger d-flex justify-content-between align-items-start gap-3" role="alert">
-    <div><strong><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ alerta.titulo }}</strong><div class="small mt-1">{{ alerta.mensagem }}</div></div>
-    <form method="post" action="{% url 'resolver_alerta' alerta.id %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm btn-outline-light">Dispensar</button></form>
+  <div class="alert {% if alerta.nivel == 'WARNING' %}alert-warning{% else %}alert-danger{% endif %} border-2 shadow-sm" role="alert">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi {% if alerta.nivel == 'WARNING' %}bi-wifi-off{% else %}bi-exclamation-octagon-fill{% endif %} fs-3 flex-shrink-0"></i>
+      <div class="flex-grow-1">
+        <div class="fw-bold fs-5">{{ alerta.titulo }}</div>
+        <div class="mt-1">{{ alerta.mensagem }}</div>
+        {% if alerta.canal %}
+        <a href="{% url 'configuracoes' %}" class="btn btn-sm {% if alerta.nivel == 'WARNING' %}btn-dark{% else %}btn-light{% endif %} mt-3">
+          <i class="bi bi-gear me-1"></i> Ver configurações
+        </a>
+        {% endif %}
+      </div>
+    </div>
   </div>
   {% endfor %}
 </div>
