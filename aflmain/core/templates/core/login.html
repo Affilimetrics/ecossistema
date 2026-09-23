@@ -31,8 +31,10 @@
       box-shadow: 0 0 0 0.25rem rgba(46, 204, 113, 0.2);
     }
   </style>
+<link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head>
 <body class="min-vh-100 d-flex align-items-center justify-content-center p-3">
+<div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
 
   <main class="w-100" style="max-width: 420px;">
     <!-- Logo e Cabeçalho -->
@@ -141,5 +143,6 @@
       eyeIcon.classList.toggle('bi-eye-slash');
     });
   </script>
+<script src="{% static 'core/ui-loader.js' %}"></script>
 </body>
 </html>

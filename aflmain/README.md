@@ -1,3 +1,44 @@
+<<<<<<< HEAD
+# Afillimetrics — Ecossistema de Automação para Afiliados
+
+## Atualizações 22–23/09/2026
+
+### Coleta geral e Central Magalu
+- `/coleta/`: fluxo simplificado com checkboxes de marketplaces e somente categoria/palavra-chave.
+- Magalu está funcional; Mercado Livre e Amazon ficam desabilitados até seus coletores existirem.
+- `/magalu/`: Central Magalu para recursos específicos/avançados, incluindo múltiplas keywords, loop, logs e controles detalhados.
+- O CTA principal agora é **Ir para coleta**.
+
+### Divulgação e alertas
+- Configurações Telegram/WhatsApp por usuário.
+- Templates por categoria/keyword e Produtos Quentes.
+- Alertas visuais contextuais para canal não configurado, credencial inválida e indisponibilidade temporária.
+- Falha de divulgação não invalida produto/link já processado.
+
+### Segurança das credenciais
+A criptografia de Telegram/WhatsApp agora usa chave própria:
+```env
+SECRET_KEY=
+CREDENTIAL_ENCRYPTION_KEY=
+```
+Registros novos usam `enc2::`. Registros legados `enc::` ainda podem ser lidos com a SECRET_KEY antiga apenas para migração. Antes de trocar a SECRET_KEY, configure a nova chave, faça backup e rode:
+```bash
+python manage.py migrar_credenciais
+```
+Gere uma chave forte com:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+### Interface
+Trocas de página agora exibem blur discreto + spinner central. Estados de execução exibem um pequeno loading ao lado do status.
+
+---
+
+## Documentação anterior
+
+=======
+>>>>>>> origin/main
 # Afillimetrics — Smart Affiliate Bot
 
 > Plataforma Django para coleta de produtos e links de afiliado, organização de ofertas e futura distribuição por Telegram/WhatsApp, com arquitetura preparada para múltiplos marketplaces.
