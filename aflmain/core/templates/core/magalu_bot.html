@@ -117,6 +117,8 @@
 <!-- ===================================================== -->
 
 <main class="container py-5">
+{% include "core/_alertas.html" %}
+<div id="alertaCanalLive"></div>
 
 
     <!-- ================================================= -->
@@ -1695,9 +1697,16 @@ iniciarBotao.addEventListener(
             // ERRO
             // ==================================================
 
-            statusBox.textContent =
-                resultado.erro ||
-                "Erro ao iniciar o coletor.";
+            if (Array.isArray(resultado.keywords_sem_template) && resultado.keywords_sem_template.length) {
+                statusBox.innerHTML = "Antes de iniciar, configure template para: " + resultado.keywords_sem_template.join(", ") + ". ";
+                const link = document.createElement("a");
+                link.href = resultado.configurar_url || "{% url 'templates_oferta' %}";
+                link.textContent = "Abrir Templates de Oferta";
+                link.className = "link-warning";
+                statusBox.appendChild(link);
+            } else {
+                statusBox.textContent = resultado.erro || "Erro ao iniciar o coletor.";
+            }
 
 
             atualizarInterfaceStatus(
@@ -1810,6 +1819,12 @@ async function consultarStatus() {
             aplicarConfiguracaoDoServidor(resultado);
         }
         if (resultado.mensagem) statusBox.textContent = resultado.mensagem;
+        const alertaBox = document.getElementById("alertaCanalLive");
+        if (alertaBox && Array.isArray(resultado.alertas) && resultado.alertas.length) {
+            alertaBox.innerHTML = resultado.alertas.map(a => `<div class="alert alert-danger"><strong>${a.titulo}</strong><div class="small">${a.mensagem}</div></div>`).join("");
+        } else if (alertaBox) {
+            alertaBox.innerHTML = "";
+        }
 
         const progresso = resultado.progresso || {};
         document.getElementById("progressoProdutos").textContent = progresso.processados || 0;

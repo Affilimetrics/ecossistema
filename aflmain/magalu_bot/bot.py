@@ -1032,11 +1032,22 @@ def executar_bot(
                             from core.models import Produto as ProdutoModel
                             from core.services import criar_oferta
                             from core.publicacao import publicar_oferta
+                            from core.config_service import obter_config_automacao
                             produto_db = ProdutoModel.objects.get(owner_id=owner_id, url_produto=url_produto)
-                            oferta_db = criar_oferta(produto_db, turno=__import__("os").getenv("TURNO_PADRAO") or None, campanha=__import__("os").getenv("CAMPANHA_SAZONAL", "NENHUM"))
-                            canais_auto = [c.strip().upper() for c in __import__("os").getenv("CANAIS_AUTOMATICOS", "TELEGRAM").split(",") if c.strip()]
-                            resultado_publicacao = publicar_oferta(oferta_db, canais=canais_auto, driver=driver, campanha=__import__("os").getenv("CAMPANHA_SAZONAL", "NENHUM"))
-                            registrar_evento(f"Publicação inteligente: {resultado_publicacao}", "OK")
+                            cfg_auto = obter_config_automacao(owner_id=owner_id)
+                            oferta_db = criar_oferta(produto_db, turno=cfg_auto.turno_padrao or None, campanha=cfg_auto.campanha_sazonal or "NENHUM")
+                            if cfg_auto.auto_publicar_ofertas:
+                                canais_auto = [str(c).strip().upper() for c in (cfg_auto.canais_automaticos or []) if str(c).strip()]
+                                if not canais_auto:
+                                    canais_auto = ["TELEGRAM"]
+                                resultado_publicacao = publicar_oferta(oferta_db, canais=canais_auto, driver=driver, campanha=cfg_auto.campanha_sazonal or "NENHUM")
+                                erros = {c: v for c, v in resultado_publicacao.items() if str(v).startswith("ERRO:")}
+                                if erros:
+                                    registrar_evento(f"ALERTA de divulgação: {erros}", "WARNING")
+                                else:
+                                    registrar_evento(f"Publicação inteligente: {resultado_publicacao}", "OK")
+                            else:
+                                registrar_evento("Oferta criada; publicação automática está desativada nas Configurações.", "INFO")
                         except Exception as erro_publicacao:
                             registrar_evento(f"Falha na publicação automática (coleta preservada): {erro_publicacao}", "WARNING")
 

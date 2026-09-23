@@ -1,0 +1,10 @@
+{% if alertas_sistema %}
+<div class="mb-4" id="alertasSistema">
+  {% for alerta in alertas_sistema %}
+  <div class="alert alert-danger border-danger d-flex justify-content-between align-items-start gap-3" role="alert">
+    <div><strong><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ alerta.titulo }}</strong><div class="small mt-1">{{ alerta.mensagem }}</div></div>
+    <form method="post" action="{% url 'resolver_alerta' alerta.id %}">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-sm btn-outline-light">Dispensar</button></form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -13,8 +13,14 @@ from django.core.validators import validate_email
 from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db.models import Count
-from .models import Produto, Execucao, Oferta, LogExecucao, ConfiguracaoCanal
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from .models import (Produto, Execucao, Oferta, LogExecucao, ConfiguracaoCanal,
+                     ConfiguracaoAutomacao, TemplateOferta, AlertaSistema, ProdutoQuente)
 from .services import criar_oferta, enviar_oferta
+from .template_service import garantir_templates_nativos, keywords_sem_template, garantir_registros_keywords, atualizar_produtos_quentes, normalizar_chave
+from .config_service import obter_config_automacao
+from .alerts import registrar_alerta_canal, resolver_alerta_canal
 from magalu_bot.config.config import CATEGORIAS_PRINCIPAIS
 
 from magalu_bot.controlador import controlador_bot
@@ -216,6 +222,18 @@ def iniciar_bot_view(request):
             status=400,
         )
 
+    garantir_templates_nativos(request.user)
+    faltantes = keywords_sem_template(request.user, keywords)
+    if faltantes:
+        garantir_registros_keywords(request.user, faltantes)
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Antes de processar novas palavras-chave, configure um template de divulgação ou marque 'divulgar sem template'.",
+            "status": "parado",
+            "keywords_sem_template": faltantes,
+            "configurar_url": "/ofertas/templates/",
+        }, status=422)
+
     iniciou = controlador_bot.iniciar(
         categorias_selecionadas=categorias,
         keywords_loop=keywords_loop,
@@ -377,6 +395,7 @@ def status_bot_view(request):
                 },
             })
 
+    status["alertas"] = list(AlertaSistema.objects.filter(owner=request.user, resolvido=False).values("id", "titulo", "mensagem", "canal")[:5])
     return JsonResponse(status)
 
 
@@ -411,15 +430,131 @@ def dashboard(request):
 
 @login_required
 def ofertas_view(request):
+    return redirect("templates_oferta")
+
+
+@login_required
+def templates_oferta_view(request):
+    garantir_templates_nativos(request.user)
     if request.method == "POST":
-        produto_id = request.POST.get("produto_id")
-        produto = get_object_or_404(Produto, pk=produto_id, owner=request.user)
-        criar_oferta(produto)
-        messages.success(request, "Oferta criada/atualizada.")
-        return redirect("ofertas")
-    ofertas = Oferta.objects.filter(owner=request.user).select_related("produto", "produto__afiliado")[:100]
-    produtos = Produto.objects.filter(owner=request.user).select_related("afiliado")[:100]
-    return render(request, "core/ofertas.html", {"ofertas": ofertas, "produtos": produtos})
+        acao = request.POST.get("acao", "salvar_template")
+        if acao == "salvar_template":
+            template_id = request.POST.get("template_id")
+            tipo = (request.POST.get("tipo") or "KEYWORD").upper()
+            chave = normalizar_chave(request.POST.get("chave"))
+            linhas = [x.strip() for x in (request.POST.get("chamadas") or "").splitlines() if x.strip()]
+            sem_template = request.POST.get("divulgar_sem_template") == "on"
+            if not chave:
+                messages.error(request, "Informe a categoria ou palavra-chave.")
+            elif not linhas and not sem_template:
+                messages.error(request, "Informe ao menos um template ou marque 'divulgar sem template'.")
+            else:
+                if template_id:
+                    obj = get_object_or_404(TemplateOferta, pk=template_id, owner=request.user)
+                    obj.tipo = tipo
+                    obj.chave = chave
+                    obj.chamadas = linhas
+                    obj.divulgar_sem_template = sem_template
+                    obj.ativo = True
+                    obj.save()
+                else:
+                    TemplateOferta.objects.update_or_create(
+                        owner=request.user, tipo=tipo, chave=chave,
+                        defaults={"chamadas": linhas, "divulgar_sem_template": sem_template, "ativo": True, "nativo": False},
+                    )
+                messages.success(request, "Template salvo com sucesso.")
+            return redirect("templates_oferta")
+        if acao == "editar_oferta":
+            oferta = get_object_or_404(Oferta, pk=request.POST.get("oferta_id"), owner=request.user)
+            oferta.titulo = (request.POST.get("titulo") or oferta.titulo).strip()
+            oferta.mensagem = (request.POST.get("mensagem") or oferta.mensagem).strip()
+            oferta.status = "PRONTA"
+            oferta.save(update_fields=["titulo", "mensagem", "status", "atualizada_em"])
+            messages.success(request, "Oferta editada.")
+            return redirect("templates_oferta")
+
+    templates = TemplateOferta.objects.filter(owner=request.user)
+    ofertas = Oferta.objects.filter(owner=request.user).select_related("produto", "produto__afiliado")[:20]
+    pendentes = templates.filter(tipo="KEYWORD", ativo=False)
+    return render(request, "core/templates_oferta.html", {"templates": templates, "ofertas": ofertas, "pendentes": pendentes})
+
+
+@login_required
+def produtos_quentes_view(request):
+    atualizado = atualizar_produtos_quentes(request.user, forcar=request.GET.get("atualizar") == "1")
+    categoria = (request.GET.get("categoria") or "").strip()
+    qs = ProdutoQuente.objects.filter(owner=request.user).select_related("produto", "produto__afiliado")
+    categorias = list(Produto.objects.filter(owner=request.user).values_list("categoria", flat=True).distinct().order_by("categoria"))
+    if categoria:
+        qs = qs.filter(produto__categoria=categoria)
+    ultimo = ProdutoQuente.objects.filter(owner=request.user).order_by("-calculado_em").first()
+    return render(request, "core/produtos_quentes.html", {
+        "produtos_quentes": qs[:50], "categorias": categorias, "categoria_atual": categoria,
+        "ranking_atualizado": atualizado, "ultima_atualizacao": ultimo.calculado_em if ultimo else None,
+    })
+
+
+@login_required
+def configuracoes_view(request):
+    auto = obter_config_automacao(owner=request.user)
+    telegram, _ = ConfiguracaoCanal.objects.get_or_create(owner=request.user, canal="TELEGRAM")
+    whatsapp, _ = ConfiguracaoCanal.objects.get_or_create(owner=request.user, canal="WHATSAPP")
+
+    if request.method == "POST":
+        telegram.ativo = request.POST.get("telegram_ativo") == "on"
+        telegram.destino = (request.POST.get("telegram_chat_id") or "").strip()
+        novo_token = (request.POST.get("telegram_bot_token") or "").strip()
+        if novo_token:
+            telegram.token = novo_token
+        telegram.save()
+
+        whatsapp.ativo = request.POST.get("whatsapp_ativo") == "on"
+        whatsapp.destino = (request.POST.get("whatsapp_destination") or "").strip()
+        whatsapp.endpoint = (request.POST.get("whatsapp_api_endpoint") or "").strip()
+        novo_wa_token = (request.POST.get("whatsapp_api_token") or "").strip()
+        if novo_wa_token:
+            whatsapp.token = novo_wa_token
+        whatsapp.save()
+
+        if telegram.ativo and (not telegram.token or not telegram.destino):
+            registrar_alerta_canal(request.user, "TELEGRAM", "Token e chat_id são obrigatórios quando o canal está ativo.")
+        elif not telegram.ativo:
+            resolver_alerta_canal(request.user, "TELEGRAM")
+
+        if whatsapp.ativo and (not whatsapp.token or not whatsapp.destino or not whatsapp.endpoint):
+            registrar_alerta_canal(request.user, "WHATSAPP", "Token, endpoint e destino são obrigatórios quando o canal está ativo.")
+        elif not whatsapp.ativo:
+            resolver_alerta_canal(request.user, "WHATSAPP")
+
+        canais=[]
+        if request.POST.get("auto_telegram") == "on": canais.append("TELEGRAM")
+        if request.POST.get("auto_whatsapp") == "on": canais.append("WHATSAPP")
+        auto.auto_publicar_ofertas = request.POST.get("auto_publicar_ofertas") == "on"
+        auto.canais_automaticos = canais
+        try:
+            auto.cache_retencao_hours = max(1, int(request.POST.get("cache_retencao_hours") or 120))
+        except ValueError:
+            auto.cache_retencao_hours = 120
+        auto.campanha_sazonal = (request.POST.get("campanha_sazonal") or "NENHUM").strip()[:80]
+        auto.turno_padrao = (request.POST.get("turno_padrao") or "").strip()[:20]
+        auto.save()
+        messages.success(request, "Configurações salvas. Tokens existentes permanecem preservados quando o campo fica vazio.")
+        return redirect("configuracoes")
+
+    return render(request, "core/configuracoes.html", {
+        "auto": auto, "telegram": telegram, "whatsapp": whatsapp,
+        "telegram_token_salvo": bool(telegram.token), "whatsapp_token_salvo": bool(whatsapp.token),
+        "turnos": ["MANHA", "ALMOCO", "TARDE", "NOITE", "RELAMPAGO"],
+    })
+
+
+@require_POST
+@login_required
+def resolver_alerta_view(request, alerta_id):
+    alerta = get_object_or_404(AlertaSistema, pk=alerta_id, owner=request.user)
+    alerta.resolvido = True
+    alerta.save(update_fields=["resolvido", "atualizado_em"])
+    return redirect(request.POST.get("next") or "home")
 
 
 @login_required

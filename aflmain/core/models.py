@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from .fields import EncryptedTextField
 
 
 class Produto(models.Model):
@@ -107,7 +108,7 @@ class ConfiguracaoCanal(models.Model):
     canal = models.CharField(max_length=20, choices=CANAIS)
     ativo = models.BooleanField(default=False)
     destino = models.CharField(max_length=255, blank=True, default="")
-    token = models.CharField(max_length=500, blank=True, default="")
+    token = EncryptedTextField(blank=True, default="")
     endpoint = models.URLField(max_length=1000, blank=True, default="")
 
     class Meta:
@@ -136,3 +137,70 @@ class HistoricoPreco(models.Model):
     class Meta:
         ordering = ["-registrado_em"]
 
+
+
+class ConfiguracaoAutomacao(models.Model):
+    owner = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="configuracao_automacao")
+    auto_publicar_ofertas = models.BooleanField(default=False)
+    canais_automaticos = models.JSONField(default=list, blank=True)
+    cache_retencao_hours = models.PositiveIntegerField(default=120)
+    campanha_sazonal = models.CharField(max_length=80, default="NENHUM", blank=True)
+    turno_padrao = models.CharField(max_length=20, default="", blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Automação de {self.owner}"
+
+
+class TemplateOferta(models.Model):
+    TIPOS = (("CATEGORIA", "Categoria"), ("KEYWORD", "Palavra-chave"))
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="templates_oferta")
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    chave = models.CharField(max_length=160)
+    chamadas = models.JSONField(default=list, blank=True)
+    divulgar_sem_template = models.BooleanField(default=False)
+    nativo = models.BooleanField(default=False)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["tipo", "chave"]
+        constraints = [models.UniqueConstraint(fields=["owner", "tipo", "chave"], name="uniq_template_por_owner_tipo_chave")]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()}: {self.chave}"
+
+
+class AlertaSistema(models.Model):
+    NIVEIS = (("INFO", "Informação"), ("WARNING", "Alerta"), ("ERROR", "Erro"))
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="alertas_sistema")
+    codigo = models.CharField(max_length=100, db_index=True)
+    canal = models.CharField(max_length=20, blank=True, default="")
+    nivel = models.CharField(max_length=20, choices=NIVEIS, default="WARNING")
+    titulo = models.CharField(max_length=180)
+    mensagem = models.TextField()
+    resolvido = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-atualizado_em"]
+        constraints = [models.UniqueConstraint(fields=["owner", "codigo"], name="uniq_alerta_ativo_codigo_owner")]
+
+    def __str__(self):
+        return self.titulo
+
+
+class ProdutoQuente(models.Model):
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="produtos_quentes")
+    produto = models.OneToOneField(Produto, on_delete=models.CASCADE, related_name="ranking_quente")
+    score = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    motivo = models.CharField(max_length=300, blank=True, default="")
+    calculado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-score", "-calculado_em"]
+
+    def __str__(self):
+        return f"{self.produto} ({self.score})"

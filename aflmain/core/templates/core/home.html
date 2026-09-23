@@ -40,7 +40,9 @@
   <div class="sidebar-title text-uppercase small text-secondary px-2 mb-2">Principal</div>
   <nav>
     <a class="nav-link active px-3 py-2" href="{% url 'home' %}"><i class="bi bi-grid-1x2-fill me-2"></i><span class="nav-label">Visão geral</span></a>
-    <a class="nav-link px-3 py-2" href="{% url 'ofertas' %}"><i class="bi bi-fire me-2"></i><span class="nav-label">Ofertas</span></a>
+    <a class="nav-link px-3 py-2" href="{% url 'templates_oferta' %}"><i class="bi bi-megaphone me-2"></i><span class="nav-label">Templates de Oferta</span></a>
+    <a class="nav-link px-3 py-2" href="{% url 'produtos_quentes' %}"><i class="bi bi-fire me-2"></i><span class="nav-label">Produtos Quentes</span></a>
+    <a class="nav-link px-3 py-2" href="{% url 'configuracoes' %}"><i class="bi bi-gear me-2"></i><span class="nav-label">Configurações</span></a>
   </nav>
 
   <div class="sidebar-title text-uppercase small text-secondary px-2 mt-4 mb-2">Marketplaces</div>
@@ -60,6 +62,7 @@
 </aside>
 
 <main class="main">
+  {% include "core/_alertas.html" %}
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <div class="text-secondary small">Painel operacional</div>

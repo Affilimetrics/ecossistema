@@ -3,6 +3,7 @@ from django.utils import timezone
 from .models import ConfiguracaoCanal, Mensagem, Oferta
 from .marketing import gerar_mensagem, desconto
 from .publicacao import enviar_telegram as _enviar_telegram, enviar_whatsapp_api as _enviar_whatsapp
+from .alerts import registrar_alerta_canal, resolver_alerta_canal
 
 
 def formatar_oferta(produto, link=None, turno=None, campanha=None):
@@ -36,13 +37,19 @@ def enviar_whatsapp(oferta):
 
 def enviar_oferta(oferta, canal):
     canal = canal.upper()
-    if canal == "TELEGRAM":
-        result = enviar_telegram(oferta)
-    elif canal == "WHATSAPP":
-        result = enviar_whatsapp(oferta)
-    else:
-        raise RuntimeError(f"Canal não suportado: {canal}")
-    Mensagem.objects.create(owner=oferta.owner, produto=oferta.produto, canal=canal, status="ENVIADO", conteudo=oferta.mensagem, data_envio=timezone.now())
-    oferta.status = "ENVIADA"
-    oferta.save(update_fields=["status", "atualizada_em"])
-    return result
+    try:
+        if canal == "TELEGRAM":
+            result = enviar_telegram(oferta)
+        elif canal == "WHATSAPP":
+            result = enviar_whatsapp(oferta)
+        else:
+            raise RuntimeError(f"Canal não suportado: {canal}")
+        Mensagem.objects.create(owner=oferta.owner, produto=oferta.produto, canal=canal, status="ENVIADO", conteudo=oferta.mensagem, data_envio=timezone.now())
+        resolver_alerta_canal(oferta.owner, canal)
+        oferta.status = "ENVIADA"
+        oferta.save(update_fields=["status", "atualizada_em"])
+        return result
+    except Exception as exc:
+        Mensagem.objects.create(owner=oferta.owner, produto=oferta.produto, canal=canal, status="ERRO", conteudo=oferta.mensagem, erro=str(exc))
+        registrar_alerta_canal(oferta.owner, canal, str(exc))
+        raise

@@ -84,14 +84,33 @@ def detectar_turno(agora=None, limite=None):
     return "MANHA"
 
 
-def chamada_inteligente(nome, categoria="", preco_atual=None):
+def chamada_inteligente(nome, categoria="", preco_atual=None, owner=None):
     texto = (nome or "").casefold()
-    categoria = (categoria or "").replace("keyword:", "").upper()
+    categoria_raw = (categoria or "").strip()
+    categoria_limpa = categoria_raw.replace("keyword:", "", 1).strip()
+
+    if owner is not None:
+        try:
+            from .models import TemplateOferta
+            tipo = "KEYWORD" if categoria_raw.casefold().startswith("keyword:") else "CATEGORIA"
+            template = TemplateOferta.objects.filter(
+                owner=owner, tipo=tipo, chave__iexact=categoria_limpa, ativo=True
+            ).first()
+            if template:
+                if template.divulgar_sem_template:
+                    return ""
+                chamadas = [str(x).strip() for x in (template.chamadas or []) if str(x).strip()]
+                if chamadas:
+                    return random.choice(chamadas)
+        except Exception:
+            pass
+
+    categoria_upper = categoria_limpa.upper()
     for palavra, frase in KEYWORDS.items():
         if palavra in texto:
             return frase
     for chave, frases in CATEGORY.items():
-        if chave in categoria or chave.casefold() in texto:
+        if chave in categoria_upper or chave.casefold() in texto:
             return random.choice(frases)
     if preco_atual is not None and Decimal(str(preco_atual)) <= 40:
         return random.choice(["💰 Precinho camarada detectado!", "🛒 Menos de R$ 40: meu radar aprovou!"])
@@ -104,8 +123,8 @@ def gerar_mensagem(produto, turno=None, campanha=None):
     atual = produto.preco_atual
     pct = desconto(anterior, atual)
     turno = turno or detectar_turno()
-    chamada = chamada_inteligente(produto.nome, produto.categoria, atual)
-    linhas = [chamada]
+    chamada = chamada_inteligente(produto.nome, produto.categoria, atual, owner=produto.owner)
+    linhas = [chamada] if chamada else []
     if turno in URGENCY:
         linhas += ["", URGENCY[turno]]
     # Valores vindos do produto precisam ser escapados porque a mensagem usa HTML do Telegram.

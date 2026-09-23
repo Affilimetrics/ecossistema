@@ -7,18 +7,25 @@ from datetime import timedelta
 from pathlib import Path
 import requests
 from django.utils import timezone
-from .models import ConfiguracaoCanal, Mensagem, Oferta
+from .models import ConfiguracaoCanal, ConfiguracaoAutomacao, Mensagem, Oferta
 from .marketing import gerar_mensagem, detectar_turno
+from .alerts import registrar_alerta_canal, resolver_alerta_canal
 
 CACHE_HORAS = int(os.getenv("CACHE_RETENCAO_HOURS", "120"))
 
 
 def _cfg(owner, canal):
-    return (ConfiguracaoCanal.objects.filter(owner=owner, canal=canal, ativo=True).first()
-            or ConfiguracaoCanal.objects.filter(owner__isnull=True, canal=canal, ativo=True).first())
+    # Em modo multiusuário nunca reutiliza credenciais globais para um usuário
+    # autenticado. Isso evita envio acidental pelo bot/chat de outra conta.
+    if owner is not None:
+        return ConfiguracaoCanal.objects.filter(owner=owner, canal=canal, ativo=True).first()
+    return ConfiguracaoCanal.objects.filter(owner__isnull=True, canal=canal, ativo=True).first()
 
 
-def ja_enviada_recentemente(produto, canal, horas=CACHE_HORAS):
+def ja_enviada_recentemente(produto, canal, horas=None):
+    if horas is None:
+        cfg_auto = ConfiguracaoAutomacao.objects.filter(owner=produto.owner).first()
+        horas = cfg_auto.cache_retencao_hours if cfg_auto else CACHE_HORAS
     limite = timezone.now() - timedelta(hours=horas)
     return Mensagem.objects.filter(produto=produto, canal=canal, status="ENVIADO", criado_em__gte=limite).exists()
 
@@ -209,9 +216,11 @@ def publicar_oferta(oferta, canais=None, driver=None, turno=None, campanha=None,
             else:
                 raise RuntimeError(f"Canal não suportado: {canal}")
             Mensagem.objects.create(owner=oferta.owner, produto=produto, canal=canal, status="ENVIADO", conteudo=texto, data_envio=timezone.now())
+            resolver_alerta_canal(oferta.owner, canal)
             resultados[canal] = "ENVIADO"
         except Exception as exc:
             Mensagem.objects.create(owner=oferta.owner, produto=produto, canal=canal, status="ERRO", conteudo=texto, erro=str(exc))
+            registrar_alerta_canal(oferta.owner, canal, str(exc))
             resultados[canal] = f"ERRO: {exc}"
     if any(v == "ENVIADO" for v in resultados.values()):
         oferta.status = "ENVIADA"

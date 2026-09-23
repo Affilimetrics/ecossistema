@@ -63,6 +63,10 @@ urlpatterns = [
     path("magalu/logs/", views.logs_bot_view, name="logs_bot"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("ofertas/", views.ofertas_view, name="ofertas"),
+    path("ofertas/templates/", views.templates_oferta_view, name="templates_oferta"),
+    path("produtos-quentes/", views.produtos_quentes_view, name="produtos_quentes"),
+    path("configuracoes/", views.configuracoes_view, name="configuracoes"),
+    path("alertas/<int:alerta_id>/resolver/", views.resolver_alerta_view, name="resolver_alerta"),
     path("ofertas/<int:oferta_id>/enviar/", views.enviar_oferta_view, name="enviar_oferta"),
 
 ]
