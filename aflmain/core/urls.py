@@ -23,6 +23,10 @@ urlpatterns = [
 
     path("cadastro/", views.cadastro, name="cadastro"),
     path("home/", views.home, name="home"),
+<<<<<<< HEAD
+    path("coleta/", views.coleta_geral, name="coleta_geral"),
+=======
+>>>>>>> origin/main
     path("logout/", views.logout_view, name="logout"),
 
     path(

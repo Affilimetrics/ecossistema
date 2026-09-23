@@ -1,5 +1,13 @@
+<<<<<<< HEAD
+{% load static %}
+<!doctype html>
+<html lang="pt-br" data-bs-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Templates de Oferta</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"><link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
+</head><body class="bg-black text-light">
+<div id="pageTransitionLoader"><div class="page-loader-ring"></div></div><main class="container py-5">
+=======
 <!doctype html>
 <html lang="pt-br" data-bs-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Templates de Oferta</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"></head><body class="bg-black text-light"><main class="container py-5">
+>>>>>>> origin/main
 <div class="d-flex justify-content-between align-items-center mb-4"><div><h1>Templates de Oferta</h1><p class="text-secondary mb-0">Personalize chamadas por categoria ou palavra-chave. Uma linha = uma variação; o sistema alterna entre elas.</p></div><div class="d-flex gap-2"><a href="{% url 'produtos_quentes' %}" class="btn btn-outline-warning">Produtos Quentes</a><a href="{% url 'home' %}" class="btn btn-outline-light">Home</a></div></div>
 {% include 'core/_alertas.html' %}{% for message in messages %}<div class="alert alert-info">{{message}}</div>{% endfor %}
 {% if pendentes %}<div class="alert alert-warning"><strong>Novas palavras-chave aguardando configuração:</strong> {% for t in pendentes %}<span class="badge text-bg-warning me-1">{{t.chave}}</span>{% endfor %}. Preencha um template abaixo ou marque “divulgar sem template”.</div>{% endif %}
@@ -7,4 +15,9 @@
 <h2 class="h4 mb-3">Templates disponíveis</h2><div class="row g-3 mb-5">{% for t in templates %}<div class="col-lg-6"><div class="card bg-dark border-secondary p-3 h-100"><form method="post">{% csrf_token %}<input type="hidden" name="acao" value="salvar_template"><input type="hidden" name="template_id" value="{{t.id}}"><input type="hidden" name="tipo" value="{{t.tipo}}"><div class="d-flex justify-content-between align-items-center mb-2"><div><span class="badge {% if t.tipo == 'CATEGORIA' %}bg-primary{% else %}bg-secondary{% endif %}">{{t.get_tipo_display}}</span>{% if t.nativo %}<span class="badge bg-success">nativo</span>{% endif %}</div><small class="text-secondary">{{t.atualizado_em|date:'d/m/Y H:i'}}</small></div><label class="form-label">Chave</label><input class="form-control mb-2" name="chave" value="{{t.chave}}"><label class="form-label">Chamadas</label><textarea class="form-control mb-2" rows="5" name="chamadas">{% for c in t.chamadas %}{{c}}{% if not forloop.last %}
 {% endif %}{% endfor %}</textarea><div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="divulgar_sem_template" {% if t.divulgar_sem_template %}checked{% endif %}><label class="form-check-label">Divulgar sem template personalizado</label></div><button class="btn btn-outline-success btn-sm">Salvar alterações</button></form></div></div>{% endfor %}</div>
 <h2 class="h4 mb-3">Ofertas geradas recentemente</h2><p class="text-secondary">Você também pode editar uma oferta individual antes de reenviar.</p><div class="row g-3">{% for o in ofertas %}<div class="col-lg-6"><div class="card bg-dark border-secondary p-3"><form method="post">{% csrf_token %}<input type="hidden" name="acao" value="editar_oferta"><input type="hidden" name="oferta_id" value="{{o.id}}"><input class="form-control mb-2" name="titulo" value="{{o.titulo}}"><textarea class="form-control mb-2" rows="9" name="mensagem">{{o.mensagem}}</textarea><div class="d-flex justify-content-between"><small class="text-secondary">Desconto detectado: {{o.desconto_percentual|default:'0'}}%</small><button class="btn btn-sm btn-outline-light">Salvar oferta</button></div></form></div></div>{% empty %}<p class="text-secondary">Nenhuma oferta gerada ainda.</p>{% endfor %}</div>
+<<<<<<< HEAD
+</main><script src="{% static 'core/ui-loader.js' %}"></script>
+</body></html>
+=======
 </main></body></html>
+>>>>>>> origin/main

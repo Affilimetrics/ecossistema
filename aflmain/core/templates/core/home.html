@@ -30,8 +30,15 @@
       .main { margin-left:78px; padding:20px; }
     }
   </style>
+<<<<<<< HEAD
+<link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head>
 <body>
+<div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
+=======
+</head>
+<body>
+>>>>>>> origin/main
 <aside class="sidebar d-flex flex-column p-3">
   <a href="{% url 'home' %}" class="text-white text-decoration-none mb-4 px-2 brand">
     <i class="bi bi-graph-up-arrow me-2"></i><span class="brand-text">Afillimetrics</span>
@@ -39,7 +46,11 @@
 
   <div class="sidebar-title text-uppercase small text-secondary px-2 mb-2">Principal</div>
   <nav>
+<<<<<<< HEAD
+    <a class="nav-link active px-3 py-2" href="{% url 'home' %}"><i class="bi bi-grid-1x2-fill me-2"></i><span class="nav-label">Visão geral</span></a><a class="nav-link px-3 py-2" href="{% url 'coleta_geral' %}"><i class="bi bi-search me-2"></i><span class="nav-label">Coleta geral</span></a>
+=======
     <a class="nav-link active px-3 py-2" href="{% url 'home' %}"><i class="bi bi-grid-1x2-fill me-2"></i><span class="nav-label">Visão geral</span></a>
+>>>>>>> origin/main
     <a class="nav-link px-3 py-2" href="{% url 'templates_oferta' %}"><i class="bi bi-megaphone me-2"></i><span class="nav-label">Templates de Oferta</span></a>
     <a class="nav-link px-3 py-2" href="{% url 'produtos_quentes' %}"><i class="bi bi-fire me-2"></i><span class="nav-label">Produtos Quentes</span></a>
     <a class="nav-link px-3 py-2" href="{% url 'configuracoes' %}"><i class="bi bi-gear me-2"></i><span class="nav-label">Configurações</span></a>
@@ -47,7 +58,11 @@
 
   <div class="sidebar-title text-uppercase small text-secondary px-2 mt-4 mb-2">Marketplaces</div>
   <nav>
+<<<<<<< HEAD
+    <a class="nav-link px-3 py-2" href="{% url 'magalu_bot' %}"><i class="bi bi-shop me-2"></i><span class="nav-label">Central Magalu</span></a>
+=======
     <a class="nav-link px-3 py-2" href="{% url 'magalu_bot' %}"><i class="bi bi-shop me-2"></i><span class="nav-label">Magalu</span></a>
+>>>>>>> origin/main
     <span class="nav-link px-3 py-2 market-disabled"><i class="bi bi-cart3 me-2"></i><span class="nav-label">Mercado Livre <small>(em breve)</small></span></span>
     <span class="nav-link px-3 py-2 market-disabled"><i class="bi bi-box-seam me-2"></i><span class="nav-label">Amazon <small>(em breve)</small></span></span>
   </nav>
@@ -69,7 +84,11 @@
       <h1 class="h2 fw-bold mb-1">Olá, {{ user.first_name|default:user.username }}</h1>
       <p class="text-secondary mb-0">Acompanhe seus links afiliados e a evolução dos marketplaces.</p>
     </div>
+<<<<<<< HEAD
+    <a href="{% url 'coleta_geral' %}" class="btn btn-success"><i class="bi bi-play-circle me-2"></i>Ir para coleta</a>
+=======
     <a href="{% url 'magalu_bot' %}" class="btn btn-success"><i class="bi bi-play-circle me-2"></i>Abrir coletor Magalu</a>
+>>>>>>> origin/main
   </div>
 
   <div class="row g-3 mb-4">
@@ -131,5 +150,9 @@
   });
   window.addEventListener('resize', () => google.charts.setOnLoadCallback(() => {}));
 </script>
+<<<<<<< HEAD
+<script src="{% static 'core/ui-loader.js' %}"></script>
+=======
+>>>>>>> origin/main
 </body>
 </html>
