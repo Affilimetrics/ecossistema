@@ -48,9 +48,16 @@
           <li class="nav-item"><a class="nav-link text-secondary" href="#precos">Preços</a></li>
           <li class="nav-item"><a class="nav-link text-secondary" href="#blog">Blog</a></li>
         </ul>
-        <div class="d-flex gap-2">
-          <a href="{% url 'login' %}" class="btn text-blue">Entrar</a>
-          <a href="{% url 'login' %}" class="btn btn-green rounded-3 px-4">Testar Grátis</a>
+        <div class="d-flex gap-2 align-items-center">
+          {% if user.is_authenticated %}
+            <span class="text-secondary small d-none d-lg-inline">Olá, {{ user.first_name|default:user.username }}</span>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-light rounded-3 px-4">Home</a>
+            <a href="{% url 'magalu_bot' %}" class="btn btn-green rounded-3 px-4">Coletor Magalu</a>
+            <form method="post" action="{% url 'logout' %}" class="d-inline">{% csrf_token %}<button class="btn btn-outline-secondary" type="submit">Sair</button></form>
+          {% else %}
+            <a href="{% url 'login' %}" class="btn text-blue">Entrar</a>
+            <a href="{% url 'cadastro' %}" class="btn btn-green rounded-3 px-4">Testar Grátis</a>
+          {% endif %}
         </div>
       </div>
     </div>

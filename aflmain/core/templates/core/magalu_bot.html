@@ -1,0 +1,1922 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="dark">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Afillimetrics - Coletor Magalu</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
+
+    <style>
+
+        body {
+            background: #0a0a0a;
+            color: #fff;
+        }
+
+        .card-dark {
+            background: #1a1a1a;
+            border: 1px solid #2d3748;
+        }
+
+        .category-card {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #2d3748;
+        }
+
+        .category-card:hover {
+            border-color: #2ECC71;
+            transform: translateY(-2px);
+        }
+
+        .category-card.selected {
+            border-color: #2ECC71;
+            background: rgba(46, 204, 113, 0.10);
+        }
+
+        .category-card .form-check {
+            pointer-events: none;
+        }
+
+        .keyword-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #statusBox {
+            white-space: pre-wrap;
+            font-family: monospace;
+            min-height: 100px;
+        }
+
+        .category-count {
+            font-size: 0.85rem;
+        }
+
+        .selected-indicator {
+            color: #2ECC71;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+{% csrf_token %}
+
+
+<!-- ===================================================== -->
+<!-- NAVBAR -->
+<!-- ===================================================== -->
+
+<nav class="navbar border-bottom border-secondary">
+
+    <div class="container">
+
+        <a
+            href="{% url 'index' %}"
+            class="navbar-brand text-white fw-bold"
+        >
+            Afillimetrics
+        </a>
+
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary">Coletor Magalu</span>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm">Home</a>
+            <form method="post" action="{% url 'logout' %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-outline-secondary btn-sm">Sair</button></form>
+        </div>
+
+    </div>
+
+</nav>
+
+
+<!-- ===================================================== -->
+<!-- CONTEÚDO -->
+<!-- ===================================================== -->
+
+<main class="container py-5">
+{% include "core/_alertas.html" %}
+<div id="alertaCanalLive"></div>
+
+
+    <!-- ================================================= -->
+    <!-- CABEÇALHO -->
+    <!-- ================================================= -->
+
+    <div class="mb-5">
+
+        <h1 class="fw-bold">
+            Coletor de Links Magalu
+        </h1>
+
+        <p class="text-secondary">
+            Categorias são opcionais. Você pode iniciar somente com palavras-chave. Se usar loop, cada palavra-chave será concluída antes da próxima e o ciclo só reinicia após todas serem processadas.
+        </p>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- CATEGORIAS -->
+    <!-- ================================================= -->
+
+    <div class="card-dark rounded-4 p-4 mb-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <div>
+
+                <h2 class="h4 mb-1">
+
+                    <i class="bi bi-grid"></i>
+
+                    Categorias
+
+                </h2>
+
+                <p class="text-secondary mb-0">
+                    Opcional — selecione uma ou mais categorias ou deixe vazio para trabalhar somente com palavras-chave.
+                </p>
+
+            </div>
+
+            <span
+                id="contadorCategorias"
+                class="badge bg-secondary category-count"
+            >
+                0 selecionadas
+            </span>
+
+        </div>
+
+
+        <div
+            id="categoriasContainer"
+            class="row g-3"
+        ></div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- PALAVRAS-CHAVE -->
+    <!-- ================================================= -->
+
+    <div class="card-dark rounded-4 p-4 mb-4">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+
+                <h2 class="h4 mb-1">
+
+                    <i class="bi bi-search"></i>
+
+                    Palavras-chave personalizadas
+
+                </h2>
+
+                <p class="text-secondary mb-0">
+                    Adicione até 10 palavras-chave. Elas podem ser usadas sem nenhuma categoria.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="adicionarKeyword"
+                class="btn btn-outline-success"
+            >
+
+                <i class="bi bi-plus"></i>
+
+                Adicionar
+
+            </button>
+
+        </div>
+
+
+        <hr class="border-secondary">
+
+
+        <div id="keywordsContainer"></div>
+
+
+        <div
+            id="semKeywords"
+            class="text-secondary"
+        >
+            Nenhuma palavra-chave adicionada.
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- LOOP -->
+    <!-- ================================================= -->
+
+    <div class="card-dark rounded-4 p-4 mb-4">
+
+        <h2 class="h4">
+
+            <i class="bi bi-arrow-repeat"></i>
+
+            Loop de palavras-chave
+
+        </h2>
+
+        <p class="text-secondary">
+
+            Escolha quais palavras-chave deverão permanecer
+            no loop. O bot executará a lista na ordem e só começará um novo ciclo após concluir todas as chaves.
+
+        </p>
+
+
+        <div
+            id="loopContainer"
+            class="mt-3"
+        ></div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- RESUMO -->
+    <!-- ================================================= -->
+
+    <div class="card-dark rounded-4 p-4 mb-4">
+
+        <h2 class="h4 mb-3">
+
+            <i class="bi bi-list-check"></i>
+
+            Resumo
+
+        </h2>
+
+
+        <div id="resumo">
+
+            <p class="text-secondary">
+                Nenhuma categoria ou palavra-chave selecionada.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- CONTROLES DO BOT -->
+    <!-- ================================================= -->
+
+    <div class="card-dark rounded-4 p-4 mb-4">
+
+        <h2 class="h4 mb-4">
+
+            <i class="bi bi-robot"></i>
+
+            Controle do coletor
+
+        </h2>
+
+
+        <!-- STATUS -->
+
+        <div class="d-flex align-items-center gap-3 mb-4">
+
+            <span class="text-secondary">
+                Estado:
+            </span>
+
+            <span
+                id="statusBadge"
+                class="badge bg-secondary fs-6"
+            >
+                PARADO
+            </span>
+
+        </div>
+
+
+        <!-- BOTÕES -->
+
+        <div class="d-flex flex-wrap gap-2">
+
+            <button
+                id="iniciarBotao"
+                type="button"
+                class="btn btn-success"
+            >
+
+                <i class="bi bi-play-fill"></i>
+
+                Iniciar
+
+            </button>
+
+
+            <button
+                id="pausarBotao"
+                type="button"
+                class="btn btn-warning"
+                disabled
+            >
+
+                <i class="bi bi-pause-fill"></i>
+
+                Pausar
+
+            </button>
+
+
+            <button
+                id="retomarBotao"
+                type="button"
+                class="btn btn-primary"
+                disabled
+            >
+
+                <i class="bi bi-play-fill"></i>
+
+                Retomar
+
+            </button>
+
+
+            <button
+                id="pararBotao"
+                type="button"
+                class="btn btn-danger"
+                disabled
+            >
+
+                <i class="bi bi-stop-fill"></i>
+
+                Parar
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- STATUS -->
+    <!-- ================================================= -->
+
+    <div class="card-dark rounded-4 p-4">
+
+        <h2 class="h5">
+
+            <i class="bi bi-terminal"></i>
+
+            Status
+
+        </h2>
+
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-4"><div class="bg-dark rounded-3 p-3"><small class="text-secondary">Produtos processados</small><div id="progressoProdutos" class="fs-4 fw-bold">0</div></div></div>
+            <div class="col-md-4"><div class="bg-dark rounded-3 p-3"><small class="text-secondary">Links obtidos</small><div id="progressoLinks" class="fs-4 fw-bold">0</div></div></div>
+            <div class="col-md-4"><div class="bg-dark rounded-3 p-3"><small class="text-secondary">Execução</small><div id="execucaoId" class="fs-6 fw-bold">—</div></div></div>
+        </div>
+        <div id="statusBox" class="text-secondary mb-3">Aguardando configuração...</div>
+        <div id="logBox" class="bg-black border border-secondary rounded-3 p-3" style="height:260px; overflow:auto; white-space:pre-wrap; font-family:monospace; font-size:.88rem;"></div>
+
+    </div>
+
+
+</main>
+
+
+<script>
+
+
+// ======================================================
+// CATEGORIAS
+// ======================================================
+
+const categorias = {
+
+    "cozinha": "Cozinha",
+
+    "quarto": "Quarto",
+
+    "sala": "Sala",
+
+    "banheiro": "Banheiro",
+
+    "acessórios": "Acessórios",
+
+    "ferramentas": "Ferramentas",
+
+    "eletrodomésticos": "Eletrodomésticos",
+
+    "eletrônicos": "Eletrônicos"
+
+};
+
+
+// ======================================================
+// ESTADO
+// ======================================================
+
+let categoriasSelecionadas = [];
+
+let keywords = [];
+
+let keywordsLoop = [];
+let configuracaoEditada = false;
+
+const CONFIG_CACHE_KEY = "aflmain_magalu_config_v1";
+
+function salvarConfiguracaoLocal() {
+    try {
+        localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({
+            categorias: categoriasSelecionadas,
+            keywords: keywords,
+            keywords_loop: keywordsLoop,
+        }));
+    } catch (erro) {
+        console.warn("Não foi possível salvar a configuração local:", erro);
+    }
+}
+
+function carregarConfiguracaoLocal() {
+    try {
+        const bruto = localStorage.getItem(CONFIG_CACHE_KEY);
+        if (!bruto) return false;
+        const dados = JSON.parse(bruto);
+        categoriasSelecionadas = Array.isArray(dados.categorias) ? dados.categorias : [];
+        keywords = Array.isArray(dados.keywords) ? dados.keywords : [];
+        keywordsLoop = Array.isArray(dados.keywords_loop) ? dados.keywords_loop : [];
+        return true;
+    } catch (erro) {
+        console.warn("Não foi possível restaurar a configuração local:", erro);
+        return false;
+    }
+}
+
+function aplicarConfiguracaoDoServidor(resultado) {
+    if (!resultado) return;
+    if (Array.isArray(resultado.categorias)) categoriasSelecionadas = resultado.categorias;
+    if (Array.isArray(resultado.keywords)) keywords = resultado.keywords;
+    if (Array.isArray(resultado.keywords_loop)) {
+        const porIndice = keywordsLoop;
+        // O backend armazena os termos do loop; a UI trabalha com índices.
+        keywordsLoop = resultado.keywords_loop.map((termo) => keywords.findIndex(k => String(k).trim() === String(termo).trim())).filter(i => i >= 0);
+        if (!keywordsLoop.length && porIndice.length) keywordsLoop = porIndice;
+    }
+    configuracaoEditada = false;
+    salvarConfiguracaoLocal();
+    renderizarCategorias();
+    renderizarKeywords();
+    atualizarResumo();
+}
+
+
+// ======================================================
+// ELEMENTOS
+// ======================================================
+
+const iniciarBotao =
+    document.getElementById("iniciarBotao");
+
+const pausarBotao =
+    document.getElementById("pausarBotao");
+
+const retomarBotao =
+    document.getElementById("retomarBotao");
+
+const pararBotao =
+    document.getElementById("pararBotao");
+
+const statusBox =
+    document.getElementById("statusBox");
+
+const statusBadge =
+    document.getElementById("statusBadge");
+
+const contadorCategorias =
+    document.getElementById("contadorCategorias");
+
+
+// ======================================================
+// CATEGORIAS
+// ======================================================
+
+function renderizarCategorias() {
+
+    const container =
+        document.getElementById(
+            "categoriasContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    Object.entries(categorias).forEach(
+        ([valor, nome]) => {
+
+
+            const selecionada =
+                categoriasSelecionadas.includes(
+                    valor
+                );
+
+
+            const div =
+                document.createElement("div");
+
+
+            div.className =
+                "col-12 col-sm-6 col-md-4 col-lg-3";
+
+
+            div.innerHTML = `
+
+                <div
+                    class="
+                        category-card
+                        card-dark
+                        rounded-3
+                        p-3
+                        h-100
+                        ${selecionada ? "selected" : ""}
+                    "
+                    data-categoria="${escapeHtml(valor)}"
+                >
+
+                    <label class="form-check d-flex align-items-center gap-2 mb-0 w-100">
+                        <input
+                            class="form-check-input m-0"
+                            type="checkbox"
+                            ${selecionada ? "checked" : ""}
+                            aria-label="Selecionar ${escapeHtml(nome)}"
+                        >
+                        <span class="form-check-label">${escapeHtml(nome)}</span>
+                    </label>
+
+                </div>
+
+            `;
+
+
+            const card =
+                div.querySelector(
+                    ".category-card"
+                );
+
+
+            const checkbox = card.querySelector("input[type=\"checkbox\"]");
+            checkbox.addEventListener("click", (evento) => {
+                // A seleção é controlada pelo card. Impede o toggle nativo
+                // do input, evitando a duplicação visual/estado inconsistente.
+                evento.preventDefault();
+                evento.stopPropagation();
+                card.click();
+            });
+
+            card.addEventListener(
+                "click",
+                () => {
+
+                    configuracaoEditada = true;
+
+                    if (
+                        categoriasSelecionadas.includes(
+                            valor
+                        )
+                    ) {
+
+                        categoriasSelecionadas =
+                            categoriasSelecionadas.filter(
+                                item =>
+                                    item !== valor
+                            );
+
+                    } else {
+
+                        categoriasSelecionadas.push(
+                            valor
+                        );
+
+                    }
+
+
+                    renderizarCategorias();
+
+                    atualizarResumo();
+
+                }
+            );
+
+
+            container.appendChild(div);
+
+        }
+    );
+
+
+    atualizarContadorCategorias();
+
+}
+
+
+// ======================================================
+// CONTADOR DE CATEGORIAS
+// ======================================================
+
+function atualizarContadorCategorias() {
+
+    const quantidade =
+        categoriasSelecionadas.length;
+
+
+    contadorCategorias.textContent =
+        quantidade === 1
+            ? "1 selecionada"
+            : `${quantidade} selecionadas`;
+
+}
+
+
+// ======================================================
+// KEYWORDS
+// ======================================================
+
+function renderizarKeywords() {
+
+    const container =
+        document.getElementById(
+            "keywordsContainer"
+        );
+
+
+    const vazio =
+        document.getElementById(
+            "semKeywords"
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (
+        keywords.length === 0
+    ) {
+
+        vazio.style.display =
+            "block";
+
+
+        renderizarLoop();
+
+        return;
+
+    }
+
+
+    vazio.style.display =
+        "none";
+
+
+    keywords.forEach(
+        (keyword, index) => {
+
+
+            const div =
+                document.createElement("div");
+
+
+            div.className =
+                "keyword-item";
+
+
+            div.innerHTML = `
+
+                <span
+                    class="badge bg-secondary"
+                >
+                    ${index + 1}
+                </span>
+
+
+                <input
+                    type="text"
+                    class="form-control"
+                    value="${escapeHtml(keyword)}"
+                    placeholder="Digite uma palavra-chave"
+                >
+
+
+                <button
+                    type="button"
+                    class="btn btn-outline-danger"
+                    title="Remover"
+                >
+
+                    <i class="bi bi-trash"></i>
+
+                </button>
+
+            `;
+
+
+            const input =
+                div.querySelector(
+                    "input"
+                );
+
+
+            const remover =
+                div.querySelector(
+                    "button"
+                );
+
+
+            // ------------------------------------------
+            // ALTERAR KEYWORD
+            // ------------------------------------------
+
+            input.addEventListener(
+                "input",
+                () => {
+
+                    configuracaoEditada = true;
+                    keywords[index] =
+                        input.value;
+
+
+                    if (
+                        keywords[index].trim() === ""
+                    ) {
+
+                        keywordsLoop =
+                            keywordsLoop.filter(
+                                item =>
+                                    item !== index
+                            );
+
+                    }
+
+
+                    renderizarLoop();
+
+                    atualizarResumo();
+
+                }
+            );
+
+
+            // ------------------------------------------
+            // REMOVER KEYWORD
+            // ------------------------------------------
+
+            remover.addEventListener(
+                "click",
+                () => {
+
+                    configuracaoEditada = true;
+
+                    keywords.splice(
+                        index,
+                        1
+                    );
+
+
+                    keywordsLoop =
+                        keywordsLoop
+                            .filter(
+                                item =>
+                                    item !== index
+                            )
+                            .map(
+                                item =>
+                                    item > index
+                                        ? item - 1
+                                        : item
+                            );
+
+
+                    renderizarKeywords();
+
+                    atualizarResumo();
+
+                }
+            );
+
+
+            container.appendChild(div);
+
+        }
+    );
+
+
+    renderizarLoop();
+
+}
+
+
+// ======================================================
+// LOOP
+// ======================================================
+
+function renderizarLoop() {
+
+    const container =
+        document.getElementById(
+            "loopContainer"
+        );
+
+
+    container.innerHTML = "";
+
+
+    const keywordsValidas =
+        keywords
+            .map(
+                (keyword, index) => ({
+
+                    keyword:
+                        keyword.trim(),
+
+                    index:
+                        index
+
+                })
+            )
+            .filter(
+                item =>
+                    item.keyword !== ""
+            );
+
+
+    if (
+        keywordsValidas.length === 0
+    ) {
+
+        container.innerHTML = `
+
+            <span class="text-secondary">
+
+                Adicione palavras-chave primeiro.
+
+            </span>
+
+        `;
+
+        return;
+
+    }
+
+
+    keywordsValidas.forEach(
+        item => {
+
+
+            const index =
+                item.index;
+
+
+            const keyword =
+                item.keyword;
+
+
+            const checked =
+                keywordsLoop.includes(
+                    index
+                );
+
+
+            const div =
+                document.createElement("div");
+
+
+            div.className =
+                "form-check mb-2";
+
+
+            div.innerHTML = `
+
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="loop_${index}"
+                    ${checked ? "checked" : ""}
+                >
+
+
+                <label
+                    class="form-check-label"
+                    for="loop_${index}"
+                >
+
+                    ${escapeHtml(keyword)}
+
+                </label>
+
+            `;
+
+
+            const checkbox =
+                div.querySelector(
+                    "input"
+                );
+
+
+            checkbox.addEventListener(
+                "change",
+                () => {
+
+
+                    if (
+                        checkbox.checked
+                    ) {
+
+
+                        if (
+                            !keywordsLoop.includes(
+                                index
+                            )
+                        ) {
+
+                            keywordsLoop.push(
+                                index
+                            );
+
+                        }
+
+
+                    } else {
+
+
+                        keywordsLoop =
+                            keywordsLoop.filter(
+                                item =>
+                                    item !== index
+                            );
+
+                    }
+
+
+                    atualizarResumo();
+
+                }
+            );
+
+
+            container.appendChild(div);
+
+        }
+    );
+
+}
+
+
+// ======================================================
+// ADICIONAR KEYWORD
+// ======================================================
+
+document
+    .getElementById(
+        "adicionarKeyword"
+    )
+    .addEventListener(
+        "click",
+        () => {
+
+            configuracaoEditada = true;
+
+            if (
+                keywords.length >= 10
+            ) {
+
+                alert(
+                    "Você pode adicionar no máximo 10 palavras-chave."
+                );
+
+                return;
+
+            }
+
+
+            keywords.push("");
+
+
+            renderizarKeywords();
+
+            atualizarResumo();
+
+
+            setTimeout(
+                () => {
+
+
+                    const inputs =
+                        document.querySelectorAll(
+                            "#keywordsContainer input"
+                        );
+
+
+                    if (
+                        inputs.length > 0
+                    ) {
+
+                        inputs[
+                            inputs.length - 1
+                        ].focus();
+
+                    }
+
+                },
+                50
+            );
+
+        }
+    );
+
+
+// ======================================================
+// RESUMO
+// ======================================================
+
+function atualizarResumo() {
+    salvarConfiguracaoLocal();
+
+    const resumo =
+        document.getElementById(
+            "resumo"
+        );
+
+
+    const keywordsValidas =
+        keywords
+            .map(
+                item =>
+                    item.trim()
+            )
+            .filter(
+                item =>
+                    item !== ""
+            );
+
+
+    const loopValidos =
+        keywordsLoop
+            .filter(
+                index =>
+                    index >= 0 &&
+                    index < keywords.length &&
+                    keywords[index].trim() !== ""
+            )
+            .map(
+                index =>
+                    keywords[index].trim()
+            );
+
+
+    if (
+        categoriasSelecionadas.length === 0 &&
+        keywordsValidas.length === 0
+    ) {
+
+        resumo.innerHTML = `
+
+            <p class="text-secondary">
+
+                Nenhuma categoria ou palavra-chave selecionada.
+
+            </p>
+
+        `;
+
+        return;
+
+    }
+
+
+    let html = "";
+
+
+    // ------------------------------------------
+    // CATEGORIAS
+    // ------------------------------------------
+
+    if (
+        categoriasSelecionadas.length > 0
+    ) {
+
+        html += `
+
+            <h6>
+
+                <i class="bi bi-grid"></i>
+
+                Categorias
+
+            </h6>
+
+            <ul>
+
+                ${
+                    categoriasSelecionadas
+                        .map(
+                            item =>
+                                `
+                                <li>
+                                    ${escapeHtml(
+                                        categorias[item]
+                                    )}
+                                </li>
+                                `
+                        )
+                        .join("")
+                }
+
+            </ul>
+
+        `;
+
+    }
+
+
+    // ------------------------------------------
+    // KEYWORDS
+    // ------------------------------------------
+
+    if (
+        keywordsValidas.length > 0
+    ) {
+
+        html += `
+
+            <h6>
+
+                <i class="bi bi-search"></i>
+
+                Palavras-chave
+
+            </h6>
+
+            <ul>
+
+                ${
+                    keywordsValidas
+                        .map(
+                            item =>
+                                `
+                                <li>
+                                    ${escapeHtml(item)}
+                                </li>
+                                `
+                        )
+                        .join("")
+                }
+
+            </ul>
+
+        `;
+
+    }
+
+
+    // ------------------------------------------
+    // LOOP
+    // ------------------------------------------
+
+    if (
+        loopValidos.length > 0
+    ) {
+
+        html += `
+
+            <h6>
+
+                <i class="bi bi-arrow-repeat"></i>
+
+                Loop
+
+            </h6>
+
+            <ul>
+
+                ${
+                    loopValidos
+                        .map(
+                            item =>
+                                `
+                                <li>
+                                    ${escapeHtml(item)}
+                                </li>
+                                `
+                        )
+                        .join("")
+                }
+
+            </ul>
+
+        `;
+
+    }
+
+
+    resumo.innerHTML =
+        html;
+
+}
+
+
+// ======================================================
+// INTERFACE DE STATUS
+// ======================================================
+
+function atualizarInterfaceStatus(status) {
+
+    status = String(status || "parado").toLowerCase();
+
+    // Estados transitórios / execução
+    if ([
+        "iniciando",
+        "verificando_login",
+        "aguardando_login",
+        "logado",
+        "executando"
+    ].includes(status)) {
+
+        statusBadge.textContent = status.replaceAll("_", " ").toUpperCase();
+        statusBadge.className = "badge bg-success fs-6";
+
+        iniciarBotao.disabled = true;
+        pausarBotao.disabled = false;
+        retomarBotao.disabled = true;
+        pararBotao.disabled = false;
+        return;
+    }
+
+    if (status === "pausado") {
+
+        statusBadge.textContent = "PAUSADO";
+        statusBadge.className = "badge bg-warning text-dark fs-6";
+
+        iniciarBotao.disabled = true;
+        pausarBotao.disabled = true;
+        retomarBotao.disabled = false;
+        pararBotao.disabled = false;
+        return;
+    }
+
+    if (status === "parando") {
+
+        statusBadge.textContent = "PARANDO";
+        statusBadge.className = "badge bg-warning text-dark fs-6";
+
+        iniciarBotao.disabled = true;
+        pausarBotao.disabled = true;
+        retomarBotao.disabled = true;
+        pararBotao.disabled = true;
+        return;
+    }
+
+    if (status === "finalizado") {
+
+        statusBadge.textContent = "FINALIZADO";
+        statusBadge.className = "badge bg-primary fs-6";
+
+        iniciarBotao.disabled = false;
+        pausarBotao.disabled = true;
+        retomarBotao.disabled = true;
+        pararBotao.disabled = true;
+        return;
+    }
+
+    if (status === "erro") {
+
+        statusBadge.textContent = "ERRO";
+        statusBadge.className = "badge bg-danger fs-6";
+
+        iniciarBotao.disabled = false;
+        pausarBotao.disabled = true;
+        retomarBotao.disabled = true;
+        pararBotao.disabled = true;
+        return;
+    }
+
+    statusBadge.textContent = "PARADO";
+    statusBadge.className = "badge bg-secondary fs-6";
+
+    iniciarBotao.disabled = false;
+    pausarBotao.disabled = true;
+    retomarBotao.disabled = true;
+    pararBotao.disabled = true;
+}
+
+
+// ======================================================
+// CSRF
+// ======================================================
+
+// ======================================================
+
+function getCookie(
+    name
+) {
+
+    let cookieValue =
+        null;
+
+
+    if (
+        document.cookie &&
+        document.cookie !== ""
+    ) {
+
+        const cookies =
+            document.cookie.split(
+                ";"
+            );
+
+
+        for (
+            let cookie of cookies
+        ) {
+
+            cookie =
+                cookie.trim();
+
+
+            if (
+                cookie.substring(
+                    0,
+                    name.length + 1
+                )
+                ===
+                (
+                    name + "="
+                )
+            ) {
+
+                cookieValue =
+                    decodeURIComponent(
+                        cookie.substring(
+                            name.length + 1
+                        )
+                    );
+
+                break;
+
+            }
+
+        }
+
+    }
+
+
+    return cookieValue;
+
+}
+
+
+// ======================================================
+// CONTROLAR BOT
+// ======================================================
+
+async function controlarBot(
+    url,
+    mensagemSucesso
+) {
+
+    try {
+
+        const resposta =
+            await fetch(
+                url,
+                {
+
+                    method:
+                        "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "X-CSRFToken":
+                            getCookie(
+                                "csrftoken"
+                            )
+
+                    }
+
+                }
+            );
+
+
+        const resultado =
+            await resposta.json();
+
+
+        console.log(
+            "Resposta controle:",
+            resultado
+        );
+
+
+        if (
+            resultado.sucesso
+        ) {
+
+            statusBox.textContent =
+                resultado.mensagem ||
+                mensagemSucesso;
+
+
+            atualizarInterfaceStatus(
+                resultado.status
+            );
+
+
+            return true;
+
+        }
+
+
+        statusBox.textContent =
+            resultado.erro ||
+            "Não foi possível executar a operação.";
+
+
+        /*
+            O backend pode retornar
+            409 quando o bot já estiver
+            em execução.
+        */
+
+        if (
+            resultado.status
+        ) {
+
+            atualizarInterfaceStatus(
+                resultado.status
+            );
+
+        }
+
+
+        return false;
+
+    } catch (
+        erro
+    ) {
+
+        console.error(
+            erro
+        );
+
+
+        statusBox.textContent =
+            "Erro de comunicação com o Django.";
+
+
+        return false;
+
+    }
+
+}
+
+
+// ======================================================
+// INICIAR BOT
+// ======================================================
+
+iniciarBotao.addEventListener(
+    "click",
+    async () => {
+
+
+        const categoriasFinais =
+            categoriasSelecionadas
+                .filter(
+                    categoria =>
+                        categorias.hasOwnProperty(
+                            categoria
+                        )
+                );
+
+
+        const keywordsFinais =
+            keywords
+                .map(
+                    keyword =>
+                        keyword.trim()
+                )
+                .filter(
+                    keyword =>
+                        keyword !== ""
+                );
+
+
+        const keywordsLoopFinais =
+            keywordsLoop
+                .filter(
+                    index =>
+                        index >= 0 &&
+                        index < keywords.length &&
+                        keywords[index].trim() !== ""
+                )
+                .map(
+                    index =>
+                        keywords[index].trim()
+                );
+
+        const loopDuplicado = new Set(keywordsLoopFinais).size !== keywordsLoopFinais.length;
+        if (loopDuplicado) {
+            statusBox.textContent = "Cada palavra-chave deve aparecer apenas uma vez no loop.";
+            return;
+        }
+
+
+        // ==================================================
+        // VALIDAÇÃO
+        // ==================================================
+
+        if (categoriasFinais.length === 0 && keywordsFinais.length === 0) {
+            statusBox.textContent =
+                "Selecione pelo menos uma categoria ou informe ao menos uma palavra-chave.";
+            return;
+        }
+
+
+        // ==================================================
+        // JSON
+        // ==================================================
+
+        const dados = {
+
+            categorias:
+                categoriasFinais,
+
+            keywords:
+                keywordsFinais,
+
+            keywords_loop:
+                keywordsLoopFinais
+
+        };
+
+
+        console.log(
+            "===================================="
+        );
+
+
+        console.log(
+            "JSON ENVIADO PARA O DJANGO:"
+        );
+
+
+        console.log(
+            JSON.stringify(
+                dados,
+                null,
+                2
+            )
+        );
+
+
+        console.log(
+            "===================================="
+        );
+
+
+        statusBox.textContent =
+            "Iniciando o coletor...";
+
+
+        iniciarBotao.disabled =
+            true;
+
+
+        try {
+
+            const resposta =
+                await fetch(
+                    "{% url 'iniciar_bot' %}",
+                    {
+
+                        method:
+                            "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "X-CSRFToken":
+                                getCookie(
+                                    "csrftoken"
+                                )
+
+                        },
+
+                        body:
+                            JSON.stringify(
+                                dados
+                            )
+
+                    }
+                );
+
+
+            const resultado =
+                await resposta.json();
+
+
+            console.log(
+                "Resposta Django:",
+                resultado
+            );
+
+
+            // ==================================================
+            // SUCESSO
+            // ==================================================
+
+            if (
+                resultado.sucesso
+            ) {
+
+                statusBox.textContent =
+                    resultado.mensagem ||
+                    "Coletor iniciado com sucesso.";
+
+
+                configuracaoEditada = false;
+
+                atualizarInterfaceStatus(
+                    resultado.status ||
+                    "executando"
+                );
+
+
+                return;
+
+            }
+
+
+            // ==================================================
+            // ERRO
+            // ==================================================
+
+            if (Array.isArray(resultado.keywords_sem_template) && resultado.keywords_sem_template.length) {
+                statusBox.innerHTML = "Antes de iniciar, configure template para: " + resultado.keywords_sem_template.join(", ") + ". ";
+                const link = document.createElement("a");
+                link.href = resultado.configurar_url || "{% url 'templates_oferta' %}";
+                link.textContent = "Abrir Templates de Oferta";
+                link.className = "link-warning";
+                statusBox.appendChild(link);
+            } else {
+                statusBox.textContent = resultado.erro || "Erro ao iniciar o coletor.";
+            }
+
+
+            atualizarInterfaceStatus(
+                resultado.status ||
+                "parado"
+            );
+
+        } catch (
+            erro
+        ) {
+
+            console.error(
+                "Erro ao iniciar:",
+                erro
+            );
+
+
+            statusBox.textContent =
+                "Erro de comunicação com o Django.";
+
+
+            atualizarInterfaceStatus(
+                "parado"
+            );
+
+        }
+
+    }
+);
+
+
+// ======================================================
+// PAUSAR
+// ======================================================
+
+pausarBotao.addEventListener(
+    "click",
+    async () => {
+
+        await controlarBot(
+            "{% url 'pausar_bot' %}",
+            "Solicitação de pausa enviada."
+        );
+
+    }
+);
+
+
+// ======================================================
+// RETOMAR
+// ======================================================
+
+retomarBotao.addEventListener(
+    "click",
+    async () => {
+
+        await controlarBot(
+            "{% url 'retomar_bot' %}",
+            "Solicitação de retomada enviada."
+        );
+
+    }
+);
+
+
+// ======================================================
+// PARAR
+// ======================================================
+
+pararBotao.addEventListener(
+    "click",
+    async () => {
+
+
+        const confirmar =
+            confirm(
+                "Tem certeza que deseja parar o coletor?"
+            );
+
+
+        if (
+            !confirmar
+        ) {
+
+            return;
+
+        }
+
+
+        await controlarBot(
+            "{% url 'parar_bot' %}",
+            "Solicitação de parada enviada."
+        );
+
+    }
+);
+
+
+// ======================================================
+// CONSULTAR STATUS
+// ======================================================
+
+async function consultarStatus() {
+    try {
+        const resposta = await fetch("{% url 'status_bot' %}", {method: "GET", cache: "no-store"});
+        const resultado = await resposta.json();
+
+        if (resultado.status) atualizarInterfaceStatus(resultado.status);
+        if (!configuracaoEditada && (Array.isArray(resultado.categorias) || Array.isArray(resultado.keywords))) {
+            aplicarConfiguracaoDoServidor(resultado);
+        }
+        if (resultado.mensagem) statusBox.textContent = resultado.mensagem;
+        const alertaBox = document.getElementById("alertaCanalLive");
+        if (alertaBox && Array.isArray(resultado.alertas) && resultado.alertas.length) {
+            alertaBox.innerHTML = resultado.alertas.map(a => `<div class="alert alert-danger"><strong>${a.titulo}</strong><div class="small">${a.mensagem}</div></div>`).join("");
+        } else if (alertaBox) {
+            alertaBox.innerHTML = "";
+        }
+
+        const progresso = resultado.progresso || {};
+        document.getElementById("progressoProdutos").textContent = progresso.processados || 0;
+        document.getElementById("progressoLinks").textContent = progresso.links || 0;
+        document.getElementById("execucaoId").textContent = resultado.execucao_id ? "#" + resultado.execucao_id : "—";
+
+        await consultarLogs(resultado.execucao_id);
+    } catch (erro) {
+        console.error("Erro ao consultar status:", erro);
+    }
+}
+
+let ultimoLogId = 0;
+async function consultarLogs(execucaoId) {
+    if (!execucaoId) return;
+    try {
+        const resposta = await fetch("{% url 'logs_bot' %}?execucao=" + encodeURIComponent(execucaoId) + "&since=" + ultimoLogId, {cache:"no-store"});
+        const dados = await resposta.json();
+        const box = document.getElementById("logBox");
+        for (const log of (dados.logs || [])) {
+            ultimoLogId = Math.max(ultimoLogId, log.id);
+            const hora = new Date(log.criado_em).toLocaleTimeString("pt-BR");
+            const linha = document.createElement("div");
+            linha.textContent = `[${hora}] [${log.nivel}] ${log.mensagem}`;
+            box.appendChild(linha);
+        }
+        if ((dados.logs || []).length) box.scrollTop = box.scrollHeight;
+    } catch (erro) {
+        console.error("Erro ao consultar logs:", erro);
+    }
+}
+
+
+// ======================================================
+// RESTAURAÇÃO DA CONFIGURAÇÃO
+// ======================================================
+
+carregarConfiguracaoLocal();
+renderizarCategorias();
+renderizarKeywords();
+atualizarResumo();
+consultarStatus();
+
+// ======================================================
+// POLLING
+// ======================================================
+
+setInterval(
+    consultarStatus,
+    2000
+);
+
+
+// ======================================================
+// ESCAPAR HTML
+// ======================================================
+
+function escapeHtml(
+    text
+) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.textContent =
+        text;
+
+
+    return div.innerHTML;
+
+}
+
+
+// ======================================================
+// INICIALIZAÇÃO
+// ======================================================
+
+renderizarCategorias();
+
+renderizarKeywords();
+
+atualizarResumo();
+
+consultarStatus();
+
+
+</script>
+
+
+</body>
+
+</html>

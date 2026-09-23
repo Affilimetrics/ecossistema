@@ -1,0 +1,21 @@
+{% load static %}
+<!doctype html><html lang="pt-br" data-bs-theme="dark"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — Afillimetrics</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head><body class="bg-black text-light"><main class="container py-5">
+<div class="d-flex justify-content-between align-items-center mb-4"><div><h1>Smart Affiliate Bot</h1><p class="text-secondary mb-0">Centro operacional Django</p></div><div class="d-flex gap-2"><a class="btn btn-success" href="{% url 'magalu_bot' %}">Coletor Magalu</a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-outline-secondary" type="submit">Sair</button></form></div></div>
+<div class="row g-3 mb-4">
+
+<div class="col-md-3"><div class="card bg-dark border-secondary p-4"><small class="text-secondary">Produtos coletados</small><strong class="fs-2">{{ produtos }}</strong></div></div>
+<div class="col-md-3"><div class="card bg-dark border-secondary p-4"><small class="text-secondary">Links afiliados</small><strong class="fs-2">{{ links }}</strong></div></div>
+<div class="col-md-3"><div class="card bg-dark border-secondary p-4"><small class="text-secondary">Ofertas</small><strong class="fs-2">{{ ofertas }}</strong></div></div>
+<div class="col-md-3"><div class="card bg-dark border-secondary p-4"><small class="text-secondary">Enviadas</small><strong class="fs-2">{{ enviadas }}</strong></div></div>
+</div>
+<div class="card bg-dark border-secondary p-4">
+<h2 class="h5">Última execução</h2>
+{% if ultima_execucao %}<div class="row"><div class="col">#{{ ultima_execucao.id }}</div><div class="col">{{ ultima_execucao.estado }}</div><div class="col">{{ ultima_execucao.produtos_processados }} produtos</div><div class="col">{{ ultima_execucao.links_obtidos }} links</div></div>
+{% else %}<span class="text-secondary">Nenhuma execução ainda.</span>{% endif %}
+</div>
+<div class="mt-4"><a class="btn btn-outline-light me-2" href="{% url 'ofertas' %}">Gerenciar ofertas</a><a class="btn btn-outline-secondary" href="/admin/">Admin Django</a></div>
+</main></body></html>
