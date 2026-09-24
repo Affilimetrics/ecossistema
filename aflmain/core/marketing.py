@@ -10,6 +10,8 @@ import re
 import html
 from decimal import Decimal
 from datetime import datetime
+from zoneinfo import ZoneInfo
+from django.utils import timezone as django_timezone
 
 GENERIC = [
     "🕵️‍♀️ Olha o que eu acabei de garimpar para vocês! ✨",
@@ -68,10 +70,20 @@ def desconto(preco_anterior, preco_atual):
     return 0
 
 
-def detectar_turno(agora=None, limite=None):
+def detectar_turno(agora=None, limite=None, owner=None):
     if limite:
         return "RELAMPAGO"
-    agora = agora or datetime.now()
+    if agora is None:
+        tz_name = "America/Sao_Paulo"
+        if owner is not None:
+            try:
+                tz_name = owner.perfil_local.timezone or tz_name
+            except Exception:
+                pass
+        try:
+            agora = django_timezone.now().astimezone(ZoneInfo(tz_name))
+        except Exception:
+            agora = django_timezone.localtime(django_timezone.now())
     h = agora.hour + agora.minute / 60
     if 8.5 <= h < 10.5:
         return "MANHA"
@@ -122,7 +134,7 @@ def gerar_mensagem(produto, turno=None, campanha=None):
     anterior = produto.preco_anterior
     atual = produto.preco_atual
     pct = desconto(anterior, atual)
-    turno = turno or detectar_turno()
+    turno = turno or detectar_turno(owner=produto.owner)
     chamada = chamada_inteligente(produto.nome, produto.categoria, atual, owner=produto.owner)
     linhas = [chamada] if chamada else []
     if turno in URGENCY:

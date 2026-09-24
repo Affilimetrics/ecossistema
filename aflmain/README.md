@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Afillimetrics — Ecossistema de Automação para Afiliados
 
 ## Atualizações 22–23/09/2026
@@ -37,8 +36,6 @@ Trocas de página agora exibem blur discreto + spinner central. Estados de execu
 
 ## Documentação anterior
 
-=======
->>>>>>> origin/main
 # Afillimetrics — Smart Affiliate Bot
 
 > Plataforma Django para coleta de produtos e links de afiliado, organização de ofertas e futura distribuição por Telegram/WhatsApp, com arquitetura preparada para múltiplos marketplaces.
@@ -947,3 +944,13 @@ python manage.py publicar_ofertas --limite 20 --forcar
 - RELAMPAGO: campanhas com teto de preço.
 
 A copy é escolhida automaticamente; não é necessário cadastrar um texto por produto.
+
+
+## Atualização — coleta contínua, categorias personalizadas e fuso por usuário
+- Produtos Quentes exibem o desconto calculado a partir dos preços reais.
+- Palavras-chave passam a ser categorias personalizadas reutilizáveis na Coleta Geral.
+- Nova categoria personalizada pode ser criada em modal, com template, sem abandonar a coleta.
+- Loop disponível para categorias nativas e personalizadas; o limite por página é lote, não fim da execução.
+- Coleta em loop avança páginas e, ao esgotar resultados, retorna ao topo para reavaliar itens relevantes.
+- Cadastro armazena país/estado/cidade e o timezone IANA detectado pelo navegador.
+- Mensagens por turno usam o timezone do proprietário do produto.

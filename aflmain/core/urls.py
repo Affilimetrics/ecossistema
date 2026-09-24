@@ -23,10 +23,8 @@ urlpatterns = [
 
     path("cadastro/", views.cadastro, name="cadastro"),
     path("home/", views.home, name="home"),
-<<<<<<< HEAD
     path("coleta/", views.coleta_geral, name="coleta_geral"),
-=======
->>>>>>> origin/main
+    path("coleta/categoria-personalizada/", views.criar_categoria_personalizada_view, name="criar_categoria_personalizada"),
     path("logout/", views.logout_view, name="logout"),
 
     path(

@@ -31,7 +31,7 @@ def ja_enviada_recentemente(produto, canal, horas=None):
 
 
 def mensagem_pronta(produto, turno=None, campanha=None):
-    return gerar_mensagem(produto, turno=turno or detectar_turno(), campanha=campanha)
+    return gerar_mensagem(produto, turno=turno or detectar_turno(owner=produto.owner), campanha=campanha)
 
 
 def _telegram_erro(response):

@@ -627,6 +627,7 @@ def executar_bot(
     categorias_selecionadas,
     keywords=None,
     keywords_loop=None,
+    categorias_loop=None,
     parar_evento=None,
     pausar_evento=None,
     execution_id=None,
@@ -648,6 +649,9 @@ def executar_bot(
 
     if keywords_loop is None:
         keywords_loop = []
+
+    if categorias_loop is None:
+        categorias_loop = []
 
     if categorias_selecionadas is None:
         categorias_selecionadas = []
@@ -700,6 +704,7 @@ def executar_bot(
         categorias_selecionadas = [str(v).strip() for v in categorias_selecionadas if str(v).strip()]
         keywords = [str(v).strip() for v in keywords if str(v).strip()]
         keywords_loop = [str(v).strip() for v in keywords_loop if str(v).strip()]
+        categorias_loop = [str(v).strip() for v in categorias_loop if str(v).strip()]
 
         if not categorias_selecionadas and not keywords:
             registrar_evento("Nenhuma categoria ou palavra-chave foi selecionada.", "ERROR")
@@ -712,6 +717,7 @@ def executar_bot(
         # só começa depois que TODOS os termos do ciclo anterior foram
         # concluídos, evitando prender a execução em uma única chave.
         keywords_loop = [kw for kw in keywords if kw in set(keywords_loop)]
+        categorias_loop = [cat for cat in categorias_selecionadas if cat in set(categorias_loop)]
 
         # =================================================
         # CARREGAR RESULTADOS
@@ -876,10 +882,13 @@ def executar_bot(
         # FILA DE ALVOS
         # =================================================
 
-        alvos_uma_vez = [("categoria", valor) for valor in categorias_selecionadas]
+        alvos_uma_vez = [("categoria", valor) for valor in categorias_selecionadas if valor not in categorias_loop]
         alvos_uma_vez += [("keyword", valor) for valor in keywords if valor not in keywords_loop]
+        alvos_loop = [("categoria", valor) for valor in categorias_loop] + [("keyword", valor) for valor in keywords_loop]
         ciclo_loop = 0
         primeiro_ciclo_loop = True
+        paginas_loop = {(tipo, valor): 1 for tipo, valor in alvos_loop}
+        vistos_ciclo = set()
 
         while True:
             if not verificar_controle_bot(parar_evento, pausar_evento, gerenciador_estado):
@@ -892,17 +901,14 @@ def executar_bot(
             else:
                 alvos = []
 
-            # Cada ciclo do loop contém a lista completa de keywords marcadas.
-            # Não existe avanço para a próxima chave enquanto a atual não termina.
-            if keywords_loop:
+            # Loop contínuo para categorias e categorias personalizadas.
+            # O limite de 20 é apenas o tamanho do lote/página, nunca o fim da execução.
+            if alvos_loop:
                 ciclo_loop += 1
+                vistos_ciclo = set()
                 if ciclo_loop > 1 or not alvos:
-                    registrar_evento(
-                        f"Iniciando ciclo de palavras-chave #{ciclo_loop}: "
-                        + " → ".join(keywords_loop),
-                        "INFO",
-                    )
-                alvos += [("keyword", valor) for valor in keywords_loop]
+                    registrar_evento(f"Iniciando ciclo contínuo #{ciclo_loop}.", "INFO")
+                alvos += list(alvos_loop)
 
             if not alvos:
                 break
@@ -918,10 +924,20 @@ def executar_bot(
                     "INFO",
                 )
 
+                pagina = paginas_loop.get((tipo_alvo, alvo), 1) if (tipo_alvo, alvo) in paginas_loop else 1
                 if tipo_alvo == "categoria":
-                    produtos = coletar_produtos_categoria(driver, alvo, base_url=loja_url)
+                    produtos = coletar_produtos_categoria(driver, alvo, base_url=loja_url, pagina=pagina)
                 else:
-                    produtos = coletar_produtos_keyword(driver, alvo, base_url=loja_url)
+                    produtos = coletar_produtos_keyword(driver, alvo, base_url=loja_url, pagina=pagina)
+
+                # Em loop, avança páginas. Se a página esgotar, volta ao topo no próximo ciclo
+                # para reavaliar os itens mais relevantes/descontados do marketplace.
+                if (tipo_alvo, alvo) in paginas_loop:
+                    if produtos:
+                        paginas_loop[(tipo_alvo, alvo)] = pagina + 1
+                    else:
+                        paginas_loop[(tipo_alvo, alvo)] = 1
+                        registrar_evento(f"Fim dos resultados de {alvo}; voltando à página 1 no próximo ciclo.", "INFO")
 
                 produtos_totais_nesta_execucao += len(produtos)
                 atualizar_execucao(execution_id, produtos_total=produtos_totais_nesta_execucao)
@@ -930,10 +946,16 @@ def executar_bot(
                     registrar_evento(f"Nenhum produto encontrado para {alvo}.", "WARNING")
                     continue
 
-                produtos_pendentes = [
-                    produto for produto in produtos
-                    if not produto_ja_processado(resultados, produto, categoria_resultado)
-                ]
+                if (tipo_alvo, alvo) in paginas_loop:
+                    # No loop impedimos duplicata dentro do ciclo, mas permitimos reavaliar
+                    # produtos fortes em ciclos posteriores (preço/desconto pode ter mudado).
+                    produtos_pendentes = [produto for produto in produtos if produto not in vistos_ciclo]
+                    vistos_ciclo.update(produtos_pendentes)
+                else:
+                    produtos_pendentes = [
+                        produto for produto in produtos
+                        if not produto_ja_processado(resultados, produto, categoria_resultado)
+                    ]
 
                 registrar_evento(
                     f"{len(produtos_pendentes)} produtos pendentes; "
@@ -1071,14 +1093,13 @@ def executar_bot(
             if execucao_parada:
                 break
 
-            # Sem loop, a execução termina depois de uma passagem.
-            if not keywords_loop:
+            # Sem qualquer alvo em loop, a execução termina depois de uma passagem.
+            if not alvos_loop:
                 break
 
-            # Com loop, só chegamos aqui depois que TODAS as keywords do ciclo
-            # foram processadas. O próximo ciclo então começa pela primeira.
+            # Com loop, somente o usuário (ou erro fatal externo) encerra a execução.
             registrar_evento(
-                f"Ciclo de palavras-chave #{ciclo_loop} concluído. Avançando para o próximo ciclo.",
+                f"Ciclo contínuo #{ciclo_loop} concluído. Iniciando nova rodada.",
                 "OK",
             )
 

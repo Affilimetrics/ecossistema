@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 {% load static %}
-=======
->>>>>>> origin/main
 <!DOCTYPE html>
 <html lang="pt-br" data-bs-theme="dark">
 <head>
@@ -18,15 +15,10 @@
     .btn-green:hover { background:#27ae60; color:#fff; }
     .form-control:focus { border-color:var(--brand-green); box-shadow:0 0 0 .25rem rgba(46,204,113,.2); }
   </style>
-<<<<<<< HEAD
 <link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head>
 <body class="min-vh-100 d-flex align-items-center justify-content-center p-3">
 <div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
-=======
-</head>
-<body class="min-vh-100 d-flex align-items-center justify-content-center p-3">
->>>>>>> origin/main
 <main class="w-100" style="max-width:460px">
   <div class="text-center mb-4">
     <a href="{% url 'index' %}" class="text-decoration-none text-white fs-2 fw-bold">Afillimetrics</a>
@@ -43,6 +35,13 @@
       <div class="mb-3">
         <label for="email" class="form-label">E-mail</label>
         <input type="email" name="email" id="email" class="form-control bg-dark border-secondary text-white" placeholder="seu@email.com" value="{{ request.POST.email }}" required>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-sm-4"><label class="form-label" for="pais">País</label><input class="form-control bg-dark border-secondary text-white" id="pais" name="pais" value="{{ request.POST.pais|default:'Brasil' }}"></div>
+        <div class="col-sm-4"><label class="form-label" for="estado">Estado</label><input class="form-control bg-dark border-secondary text-white" id="estado" name="estado" value="{{ request.POST.estado }}" placeholder="SP"></div>
+        <div class="col-sm-4"><label class="form-label" for="cidade">Cidade</label><input class="form-control bg-dark border-secondary text-white" id="cidade" name="cidade" value="{{ request.POST.cidade }}"></div>
+        <input type="hidden" name="timezone" id="timezone" value="{{ request.POST.timezone|default:'America/Sao_Paulo' }}">
+        <div class="form-text text-secondary">O fuso do navegador será usado para adaptar mensagens como “Achadinhos da manhã”.</div>
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Senha</label>
@@ -61,9 +60,7 @@
   </div>
   <div class="text-center mt-4"><a href="{% url 'index' %}" class="text-secondary text-decoration-none small">&larr; Voltar para home</a></div>
 </main>
-<<<<<<< HEAD
+<script>try{document.getElementById('timezone').value=Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo'}catch(e){}</script>
 <script src="{% static 'core/ui-loader.js' %}"></script>
-=======
->>>>>>> origin/main
 </body>
 </html>

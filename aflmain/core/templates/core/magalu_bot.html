@@ -77,7 +77,6 @@
             color: #2ECC71;
         }
 
-<<<<<<< HEAD
         /* Alerta operacional: fica visível mesmo durante uma execução longa. */
         #alertaCanalLive {
             position: fixed;
@@ -95,18 +94,11 @@
     </style>
 
 <link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
-=======
-    </style>
-
->>>>>>> origin/main
-</head>
+<style>.keyword-section,#keywordsContainer,#adicionarKeyword{display:none!important}</style></head>
 
 
 <body>
-<<<<<<< HEAD
 <div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
-=======
->>>>>>> origin/main
 {% csrf_token %}
 
 
@@ -126,13 +118,8 @@
         </a>
 
         <div class="d-flex align-items-center gap-3">
-<<<<<<< HEAD
             <span class="text-secondary">Central Magalu</span>
             <a href="{% url 'coleta_geral' %}" class="btn btn-success btn-sm">Ir para coleta</a><a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">Home</a>
-=======
-            <span class="text-secondary">Coletor Magalu</span>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-light btn-sm">Home</a>
->>>>>>> origin/main
             <form method="post" action="{% url 'logout' %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-outline-secondary btn-sm">Sair</button></form>
         </div>
 
@@ -146,12 +133,7 @@
 <!-- ===================================================== -->
 
 <main class="container py-5">
-<<<<<<< HEAD
 <div id="alertaCanalLive" aria-live="assertive" aria-atomic="true">{% include "core/_alertas.html" %}</div>
-=======
-{% include "core/_alertas.html" %}
-<div id="alertaCanalLive"></div>
->>>>>>> origin/main
 
 
     <!-- ================================================= -->
@@ -161,11 +143,7 @@
     <div class="mb-5">
 
         <h1 class="fw-bold">
-<<<<<<< HEAD
             Central Magalu
-=======
-            Coletor de Links Magalu
->>>>>>> origin/main
         </h1>
 
         <p class="text-secondary">
@@ -221,7 +199,7 @@
     <!-- PALAVRAS-CHAVE -->
     <!-- ================================================= -->
 
-    <div class="card-dark rounded-4 p-4 mb-4">
+    <div class="card-dark rounded-4 p-4 mb-4 keyword-section">
 
         <div class="d-flex justify-content-between align-items-center">
 
@@ -231,7 +209,7 @@
 
                     <i class="bi bi-search"></i>
 
-                    Palavras-chave personalizadas
+                    Categorias personalizadas
 
                 </h2>
 
@@ -357,17 +335,9 @@
                 class="badge bg-secondary fs-6"
             >
                 PARADO
-<<<<<<< HEAD
             </span><span id="statusMiniSpinner" class="status-mini-spinner d-none"></span>
         </div>
 
-=======
-            </span>
-
-        </div>
-
-
->>>>>>> origin/main
         <!-- BOTÕES -->
 
         <div class="d-flex flex-wrap gap-2">
@@ -567,10 +537,7 @@ const statusBox =
 
 const statusBadge =
     document.getElementById("statusBadge");
-<<<<<<< HEAD
 const statusMiniSpinner = document.getElementById("statusMiniSpinner");
-=======
->>>>>>> origin/main
 
 const contadorCategorias =
     document.getElementById("contadorCategorias");
@@ -1231,7 +1198,7 @@ function atualizarResumo() {
 
                 <i class="bi bi-search"></i>
 
-                Palavras-chave
+                Categorias personalizadas (gerencie na Coleta Geral)
 
             </h6>
 
@@ -1310,10 +1277,7 @@ function atualizarResumo() {
 function atualizarInterfaceStatus(status) {
 
     status = String(status || "parado").toLowerCase();
-<<<<<<< HEAD
     if(statusMiniSpinner) statusMiniSpinner.classList.toggle("d-none", !["iniciando","verificando_login","aguardando_login","logado","executando"].includes(status));
-=======
->>>>>>> origin/main
 
     // Estados transitórios / execução
     if ([
@@ -1872,7 +1836,6 @@ async function consultarStatus() {
         if (resultado.mensagem) statusBox.textContent = resultado.mensagem;
         const alertaBox = document.getElementById("alertaCanalLive");
         if (alertaBox && Array.isArray(resultado.alertas) && resultado.alertas.length) {
-<<<<<<< HEAD
             alertaBox.innerHTML = resultado.alertas.map(a => {
                 const warning = a.nivel === "WARNING";
                 const classe = warning ? "alert-warning" : "alert-danger";
@@ -1888,9 +1851,6 @@ async function consultarStatus() {
                     </div>
                 </div>`;
             }).join("");
-=======
-            alertaBox.innerHTML = resultado.alertas.map(a => `<div class="alert alert-danger"><strong>${a.titulo}</strong><div class="small">${a.mensagem}</div></div>`).join("");
->>>>>>> origin/main
         } else if (alertaBox) {
             alertaBox.innerHTML = "";
         }
@@ -1986,10 +1946,7 @@ consultarStatus();
 </script>
 
 
-<<<<<<< HEAD
 <script src="{% static 'core/ui-loader.js' %}"></script>
-=======
->>>>>>> origin/main
 </body>
 
 </html>

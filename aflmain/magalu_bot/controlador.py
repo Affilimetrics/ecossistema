@@ -28,6 +28,7 @@ class ControladorBot:
         self.categorias = []
         self.keywords = []
         self.keywords_loop = []
+        self.categorias_loop = []
 
         self.erro = None
         self._execucao_iniciada = False
@@ -35,7 +36,7 @@ class ControladorBot:
         self.inicio = None
         self.owner_id = None
 
-    def iniciar(self, categorias_selecionadas=None, keywords_loop=None, keywords=None, owner_id=None):
+    def iniciar(self, categorias_selecionadas=None, keywords_loop=None, categorias_loop=None, keywords=None, owner_id=None):
         with self._lock:
             if self.thread is not None and self.thread.is_alive():
                 return False
@@ -43,12 +44,14 @@ class ControladorBot:
             categorias = list(categorias_selecionadas or [])
             keywords = list(keywords or [])
             keywords_loop = list(keywords_loop or [])
+            categorias_loop = list(categorias_loop or [])
             if not categorias and not keywords:
                 return False
 
             self.categorias = categorias
             self.keywords = keywords
             self.keywords_loop = keywords_loop
+            self.categorias_loop = categorias_loop
             self.owner_id = owner_id
 
             self.erro = None
@@ -58,6 +61,7 @@ class ControladorBot:
                 categorias=self.categorias,
                 keywords=self.keywords,
                 keywords_loop=self.keywords_loop,
+                categorias_loop=self.categorias_loop,
                 owner_id=owner_id,
             )
             self.execucao_id = execucao.pk
@@ -70,7 +74,7 @@ class ControladorBot:
 
             self.thread = threading.Thread(
                 target=self._executar,
-                args=(self.categorias, self.keywords_loop),
+                args=(self.categorias, self.keywords_loop, self.categorias_loop),
                 name="MagaluBotThread",
                 daemon=False,
             )
@@ -79,12 +83,13 @@ class ControladorBot:
             print("[BOT CONTROLLER] Thread do Selenium iniciada.")
             return True
 
-    def _executar(self, categorias_selecionadas, keywords_loop):
+    def _executar(self, categorias_selecionadas, keywords_loop, categorias_loop):
         try:
             executar_bot(
                 categorias_selecionadas=categorias_selecionadas,
                 keywords=self.keywords,
                 keywords_loop=keywords_loop,
+                categorias_loop=categorias_loop,
                 parar_evento=self.parar_evento,
                 pausar_evento=self.pausar_evento,
                 execution_id=self.execucao_id,

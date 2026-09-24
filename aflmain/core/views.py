@@ -16,9 +16,10 @@ from django.db.models import Count
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .models import (Produto, Execucao, Oferta, LogExecucao, ConfiguracaoCanal,
-                     ConfiguracaoAutomacao, TemplateOferta, AlertaSistema, ProdutoQuente)
+                     ConfiguracaoAutomacao, TemplateOferta, AlertaSistema, ProdutoQuente, PerfilUsuario)
 from .services import criar_oferta, enviar_oferta
 from .template_service import garantir_templates_nativos, keywords_sem_template, garantir_registros_keywords, atualizar_produtos_quentes, normalizar_chave
+from .marketing import desconto
 from .config_service import obter_config_automacao
 from .alerts import registrar_alerta_canal, resolver_alerta_canal
 from magalu_bot.config.config import CATEGORIAS_PRINCIPAIS
@@ -128,6 +129,13 @@ def cadastro(request):
                 validate_email(email)
                 validate_password(senha)
                 user = User.objects.create_user(username=email, email=email, password=senha, first_name=nome)
+                PerfilUsuario.objects.create(
+                    owner=user,
+                    pais=(request.POST.get("pais") or "Brasil").strip(),
+                    estado=(request.POST.get("estado") or "").strip(),
+                    cidade=(request.POST.get("cidade") or "").strip(),
+                    timezone=(request.POST.get("timezone") or "America/Sao_Paulo").strip(),
+                )
                 auth_login(request, user)
                 messages.success(request, "Conta criada com sucesso.")
                 return redirect("home")
@@ -144,14 +152,37 @@ def logout_view(request):
 
 
 @login_required
-<<<<<<< HEAD
 def coleta_geral(request):
-    return render(request, "core/coleta_geral.html", {"categorias": list(CATEGORIAS_PRINCIPAIS.items())})
+    garantir_templates_nativos(request.user)
+    personalizadas = TemplateOferta.objects.filter(owner=request.user, tipo="KEYWORD", ativo=True).order_by("chave")
+    return render(request, "core/coleta_geral.html", {
+        "categorias": list(CATEGORIAS_PRINCIPAIS.items()),
+        "personalizadas": personalizadas,
+    })
+
+
+@require_POST
+@login_required
+def criar_categoria_personalizada_view(request):
+    try:
+        dados = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"sucesso": False, "erro": "Dados inválidos."}, status=400)
+    chave = normalizar_chave(dados.get("chave"))
+    chamadas = [str(x).strip() for x in (dados.get("chamadas") or []) if str(x).strip()]
+    sem_template = bool(dados.get("divulgar_sem_template"))
+    if not chave:
+        return JsonResponse({"sucesso": False, "erro": "Informe a palavra-chave."}, status=400)
+    if not chamadas and not sem_template:
+        return JsonResponse({"sucesso": False, "erro": "Crie ao menos uma chamada ou escolha divulgar sem template."}, status=400)
+    obj, _ = TemplateOferta.objects.update_or_create(
+        owner=request.user, tipo="KEYWORD", chave=chave,
+        defaults={"chamadas": chamadas, "divulgar_sem_template": sem_template, "ativo": True, "nativo": False},
+    )
+    return JsonResponse({"sucesso": True, "chave": obj.chave, "nome": obj.chave.title()})
 
 
 @login_required
-=======
->>>>>>> origin/main
 def magalu_bot(request):
     return render(request, "core/magalu_bot.html")
 
@@ -207,6 +238,7 @@ def iniciar_bot_view(request):
     categorias = dados.get("categorias", [])
     keywords = dados.get("keywords", [])
     keywords_loop = dados.get("keywords_loop", [])
+    categorias_loop = dados.get("categorias_loop", [])
 
     if not isinstance(categorias, list):
         return JsonResponse(
@@ -218,6 +250,8 @@ def iniciar_bot_view(request):
             {"sucesso": False, "erro": "'keywords' deve ser uma lista.", "status": "parado"},
             status=400,
         )
+    if not isinstance(categorias_loop, list):
+        return JsonResponse({"sucesso": False, "erro": "'categorias_loop' deve ser uma lista.", "status": "parado"}, status=400)
     if not isinstance(keywords_loop, list):
         return JsonResponse(
             {"sucesso": False, "erro": "'keywords_loop' deve ser uma lista.", "status": "parado"},
@@ -245,6 +279,7 @@ def iniciar_bot_view(request):
     iniciou = controlador_bot.iniciar(
         categorias_selecionadas=categorias,
         keywords_loop=keywords_loop,
+        categorias_loop=categorias_loop,
         keywords=keywords,
         owner_id=request.user.id,
     )
@@ -269,6 +304,7 @@ def iniciar_bot_view(request):
             "categorias": categorias,
             "keywords": keywords,
             "keywords_loop": keywords_loop,
+            "categorias_loop": categorias_loop,
         }
     )
 
@@ -403,11 +439,7 @@ def status_bot_view(request):
                 },
             })
 
-<<<<<<< HEAD
     status["alertas"] = list(AlertaSistema.objects.filter(owner=request.user, resolvido=False).values("id", "titulo", "mensagem", "canal", "nivel")[:5])
-=======
-    status["alertas"] = list(AlertaSistema.objects.filter(owner=request.user, resolvido=False).values("id", "titulo", "mensagem", "canal")[:5])
->>>>>>> origin/main
     return JsonResponse(status)
 
 
@@ -500,8 +532,11 @@ def produtos_quentes_view(request):
     if categoria:
         qs = qs.filter(produto__categoria=categoria)
     ultimo = ProdutoQuente.objects.filter(owner=request.user).order_by("-calculado_em").first()
+    itens = list(qs[:50])
+    for item in itens:
+        item.desconto_real = desconto(item.produto.preco_anterior, item.produto.preco_atual)
     return render(request, "core/produtos_quentes.html", {
-        "produtos_quentes": qs[:50], "categorias": categorias, "categoria_atual": categoria,
+        "produtos_quentes": itens, "categorias": categorias, "categoria_atual": categoria,
         "ranking_atualizado": atualizado, "ultima_atualizacao": ultimo.calculado_em if ultimo else None,
     })
 
@@ -511,8 +546,15 @@ def configuracoes_view(request):
     auto = obter_config_automacao(owner=request.user)
     telegram, _ = ConfiguracaoCanal.objects.get_or_create(owner=request.user, canal="TELEGRAM")
     whatsapp, _ = ConfiguracaoCanal.objects.get_or_create(owner=request.user, canal="WHATSAPP")
+    perfil, _ = PerfilUsuario.objects.get_or_create(owner=request.user)
 
     if request.method == "POST":
+        perfil.pais = (request.POST.get("pais") or perfil.pais or "Brasil").strip()
+        perfil.estado = (request.POST.get("estado") or "").strip()
+        perfil.cidade = (request.POST.get("cidade") or "").strip()
+        perfil.timezone = (request.POST.get("timezone") or perfil.timezone or "America/Sao_Paulo").strip()
+        perfil.save()
+
         telegram.ativo = request.POST.get("telegram_ativo") == "on"
         telegram.destino = (request.POST.get("telegram_chat_id") or "").strip()
         novo_token = (request.POST.get("telegram_bot_token") or "").strip()
@@ -554,7 +596,7 @@ def configuracoes_view(request):
         return redirect("configuracoes")
 
     return render(request, "core/configuracoes.html", {
-        "auto": auto, "telegram": telegram, "whatsapp": whatsapp,
+        "auto": auto, "telegram": telegram, "whatsapp": whatsapp, "perfil": perfil,
         "telegram_token_salvo": bool(telegram.token), "whatsapp_token_salvo": bool(whatsapp.token),
         "turnos": ["MANHA", "ALMOCO", "TARDE", "NOITE", "RELAMPAGO"],
     })

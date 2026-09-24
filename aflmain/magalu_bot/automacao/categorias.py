@@ -28,7 +28,7 @@ def rolar_pagina(driver, passos=7):
         altura_anterior = altura
 
 
-def coletar_produtos_categoria(driver, categoria, base_url=None):
+def coletar_produtos_categoria(driver, categoria, base_url=None, pagina=1):
     print("\n")
     print("-" * 70)
     print(f"COLETANDO PRODUTOS: {categoria.upper()}")
@@ -37,6 +37,8 @@ def coletar_produtos_categoria(driver, categoria, base_url=None):
     categoria_url = urllib.parse.quote(categoria, safe="")
     base_url = (base_url or BASE_URL).rstrip("/")
     url = f"{base_url}/busca/{categoria_url}/"
+    if pagina and int(pagina) > 1:
+        url += f"?page={int(pagina)}"
 
     print("[INFO] Abrindo:")
     print(url)
@@ -84,7 +86,7 @@ def coletar_produtos_categoria(driver, categoria, base_url=None):
 
 
 
-def coletar_produtos_keyword(driver, keyword, base_url=None):
+def coletar_produtos_keyword(driver, keyword, base_url=None, pagina=1):
     """Busca produtos usando uma palavra-chave na mesma busca pública da vitrine.
 
     A função mantém o mesmo limite e deduplicação usados pelas categorias.
@@ -96,6 +98,8 @@ def coletar_produtos_keyword(driver, keyword, base_url=None):
     termo = urllib.parse.quote(keyword.strip(), safe="")
     base_url = (base_url or BASE_URL).rstrip("/")
     url = f"{base_url}/busca/{termo}/"
+    if pagina and int(pagina) > 1:
+        url += f"?page={int(pagina)}"
 
     print(f"[INFO] Abrindo busca: {url}")
     driver.get(url)

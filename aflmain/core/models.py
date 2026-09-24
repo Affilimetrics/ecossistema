@@ -47,6 +47,7 @@ class Execucao(models.Model):
     categorias = models.JSONField(default=list, blank=True)
     keywords = models.JSONField(default=list, blank=True)
     keywords_loop = models.JSONField(default=list, blank=True)
+    categorias_loop = models.JSONField(default=list, blank=True)
     erro = models.TextField(blank=True, default="")
 
     class Meta:
@@ -204,3 +205,15 @@ class ProdutoQuente(models.Model):
 
     def __str__(self):
         return f"{self.produto} ({self.score})"
+
+
+class PerfilUsuario(models.Model):
+    owner = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfil_local")
+    pais = models.CharField(max_length=80, default="Brasil", blank=True)
+    estado = models.CharField(max_length=100, blank=True, default="")
+    cidade = models.CharField(max_length=120, blank=True, default="")
+    timezone = models.CharField(max_length=80, default="America/Sao_Paulo")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Localização de {self.owner}: {self.timezone}"
