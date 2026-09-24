@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head><body class="bg-black text-light">
 <div id="pageTransitionLoader"><div class="page-loader-ring"></div></div><main class="container py-5">
+{% include "core/_alertas.html" %}
 <div class="d-flex justify-content-between align-items-center mb-4"><div><h1>Ofertas Inteligentes</h1><p class="text-secondary mb-0">Templates, preços, gatilhos e CTA são gerados automaticamente.</p></div><a href="{% url 'dashboard' %}" class="btn btn-outline-light">Home</a></div>
 <div class="card bg-dark border-secondary p-4 mb-4"><h2 class="h5">Gerar oferta automaticamente</h2><p class="text-secondary">Escolha um produto com link de afiliado válido. O sistema decide a chamada, o bloco De/Por, o desconto e o CTA.</p>
 <form method="post">{% csrf_token %}<div class="input-group"><select name="produto_id" class="form-select">{% for p in produtos %}<option value="{{p.id}}">{{p.nome|default:"Produto"}} — {{p.preco_atual|default:"sem preço"}}</option>{% endfor %}</select><button class="btn btn-success">Gerar template inteligente</button></div></form></div>

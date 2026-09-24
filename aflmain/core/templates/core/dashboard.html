@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head><body class="bg-black text-light">
 <div id="pageTransitionLoader"><div class="page-loader-ring"></div></div><main class="container py-5">
+{% include "core/_alertas.html" %}
 <div class="d-flex justify-content-between align-items-center mb-4"><div><h1>Smart Affiliate Bot</h1><p class="text-secondary mb-0">Centro operacional Django</p></div><div class="d-flex gap-2"><a class="btn btn-success" href="{% url 'magalu_bot' %}">Coletor Magalu</a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-outline-secondary" type="submit">Sair</button></form></div></div>
 <div class="row g-3 mb-4">
 

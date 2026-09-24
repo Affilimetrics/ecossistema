@@ -21,7 +21,7 @@ from .services import criar_oferta, enviar_oferta
 from .template_service import garantir_templates_nativos, keywords_sem_template, garantir_registros_keywords, atualizar_produtos_quentes, normalizar_chave
 from .marketing import desconto
 from .config_service import obter_config_automacao
-from .alerts import registrar_alerta_canal, resolver_alerta_canal
+from .alerts import registrar_alerta_canal, resolver_alerta_canal, sincronizar_alertas_canais
 from magalu_bot.config.config import CATEGORIAS_PRINCIPAIS
 
 from magalu_bot.controlador import controlador_bot
@@ -439,6 +439,7 @@ def status_bot_view(request):
                 },
             })
 
+    sincronizar_alertas_canais(request.user)
     status["alertas"] = list(AlertaSistema.objects.filter(owner=request.user, resolvido=False).values("id", "titulo", "mensagem", "canal", "nivel")[:5])
     return JsonResponse(status)
 
