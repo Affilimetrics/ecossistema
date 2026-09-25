@@ -393,6 +393,16 @@ def parar_bot_view(request):
     if _bot_de_outro_usuario(request):
         return JsonResponse({"sucesso": False, "erro": "Você não pode parar a execução de outro usuário.", "status": "ocupado"}, status=409)
 
+    if controlador_bot.parada_solicitada():
+        return JsonResponse(
+            {
+                "sucesso": False,
+                "erro": "A parada já foi solicitada. Aguarde o encerramento seguro da execução.",
+                "status": "parando",
+            },
+            status=409,
+        )
+
     if controlador_bot.parar():
         return JsonResponse(
             {
