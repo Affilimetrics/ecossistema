@@ -153,12 +153,27 @@ class ControladorBot:
             if not self.thread or not self.thread.is_alive():
                 return False
 
+            # Idempotência: depois da primeira solicitação, novas chamadas
+            # não disparam outro comando nem repetem efeitos colaterais.
+            if self.parar_evento.is_set():
+                return False
+
             print("[BOT CONTROLLER] Solicitação de parada enviada.")
             self.parar_evento.set()
             # Se estiver pausado, libera a espera para que a thread
             # possa chegar ao salvamento/encerramento.
             self.pausar_evento.clear()
+            if self.execucao_id:
+                registrar_log(
+                    self.execucao_id,
+                    "Solicitação de parada segura recebida pelo painel.",
+                    "INFO",
+                )
             return True
+
+    def parada_solicitada(self):
+        """Indica se a execução atual já recebeu um comando de parada."""
+        return self.parar_evento.is_set() and self.esta_executando()
 
     def esta_executando(self):
         with self._lock:
