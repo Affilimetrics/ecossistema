@@ -68,6 +68,7 @@ class Mensagem(models.Model):
         ("PENDENTE", "Pendente"),
         ("ENVIADO", "Enviado"),
         ("ERRO", "Erro"),
+        ("FALHOU", "Falhou"),
     )
     produto = models.ForeignKey(Produto, on_delete=models.CASCADE, related_name="mensagens")
     canal = models.CharField(max_length=20, choices=CANAIS)
@@ -75,6 +76,11 @@ class Mensagem(models.Model):
     conteudo = models.TextField(blank=True, default="")
     data_envio = models.DateTimeField(null=True, blank=True)
     erro = models.TextField(blank=True, default="")
+    # Snapshot da oferta no momento da publicação. Permite que o cache diferencie
+    # uma repetição idêntica de uma queda real de preço/desconto.
+    preco_anterior = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    preco_atual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    desconto_percentual = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

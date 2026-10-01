@@ -1095,11 +1095,15 @@ def executar_bot(
                                 if not canais_auto:
                                     canais_auto = ["TELEGRAM"]
                                 resultado_publicacao = publicar_oferta(oferta_db, canais=canais_auto, driver=driver, campanha=cfg_auto.campanha_sazonal or "NENHUM")
-                                erros = {c: v for c, v in resultado_publicacao.items() if str(v).startswith("ERRO:")}
-                                if erros:
-                                    registrar_evento(f"ALERTA de divulgação: {erros}", "WARNING")
-                                else:
-                                    registrar_evento(f"Publicação inteligente: {resultado_publicacao}", "OK")
+                                falhas = {c: v for c, v in resultado_publicacao.items() if str(v).startswith(("FALHOU:", "ERRO:"))}
+                                caches = {c: v for c, v in resultado_publicacao.items() if v == "CACHE"}
+                                enviados = {c: v for c, v in resultado_publicacao.items() if v == "ENVIADO"}
+                                if enviados:
+                                    registrar_evento(f"Publicação inteligente ENVIADO: {enviados}", "OK")
+                                if caches:
+                                    registrar_evento(f"Publicação inteligente CACHE: {caches} — produto ainda no período de retenção.", "INFO")
+                                if falhas:
+                                    registrar_evento(f"Publicação inteligente FALHOU: {falhas}", "WARNING")
                             else:
                                 registrar_evento("Oferta criada; publicação automática está desativada nas Configurações.", "INFO")
                         except Exception as erro_publicacao:

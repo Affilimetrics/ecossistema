@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import time
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 import requests
 from django.utils import timezone
@@ -22,12 +23,76 @@ def _cfg(owner, canal):
     return ConfiguracaoCanal.objects.filter(owner__isnull=True, canal=canal, ativo=True).first()
 
 
-def ja_enviada_recentemente(produto, canal, horas=None):
+def _desconto_percentual(produto):
+    anterior = getattr(produto, "preco_anterior", None)
+    atual = getattr(produto, "preco_atual", None)
+    if anterior is None or atual is None or anterior <= 0 or atual >= anterior:
+        return Decimal("0")
+    return ((anterior - atual) / anterior * Decimal("100")).quantize(Decimal("0.01"))
+
+
+def _produto_quente(produto):
+    try:
+        return Decimal(str(produto.ranking_quente.score)) >= Decimal("70")
+    except Exception:
+        return False
+
+
+def avaliar_elegibilidade_publicacao(produto, canal, horas=None):
+    """Política de republicação para execuções longas.
+
+    CACHE evita repetição imediata, mas nunca torna o produto inelegível para
+    sempre. Queda relevante de preço/desconto antecipa a elegibilidade e um
+    produto muito bem ranqueado recebe uma janela reduzida.
+    """
     if horas is None:
         cfg_auto = ConfiguracaoAutomacao.objects.filter(owner=produto.owner).first()
         horas = cfg_auto.cache_retencao_hours if cfg_auto else CACHE_HORAS
-    limite = timezone.now() - timedelta(hours=horas)
-    return Mensagem.objects.filter(produto=produto, canal=canal, status="ENVIADO", criado_em__gte=limite).exists()
+    horas = max(1, int(horas))
+    ultima = Mensagem.objects.filter(
+        produto=produto, canal=canal, status="ENVIADO"
+    ).order_by("-data_envio", "-criado_em").first()
+    if not ultima:
+        return True, "PRIMEIRA_PUBLICACAO"
+
+    agora = timezone.now()
+    referencia = ultima.data_envio or ultima.criado_em
+    idade = agora - referencia
+    retencao = timedelta(hours=horas)
+    if idade >= retencao:
+        return True, "CACHE_EXPIRADO"
+
+    # Mesmo uma mudança forte não deve causar republicação em sequência.
+    if idade < timedelta(hours=1):
+        return False, "CACHE"
+
+    atual = getattr(produto, "preco_atual", None)
+    preco_publicado = ultima.preco_atual
+    desconto_atual = _desconto_percentual(produto)
+    desconto_publicado = ultima.desconto_percentual
+
+    # Queda >= 3% em relação ao preço efetivamente divulgado.
+    if atual is not None and preco_publicado is not None and preco_publicado > 0:
+        queda = (preco_publicado - atual) / preco_publicado * Decimal("100")
+        if queda >= Decimal("3"):
+            return True, "PRECO_RELEVANTE"
+
+    # Aumento de pelo menos 3 pontos percentuais no desconto anunciado.
+    if desconto_publicado is not None and desconto_atual - desconto_publicado >= Decimal("3"):
+        return True, "DESCONTO_RELEVANTE"
+
+    # Itens altamente recomendáveis voltam antes à fila, mas ainda respeitam
+    # um cooldown mínimo para não gerar spam.
+    janela_quente = timedelta(hours=max(6, horas // 4))
+    if _produto_quente(produto) and idade >= janela_quente:
+        return True, "PRODUTO_QUENTE"
+
+    return False, "CACHE"
+
+
+def ja_enviada_recentemente(produto, canal, horas=None):
+    elegivel, _motivo = avaliar_elegibilidade_publicacao(produto, canal, horas=horas)
+    return not elegivel
 
 
 def mensagem_pronta(produto, turno=None, campanha=None):
@@ -199,9 +264,11 @@ def publicar_oferta(oferta, canais=None, driver=None, turno=None, campanha=None,
     resultados = {}
     for canal in canais:
         canal = canal.upper()
-        if not ignorar_cache and ja_enviada_recentemente(produto, canal):
-            resultados[canal] = "CACHE"
-            continue
+        if not ignorar_cache:
+            elegivel, motivo = avaliar_elegibilidade_publicacao(produto, canal)
+            if not elegivel:
+                resultados[canal] = "CACHE"
+                continue
         try:
             if canal == "TELEGRAM":
                 resultado = enviar_telegram(oferta, texto, getattr(produto, "imagem_url", None))
@@ -215,13 +282,23 @@ def publicar_oferta(oferta, canais=None, driver=None, turno=None, campanha=None,
                     raise RuntimeError("WhatsApp sem API e sem driver Selenium disponível.")
             else:
                 raise RuntimeError(f"Canal não suportado: {canal}")
-            Mensagem.objects.create(owner=oferta.owner, produto=produto, canal=canal, status="ENVIADO", conteudo=texto, data_envio=timezone.now())
+            Mensagem.objects.create(
+                owner=oferta.owner, produto=produto, canal=canal, status="ENVIADO",
+                conteudo=texto, data_envio=timezone.now(),
+                preco_anterior=produto.preco_anterior, preco_atual=produto.preco_atual,
+                desconto_percentual=_desconto_percentual(produto),
+            )
             resolver_alerta_canal(oferta.owner, canal)
             resultados[canal] = "ENVIADO"
         except Exception as exc:
-            Mensagem.objects.create(owner=oferta.owner, produto=produto, canal=canal, status="ERRO", conteudo=texto, erro=str(exc))
+            Mensagem.objects.create(
+                owner=oferta.owner, produto=produto, canal=canal, status="FALHOU",
+                conteudo=texto, erro=str(exc),
+                preco_anterior=produto.preco_anterior, preco_atual=produto.preco_atual,
+                desconto_percentual=_desconto_percentual(produto),
+            )
             registrar_alerta_canal(oferta.owner, canal, str(exc))
-            resultados[canal] = f"ERRO: {exc}"
+            resultados[canal] = f"FALHOU: {exc}"
     if any(v == "ENVIADO" for v in resultados.values()):
         oferta.status = "ENVIADA"
         oferta.save(update_fields=["status", "atualizada_em"])
