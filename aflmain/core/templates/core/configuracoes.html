@@ -15,8 +15,9 @@
 .config-state{font-size:.75rem}
 .form-switch .form-check-input:disabled{opacity:.45;cursor:not-allowed}
 </style>
+<link rel="stylesheet" href="{% static 'core/sidebar.css' %}">
 </head>
-<body class="bg-black text-light">
+<body class="has-app-sidebar bg-black text-light">{% include "core/_sidebar.html" %}
 <div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
 <main class="container py-5" style="max-width:980px">
 <div class="d-flex justify-content-between align-items-center mb-4"><div><h1 class="h2">Configurações de divulgação</h1><p class="text-secondary mb-0">Credenciais por usuário. Tokens ficam criptografados no banco e nunca são exibidos novamente.</p></div><a href="{% url 'home' %}" class="btn btn-outline-light">Home</a></div>

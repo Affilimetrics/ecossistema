@@ -100,10 +100,11 @@
     </style>
 
 <link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
-<style>.keyword-section,#keywordsContainer,#adicionarKeyword{display:none!important}</style></head>
+<style>.keyword-section,#keywordsContainer,#adicionarKeyword{display:none!important}</style><link rel="stylesheet" href="{% static 'core/sidebar.css' %}">
+</head>
 
 
-<body>
+<body class="has-app-sidebar">{% include "core/_sidebar.html" %}
 <div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
 {% csrf_token %}
 
