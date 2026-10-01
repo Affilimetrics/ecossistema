@@ -576,19 +576,24 @@ def configuracoes_view(request):
         perfil.timezone = (request.POST.get("timezone") or perfil.timezone or "America/Sao_Paulo").strip()
         perfil.save()
 
-        telegram.ativo = request.POST.get("telegram_ativo") == "on"
+        # O frontend pode ativar o canal automaticamente quando a configuração
+        # mínima fica válida. O backend, porém, nunca força o switch: se o
+        # usuário desligá-lo manualmente, essa decisão é preservada.
         telegram.destino = (request.POST.get("telegram_chat_id") or "").strip()
         novo_token = (request.POST.get("telegram_bot_token") or "").strip()
         if novo_token:
             telegram.token = novo_token
+        telegram_valido = bool(telegram.token and telegram.destino)
+        telegram.ativo = (request.POST.get("telegram_ativo") == "on") and telegram_valido
         telegram.save()
 
-        whatsapp.ativo = request.POST.get("whatsapp_ativo") == "on"
         whatsapp.destino = (request.POST.get("whatsapp_destination") or "").strip()
         whatsapp.endpoint = (request.POST.get("whatsapp_api_endpoint") or "").strip()
         novo_wa_token = (request.POST.get("whatsapp_api_token") or "").strip()
         if novo_wa_token:
             whatsapp.token = novo_wa_token
+        whatsapp_valido = bool(whatsapp.token and whatsapp.destino and whatsapp.endpoint)
+        whatsapp.ativo = (request.POST.get("whatsapp_ativo") == "on") and whatsapp_valido
         whatsapp.save()
 
         if telegram.ativo and (not telegram.token or not telegram.destino):
@@ -601,10 +606,17 @@ def configuracoes_view(request):
         elif not whatsapp.ativo:
             resolver_alerta_canal(request.user, "WHATSAPP")
 
+        # Canais automáticos só podem apontar para canais válidos e ativos.
         canais=[]
-        if request.POST.get("auto_telegram") == "on": canais.append("TELEGRAM")
-        if request.POST.get("auto_whatsapp") == "on": canais.append("WHATSAPP")
-        auto.auto_publicar_ofertas = request.POST.get("auto_publicar_ofertas") == "on"
+        if telegram.ativo and request.POST.get("auto_telegram") == "on":
+            canais.append("TELEGRAM")
+        if whatsapp.ativo and request.POST.get("auto_whatsapp") == "on":
+            canais.append("WHATSAPP")
+
+        # A UI ativa este switch assim que existir um canal utilizável. O POST
+        # continua respeitando desligamento manual e nunca mantém automação sem
+        # ao menos um canal automático válido/ativo.
+        auto.auto_publicar_ofertas = (request.POST.get("auto_publicar_ofertas") == "on") and bool(canais)
         auto.canais_automaticos = canais
         try:
             auto.cache_retencao_hours = max(1, int(request.POST.get("cache_retencao_hours") or 120))
@@ -613,8 +625,8 @@ def configuracoes_view(request):
         auto.campanha_sazonal = (request.POST.get("campanha_sazonal") or "NENHUM").strip()[:80]
         auto.turno_padrao = (request.POST.get("turno_padrao") or "").strip()[:20]
         auto.save()
-        messages.success(request, "Configurações salvas. Tokens existentes permanecem preservados quando o campo fica vazio.")
-        return redirect("configuracoes")
+        messages.success(request, "Configurações de divulgação salvas com sucesso.")
+        return redirect("home")
 
     return render(request, "core/configuracoes.html", {
         "auto": auto, "telegram": telegram, "whatsapp": whatsapp, "perfil": perfil,
