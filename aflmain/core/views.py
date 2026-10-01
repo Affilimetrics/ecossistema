@@ -23,6 +23,7 @@ from .template_service import garantir_templates_nativos, keywords_sem_template,
 from .marketing import desconto
 from .config_service import obter_config_automacao
 from .alerts import registrar_alerta_canal, resolver_alerta_canal, sincronizar_alertas_canais
+from .opportunity import calcular_oportunidade
 from magalu_bot.config.config import CATEGORIAS_PRINCIPAIS
 
 from magalu_bot.controlador import controlador_bot
@@ -83,6 +84,11 @@ def home(request):
     ofertas = Oferta.objects.filter(owner=request.user).count()
     enviadas = Oferta.objects.filter(owner=request.user, status="ENVIADA").count()
     ultima_execucao = Execucao.objects.filter(owner=request.user).first()
+    perfil, _ = PerfilUsuario.objects.get_or_create(owner=request.user)
+    oportunidade = calcular_oportunidade(perfil.timezone)
+    coleta_configurada = bool(
+        ultima_execucao and (ultima_execucao.categorias or ultima_execucao.keywords)
+    )
 
     return render(request, "core/home.html", {
         "produtos": produtos,
@@ -92,6 +98,8 @@ def home(request):
         "ultima_execucao": ultima_execucao,
         "categorias_chart": json.dumps(categorias_chart, ensure_ascii=False),
         "marketplaces_chart": json.dumps(marketplaces_chart, ensure_ascii=False),
+        "oportunidade": oportunidade,
+        "coleta_configurada": coleta_configurada,
     })
 
 
@@ -324,6 +332,52 @@ def iniciar_bot_view(request):
             "categorias_loop": categorias_loop,
         }
     )
+
+
+@require_POST
+@login_required
+def controlar_coleta_dashboard_view(request):
+    """Inicia a última configuração válida ou solicita parada segura pela Home."""
+    if _bot_de_outro_usuario(request):
+        return JsonResponse({"sucesso": False, "erro": "O coletor está em uso por outro usuário.", "status": "ocupado"}, status=409)
+
+    if controlador_bot.esta_executando():
+        if controlador_bot.parada_solicitada():
+            return JsonResponse({"sucesso": False, "erro": "A parada já foi solicitada.", "status": "parando"}, status=409)
+        if controlador_bot.parar():
+            return JsonResponse({"sucesso": True, "mensagem": "Parada segura solicitada.", "status": "parando"})
+        return JsonResponse({"sucesso": False, "erro": "Não foi possível solicitar a parada.", "status": controlador_bot.status()["status"]}, status=409)
+
+    ultima = Execucao.objects.filter(owner=request.user).first()
+    if not ultima or not (ultima.categorias or ultima.keywords):
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "Configure uma coleta antes de iniciá-la pela Dashboard.",
+            "status": "sem_configuracao",
+            "configurar_url": "/coleta/",
+        }, status=422)
+
+    garantir_templates_nativos(request.user)
+    faltantes = keywords_sem_template(request.user, ultima.keywords or [])
+    if faltantes:
+        garantir_registros_keywords(request.user, faltantes)
+        return JsonResponse({
+            "sucesso": False,
+            "erro": "A configuração salva possui categorias personalizadas sem template.",
+            "status": "sem_configuracao",
+            "configurar_url": "/coleta/",
+        }, status=422)
+
+    iniciou = controlador_bot.iniciar(
+        categorias_selecionadas=ultima.categorias or [],
+        keywords=ultima.keywords or [],
+        keywords_loop=ultima.keywords_loop or [],
+        categorias_loop=ultima.categorias_loop or [],
+        owner_id=request.user.id,
+    )
+    if not iniciou:
+        return JsonResponse({"sucesso": False, "erro": "Não foi possível iniciar a coleta.", "status": "parado"}, status=409)
+    return JsonResponse({"sucesso": True, "mensagem": "Coleta iniciada com a última configuração.", "status": controlador_bot.status()["status"]})
 
 
 @login_required

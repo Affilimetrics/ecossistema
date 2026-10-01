@@ -17,6 +17,13 @@
     .metric-value { font-size:2rem; font-weight:800; }
     .metric-label { color:var(--muted); font-size:.88rem; }
     .chart { min-height:360px; }
+    .opportunity-card { background:var(--panel); border:1px solid var(--border); border-radius:22px; padding:24px; min-height:100%; }
+    .thermometer { position:relative; width:58px; height:300px; margin:18px auto; border-radius:32px; border:4px solid #343b45; background:linear-gradient(to top,#2980b9 0%,#32c5d2 25%,#f1c40f 58%,#e67e22 78%,#e74c3c 100%); box-shadow:inset 0 0 18px rgba(0,0,0,.45); }
+    .thermometer::after { content:''; position:absolute; width:82px; height:82px; border-radius:50%; left:50%; bottom:-31px; transform:translateX(-50%); background:#e74c3c; border:4px solid #343b45; z-index:1; }
+    .thermometer-marker { position:absolute; left:calc(100% + 12px); bottom:calc(var(--score) * 1%); transform:translateY(50%); white-space:nowrap; font-size:.75rem; font-weight:700; padding:5px 8px; border-radius:8px; background:#fff; color:#111; }
+    .thermometer-marker::before { content:''; position:absolute; right:100%; top:50%; transform:translateY(-50%); border:6px solid transparent; border-right-color:#fff; }
+    .execution-state { font-size:.76rem; letter-spacing:.04em; text-transform:uppercase; }
+    .dashboard-message { min-height:24px; }
     @media(max-width: 900px) {
       .main { padding:20px; }
     }
@@ -41,14 +48,34 @@
     <a href="{% url 'coleta_geral' %}" class="btn btn-success"><i class="bi bi-play-circle me-2"></i>Ir para coleta</a>
   </div>
 
-  <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Produtos coletados</div><div class="metric-value">{{ produtos }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Links afiliados</div><div class="metric-value text-success">{{ links }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Ofertas</div><div class="metric-value">{{ ofertas }}</div></div></div>
-    <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Ofertas enviadas</div><div class="metric-value">{{ enviadas }}</div></div></div>
-  </div>
-
-  <div class="row g-4">
+  <div class="row g-4 mb-4">
+    <div class="col-xl-3">
+      <section class="opportunity-card text-center">
+        <div class="text-secondary small">Experimental</div>
+        <h2 class="h5 fw-bold mb-0">Termômetro de Oportunidade</h2>
+        <div class="thermometer" style="--score: {{ oportunidade.score }}" aria-label="Oportunidade {{ oportunidade.score }} de 100">
+          <span class="thermometer-marker">{{ oportunidade.score }}%</span>
+        </div>
+        <div class="mt-5 fw-bold">{{ oportunidade.label }}</div>
+        <div class="text-secondary small">{{ oportunidade.reason }}</div>
+        <div class="text-secondary small mt-1">{{ oportunidade.local_time|date:"H:i" }} · {{ oportunidade.timezone_name }}</div>
+        <hr class="border-secondary my-4">
+        <a href="{% url 'coleta_geral' %}" class="btn btn-outline-light w-100 mb-2"><i class="bi bi-sliders me-2"></i>Ir para coleta</a>
+        <button id="dashboardCollectBtn" class="btn btn-success w-100" type="button" {% if not coleta_configurada %}data-needs-config="1"{% endif %}>
+          <i class="bi bi-play-fill me-2"></i><span>Iniciar coleta</span>
+        </button>
+        <div id="dashboardExecutionState" class="execution-state text-secondary mt-3">Verificando estado...</div>
+        <div id="dashboardMessage" class="dashboard-message small mt-2"></div>
+      </section>
+    </div>
+    <div class="col-xl-9">
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Produtos coletados</div><div class="metric-value">{{ produtos }}</div></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Links afiliados</div><div class="metric-value text-success">{{ links }}</div></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Ofertas</div><div class="metric-value">{{ ofertas }}</div></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Ofertas enviadas</div><div class="metric-value">{{ enviadas }}</div></div></div>
+      </div>
+      <div class="row g-4">
     <div class="col-xl-6">
       <div class="chart-card p-4 h-100">
         <div class="d-flex justify-content-between align-items-center"><div><h2 class="h5 mb-1">Links por categoria</h2><p class="text-secondary small mb-0">Categorias predefinidas + palavras-chave em Outros.</p></div><i class="bi bi-pie-chart text-success fs-4"></i></div>
@@ -61,13 +88,14 @@
         <div id="marketplaceChart" class="chart mt-3"></div>
       </div>
     </div>
-  </div>
-
-  <div class="last-card p-4 mt-4">
+      </div>
+      <div class="last-card p-4 mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="h5 mb-0">Última execução</h2><a href="{% url 'magalu_bot' %}" class="btn btn-sm btn-outline-light">Ver coletor</a></div>
     {% if ultima_execucao %}
       <div class="row g-3"><div class="col-md-3"><span class="text-secondary small d-block">Execução</span><strong>#{{ ultima_execucao.id }}</strong></div><div class="col-md-3"><span class="text-secondary small d-block">Estado</span><strong>{{ ultima_execucao.estado }}</strong></div><div class="col-md-3"><span class="text-secondary small d-block">Produtos</span><strong>{{ ultima_execucao.produtos_processados }}</strong></div><div class="col-md-3"><span class="text-secondary small d-block">Links</span><strong>{{ ultima_execucao.links_obtidos }}</strong></div></div>
     {% else %}<span class="text-secondary">Nenhuma execução registrada ainda.</span>{% endif %}
+      </div>
+    </div>
   </div>
 </main>
 
@@ -99,6 +127,55 @@
     );
   });
   window.addEventListener('resize', () => google.charts.setOnLoadCallback(() => {}));
+</script>
+<script>
+(() => {
+  const btn = document.getElementById('dashboardCollectBtn');
+  const stateEl = document.getElementById('dashboardExecutionState');
+  const msgEl = document.getElementById('dashboardMessage');
+  if (!btn) return;
+  const statusUrl = "{% url 'status_bot' %}";
+  const controlUrl = "{% url 'controlar_coleta_dashboard' %}";
+  const configUrl = "{% url 'coleta_geral' %}";
+  const csrf = () => document.cookie.split('; ').find(x => x.startsWith('csrftoken='))?.split('=')[1] || '';
+  const activeStates = new Set(['iniciando','verificando_login','aguardando_login','logado','executando','pausando','pausado','parando']);
+
+  function paint(status) {
+    const value = String(status || 'parado').toLowerCase();
+    const active = activeStates.has(value);
+    stateEl.textContent = value.replaceAll('_', ' ');
+    btn.classList.toggle('btn-danger', active);
+    btn.classList.toggle('btn-success', !active);
+    btn.querySelector('span').textContent = active ? (value === 'parando' ? 'Parando...' : 'Parar coleta') : 'Iniciar coleta';
+    btn.querySelector('i').className = active ? 'bi bi-stop-fill me-2' : 'bi bi-play-fill me-2';
+    btn.disabled = value === 'parando' || value === 'ocupado';
+  }
+
+  async function refresh() {
+    try {
+      const response = await fetch(statusUrl, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      const data = await response.json();
+      paint(data.status || data.estado);
+    } catch (_) { stateEl.textContent = 'estado indisponível'; }
+  }
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; msgEl.textContent = '';
+    try {
+      const response = await fetch(controlUrl, {method:'POST', headers:{'X-CSRFToken':csrf(),'X-Requested-With':'XMLHttpRequest'}});
+      const data = await response.json();
+      paint(data.status);
+      msgEl.textContent = data.mensagem || data.erro || '';
+      msgEl.className = 'dashboard-message small mt-2 ' + (data.sucesso ? 'text-success' : 'text-warning');
+      if (data.status === 'sem_configuracao') {
+        msgEl.innerHTML = 'Configure a coleta antes de iniciar. <a class="link-light" href="' + (data.configurar_url || configUrl) + '">Abrir Coleta Geral</a>';
+      }
+    } catch (_) { msgEl.textContent = 'Não foi possível controlar a coleta.'; msgEl.className='dashboard-message small mt-2 text-danger'; }
+    finally { setTimeout(refresh, 500); }
+  });
+  refresh();
+  setInterval(refresh, 2500);
+})();
 </script>
 <script src="{% static 'core/ui-loader.js' %}"></script>
 </body>
