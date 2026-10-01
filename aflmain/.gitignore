@@ -5,3 +5,6 @@ __pycache__/
 staticfiles/
 logs/
 .venv/
+
+# Inicializador local (nao versionar)
+iniciar_local.bat

@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.views.decorators.http import require_GET
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Count
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -128,14 +129,20 @@ def cadastro(request):
             try:
                 validate_email(email)
                 validate_password(senha)
-                user = User.objects.create_user(username=email, email=email, password=senha, first_name=nome)
-                PerfilUsuario.objects.create(
-                    owner=user,
-                    pais=(request.POST.get("pais") or "Brasil").strip(),
-                    estado=(request.POST.get("estado") or "").strip(),
-                    cidade=(request.POST.get("cidade") or "").strip(),
-                    timezone=(request.POST.get("timezone") or "America/Sao_Paulo").strip(),
-                )
+                # Usuário e perfil formam uma única operação. Se a criação do
+                # perfil falhar, o usuário também é revertido e não fica uma
+                # conta incompleta no banco.
+                with transaction.atomic():
+                    user = User.objects.create_user(
+                        username=email, email=email, password=senha, first_name=nome
+                    )
+                    PerfilUsuario.objects.create(
+                        owner=user,
+                        pais=(request.POST.get("pais") or "Brasil").strip(),
+                        estado=(request.POST.get("estado") or "").strip(),
+                        cidade=(request.POST.get("cidade") or "").strip(),
+                        timezone=(request.POST.get("timezone") or "America/Sao_Paulo").strip(),
+                    )
                 auth_login(request, user)
                 messages.success(request, "Conta criada com sucesso.")
                 return redirect("home")

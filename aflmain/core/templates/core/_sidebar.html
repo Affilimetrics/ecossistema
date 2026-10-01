@@ -1,0 +1,31 @@
+{% load static %}
+<aside class="app-sidebar d-flex flex-column p-3" aria-label="Navegação principal">
+  <a href="{% url 'home' %}" class="text-white text-decoration-none mb-4 px-2 app-sidebar-brand">
+    <i class="bi bi-graph-up-arrow me-2"></i><span class="brand-text">Afillimetrics</span>
+  </a>
+
+  <div class="sidebar-title text-uppercase small text-secondary px-2 mb-2">Principal</div>
+  <nav>
+    <a class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'home' or request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'home' %}"><i class="bi bi-grid-1x2-fill me-2"></i><span class="nav-label">Visão geral</span></a>
+    <a class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'coleta_geral' %}active{% endif %}" href="{% url 'coleta_geral' %}"><i class="bi bi-search me-2"></i><span class="nav-label">Coleta geral</span></a>
+    <a class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'ofertas' %}active{% endif %}" href="{% url 'ofertas' %}"><i class="bi bi-tags me-2"></i><span class="nav-label">Ofertas</span></a>
+    <a class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'templates_oferta' %}active{% endif %}" href="{% url 'templates_oferta' %}"><i class="bi bi-megaphone me-2"></i><span class="nav-label">Templates de Oferta</span></a>
+    <a class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'produtos_quentes' %}active{% endif %}" href="{% url 'produtos_quentes' %}"><i class="bi bi-fire me-2"></i><span class="nav-label">Produtos Quentes</span></a>
+    <a class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'configuracoes' %}active{% endif %}" href="{% url 'configuracoes' %}"><i class="bi bi-gear me-2"></i><span class="nav-label">Configurações</span></a>
+  </nav>
+
+  <div class="sidebar-title text-uppercase small text-secondary px-2 mt-4 mb-2">Marketplaces</div>
+  <nav>
+    <a class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'magalu_bot' %}active{% endif %}" href="{% url 'magalu_bot' %}"><i class="bi bi-shop me-2"></i><span class="nav-label">Central Magalu</span></a>
+    <span class="nav-link px-3 py-2 market-disabled"><i class="bi bi-cart3 me-2"></i><span class="nav-label">Mercado Livre <small>(em breve)</small></span></span>
+    <span class="nav-link px-3 py-2 market-disabled"><i class="bi bi-box-seam me-2"></i><span class="nav-label">Amazon <small>(em breve)</small></span></span>
+  </nav>
+
+  <div class="mt-auto border-top border-secondary pt-3">
+    <div class="user-name small text-secondary px-2 mb-2">{{ user.first_name|default:user.username }}</div>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button class="btn btn-outline-secondary w-100"><i class="bi bi-box-arrow-right me-2"></i><span class="nav-label">Sair</span></button>
+    </form>
+  </div>
+</aside>
