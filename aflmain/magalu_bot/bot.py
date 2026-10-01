@@ -888,7 +888,10 @@ def executar_bot(
         ciclo_loop = 0
         primeiro_ciclo_loop = True
         paginas_loop = {(tipo, valor): 1 for tipo, valor in alvos_loop}
+        buffers_loop = {(tipo, valor): [] for tipo, valor in alvos_loop}
         vistos_ciclo = set()
+        ultimo_alvo_loop = None
+        LOTE_REVEZAMENTO_LOOP = 2
 
         while True:
             if not verificar_controle_bot(parar_evento, pausar_evento, gerenciador_estado):
@@ -908,7 +911,14 @@ def executar_bot(
                 vistos_ciclo = set()
                 if ciclo_loop > 1 or not alvos:
                     registrar_evento(f"Iniciando ciclo contínuo #{ciclo_loop}.", "INFO")
-                alvos += list(alvos_loop)
+                # Em loop, a fila muda levemente a cada rodada para não favorecer
+                # sempre a mesma categoria. Quando há mais de um alvo, evitamos
+                # começar pela mesma categoria que encerrou a rodada anterior.
+                fila_loop = list(alvos_loop)
+                random.shuffle(fila_loop)
+                if len(fila_loop) > 1 and ultimo_alvo_loop is not None and fila_loop[0] == ultimo_alvo_loop:
+                    fila_loop.append(fila_loop.pop(0))
+                alvos += fila_loop
 
             if not alvos:
                 break
@@ -924,34 +934,56 @@ def executar_bot(
                     "INFO",
                 )
 
-                pagina = paginas_loop.get((tipo_alvo, alvo), 1) if (tipo_alvo, alvo) in paginas_loop else 1
-                if tipo_alvo == "categoria":
-                    produtos = coletar_produtos_categoria(driver, alvo, base_url=loja_url, pagina=pagina)
+                chave_alvo = (tipo_alvo, alvo)
+                em_loop = chave_alvo in paginas_loop
+                pagina = paginas_loop.get(chave_alvo, 1) if em_loop else 1
+
+                if em_loop and buffers_loop.get(chave_alvo):
+                    # Reaproveita o restante do lote anterior. Assim o revezamento de
+                    # dois produtos não descarta os demais itens da página coletada.
+                    produtos = buffers_loop[chave_alvo]
+                    novos_produtos_coletados = False
                 else:
-                    produtos = coletar_produtos_keyword(driver, alvo, base_url=loja_url, pagina=pagina)
-
-                # Em loop, avança páginas. Se a página esgotar, volta ao topo no próximo ciclo
-                # para reavaliar os itens mais relevantes/descontados do marketplace.
-                if (tipo_alvo, alvo) in paginas_loop:
-                    if produtos:
-                        paginas_loop[(tipo_alvo, alvo)] = pagina + 1
+                    if tipo_alvo == "categoria":
+                        produtos = coletar_produtos_categoria(driver, alvo, base_url=loja_url, pagina=pagina)
                     else:
-                        paginas_loop[(tipo_alvo, alvo)] = 1
-                        registrar_evento(f"Fim dos resultados de {alvo}; voltando à página 1 no próximo ciclo.", "INFO")
+                        produtos = coletar_produtos_keyword(driver, alvo, base_url=loja_url, pagina=pagina)
+                    novos_produtos_coletados = True
 
-                produtos_totais_nesta_execucao += len(produtos)
-                atualizar_execucao(execution_id, produtos_total=produtos_totais_nesta_execucao)
+                    if em_loop:
+                        if produtos:
+                            paginas_loop[chave_alvo] = pagina + 1
+                            buffers_loop[chave_alvo] = list(produtos)
+                        else:
+                            paginas_loop[chave_alvo] = 1
+                            buffers_loop[chave_alvo] = []
+                            registrar_evento(
+                                f"Fim dos resultados de {alvo}; voltando à página 1 no próximo ciclo.",
+                                "INFO",
+                            )
+
+                if novos_produtos_coletados:
+                    produtos_totais_nesta_execucao += len(produtos)
+                    atualizar_execucao(execution_id, produtos_total=produtos_totais_nesta_execucao)
 
                 if not produtos:
                     registrar_evento(f"Nenhum produto encontrado para {alvo}.", "WARNING")
+                    ultimo_alvo_loop = chave_alvo if em_loop else ultimo_alvo_loop
                     continue
 
-                if (tipo_alvo, alvo) in paginas_loop:
-                    # No loop impedimos duplicata dentro do ciclo, mas permitimos reavaliar
-                    # produtos fortes em ciclos posteriores (preço/desconto pode ter mudado).
-                    produtos_pendentes = [produto for produto in produtos if produto not in vistos_ciclo]
+                if em_loop:
+                    # Cada passagem consome somente um pequeno lote do alvo atual.
+                    # O restante fica em memória para a próxima vez que a fila voltar
+                    # a esta categoria, garantindo revezamento real sem perder itens.
+                    candidatos = [produto for produto in buffers_loop[chave_alvo] if produto not in vistos_ciclo]
+                    produtos_pendentes = candidatos[:LOTE_REVEZAMENTO_LOOP]
+                    consumidos = set(produtos_pendentes)
+                    buffers_loop[chave_alvo] = [p for p in buffers_loop[chave_alvo] if p not in consumidos]
                     vistos_ciclo.update(produtos_pendentes)
+                    ultimo_alvo_loop = chave_alvo
                 else:
+                    # Sem loop, a quantidade configurada continua sendo o limite do
+                    # alvo atual (LIMITE_POR_CATEGORIA, hoje 20) antes de avançar.
                     produtos_pendentes = [
                         produto for produto in produtos
                         if not produto_ja_processado(resultados, produto, categoria_resultado)

@@ -31,3 +31,12 @@ As credenciais por usuário não são gravadas de volta no `.env`. O `.env` cont
 ## Ranking de Produtos Quentes
 
 Como o projeto ainda não possui métricas reais de clique/conversão por produto, o ranking usa sinais disponíveis no banco: desconto, queda recente de preço, recência da coleta e validade do link afiliado. Quando houver métricas de clique/venda, elas podem substituir ou complementar esse score.
+
+## Fila e revezamento de categorias
+
+- Sem loop, cada categoria/categoria personalizada conclui seu lote configurado antes da próxima.
+- Em loop, os alvos são reordenados a cada rodada para evitar prioridade fixa.
+- Cada alvo em loop processa um lote de 2 produtos antes de liberar a fila para outro alvo.
+- O restante dos produtos coletados fica em buffer e é retomado na próxima passagem, sem descartar itens da página.
+- O loop não possui encerramento automático; a parada continua sob controle do usuário.
+- Paginação permanece independente por alvo e volta à página 1 quando os resultados se esgotam.

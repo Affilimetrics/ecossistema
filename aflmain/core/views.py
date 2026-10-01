@@ -184,7 +184,17 @@ def criar_categoria_personalizada_view(request):
 
 @login_required
 def magalu_bot(request):
-    return render(request, "core/magalu_bot.html")
+    # A Central Magalu reutiliza as mesmas categorias personalizadas/templates
+    # da Coleta Geral. O vínculo continua sendo por usuário.
+    garantir_templates_nativos(request.user)
+    personalizadas = list(TemplateOferta.objects.filter(
+        owner=request.user,
+        tipo="KEYWORD",
+        ativo=True,
+    ).order_by("chave").values_list("chave", flat=True))
+    return render(request, "core/magalu_bot.html", {
+        "personalizadas": personalizadas,
+    })
 
 
 def _somente_post(request):
