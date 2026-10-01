@@ -62,6 +62,7 @@ urlpatterns = [
     ),
 
     path("magalu/status/", views.status_bot_view, name="status_bot"),
+    path("dashboard/coleta/controlar/", views.controlar_coleta_dashboard_view, name="controlar_coleta_dashboard"),
     path("magalu/logs/", views.logs_bot_view, name="logs_bot"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("ofertas/", views.ofertas_view, name="ofertas"),

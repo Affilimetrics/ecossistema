@@ -8,3 +8,10 @@ logs/
 
 # Inicializador local (nao versionar)
 iniciar_local.bat
+
+# Temporarios do SQLite e caches locais
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+.pytest_cache/
+.coverage
