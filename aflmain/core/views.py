@@ -657,14 +657,23 @@ def configuracoes_view(request):
         whatsapp.ativo = (request.POST.get("whatsapp_ativo") == "on") and whatsapp_valido
         whatsapp.save()
 
-        if telegram.ativo and (not telegram.token or not telegram.destino):
+        # Uma configuração local válida normaliza imediatamente os alertas de
+        # configuração/credencial anteriores. Não é necessário aguardar uma nova
+        # coleta para a interface refletir que o usuário acabou de corrigir o canal.
+        # Falhas remotas futuras (401/403/timeout etc.) continuam sendo registradas
+        # normalmente quando uma publicação for realmente tentada.
+        if telegram_valido:
+            resolver_alerta_canal(request.user, "TELEGRAM")
+        elif telegram.ativo:
             registrar_alerta_canal(request.user, "TELEGRAM", "Token e chat_id são obrigatórios quando o canal está ativo.")
-        elif not telegram.ativo:
+        else:
             resolver_alerta_canal(request.user, "TELEGRAM")
 
-        if whatsapp.ativo and (not whatsapp.token or not whatsapp.destino or not whatsapp.endpoint):
+        if whatsapp_valido:
+            resolver_alerta_canal(request.user, "WHATSAPP")
+        elif whatsapp.ativo:
             registrar_alerta_canal(request.user, "WHATSAPP", "Token, endpoint e destino são obrigatórios quando o canal está ativo.")
-        elif not whatsapp.ativo:
+        else:
             resolver_alerta_canal(request.user, "WHATSAPP")
 
         # Canais automáticos só podem apontar para canais válidos e ativos.

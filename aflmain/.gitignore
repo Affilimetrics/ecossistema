@@ -7,7 +7,7 @@ logs/
 .venv/
 
 # Inicializador local (nao versionar)
-iniciar_local.bat
+iniciar.bat
 
 # Temporarios do SQLite e caches locais
 *.sqlite3-journal
