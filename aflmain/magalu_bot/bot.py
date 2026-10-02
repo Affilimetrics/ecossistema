@@ -26,6 +26,8 @@ from magalu_bot.persistencia.excel import (
 from magalu_bot.automacao.categorias import (
     coletar_produtos_categoria,
     coletar_produtos_keyword,
+    ordenar_produtos_diversos,
+    familia_produto,
 )
 
 from magalu_bot.automacao.afiliados import (
@@ -37,7 +39,10 @@ from magalu_bot.relatorios.relatorios import (
     mostrar_relatorio_final,
 )
 
-from magalu_bot.persistencia.django_db import registrar_log, atualizar_execucao, salvar_produto_resultado, finalizar_execucao
+from magalu_bot.persistencia.django_db import (
+    registrar_log, atualizar_execucao, salvar_produto_resultado, finalizar_execucao,
+    obter_progresso_coleta, salvar_progresso_coleta,
+)
 
 from magalu_bot.estados import (
     GerenciadorEstados,
@@ -887,7 +892,15 @@ def executar_bot(
         alvos_loop = [("categoria", valor) for valor in categorias_loop] + [("keyword", valor) for valor in keywords_loop]
         ciclo_loop = 0
         primeiro_ciclo_loop = True
-        paginas_loop = {(tipo, valor): 1 for tipo, valor in alvos_loop}
+        # Cursor persistente por alvo: execuções recentes continuam de onde a
+        # anterior avançou, evitando reanalisar imediatamente a página 1.
+        progresso_alvos = {}
+        for tipo, valor in [*(
+            [("categoria", v) for v in categorias_selecionadas]
+        ), *([("keyword", v) for v in keywords])]:
+            progresso_alvos[(tipo, valor)] = obter_progresso_coleta(owner_id, tipo, valor)
+
+        paginas_loop = {chave: progresso_alvos.get(chave, {}).get("pagina", 1) for chave in alvos_loop}
         buffers_loop = {(tipo, valor): [] for tipo, valor in alvos_loop}
         vistos_ciclo = set()
         ultimo_alvo_loop = None
@@ -936,7 +949,13 @@ def executar_bot(
 
                 chave_alvo = (tipo_alvo, alvo)
                 em_loop = chave_alvo in paginas_loop
-                pagina = paginas_loop.get(chave_alvo, 1) if em_loop else 1
+                progresso_atual = progresso_alvos.get(chave_alvo) or obter_progresso_coleta(owner_id, tipo_alvo, alvo)
+                pagina = paginas_loop.get(chave_alvo, progresso_atual.get("pagina", 1)) if em_loop else progresso_atual.get("pagina", 1)
+                familias_recentes = list(progresso_atual.get("familias_recentes", []))
+                if progresso_atual.get("retomado"):
+                    registrar_evento(f"Retomando {alvo} a partir da página {pagina} por progresso recente.", "INFO")
+                    progresso_atual["retomado"] = False
+                    progresso_alvos[chave_alvo] = progresso_atual
 
                 if em_loop and buffers_loop.get(chave_alvo):
                     # Reaproveita o restante do lote anterior. Assim o revezamento de
@@ -950,17 +969,54 @@ def executar_bot(
                         produtos = coletar_produtos_keyword(driver, alvo, base_url=loja_url, pagina=pagina)
                     novos_produtos_coletados = True
 
-                    if em_loop:
-                        if produtos:
-                            paginas_loop[chave_alvo] = pagina + 1
-                            buffers_loop[chave_alvo] = list(produtos)
-                        else:
-                            paginas_loop[chave_alvo] = 1
-                            buffers_loop[chave_alvo] = []
+                    if produtos:
+                        # Se a página retomada estiver saturada de itens já concluídos,
+                        # pula algumas páginas consecutivas antes de gastar Selenium
+                        # novamente nesses mesmos produtos.
+                        tentativas_pagina = 0
+                        while tentativas_pagina < 3:
+                            ja_processados = sum(
+                                1 for produto in produtos
+                                if produto_ja_processado(resultados, produto, categoria_resultado)
+                            )
+                            proporcao = ja_processados / max(1, len(produtos))
+                            if proporcao < 0.70:
+                                break
+                            pagina += 1
+                            tentativas_pagina += 1
                             registrar_evento(
-                                f"Fim dos resultados de {alvo}; voltando à página 1 no próximo ciclo.",
+                                f"Página saturada ({ja_processados}/{len(produtos)} já processados) em {alvo}; avançando para a página {pagina}.",
                                 "INFO",
                             )
+                            if tipo_alvo == "categoria":
+                                produtos = coletar_produtos_categoria(driver, alvo, base_url=loja_url, pagina=pagina)
+                            else:
+                                produtos = coletar_produtos_keyword(driver, alvo, base_url=loja_url, pagina=pagina)
+                            if not produtos:
+                                break
+
+                    if produtos:
+                        produtos = ordenar_produtos_diversos(produtos, familias_recentes)
+                        proxima_pagina = pagina + 1
+                        salvar_progresso_coleta(owner_id, tipo_alvo, alvo, proxima_pagina, familias_recentes)
+                        progresso_alvos[chave_alvo] = {
+                            "pagina": proxima_pagina,
+                            "familias_recentes": familias_recentes,
+                            "retomado": False,
+                        }
+                        if em_loop:
+                            paginas_loop[chave_alvo] = proxima_pagina
+                            buffers_loop[chave_alvo] = list(produtos)
+                    else:
+                        salvar_progresso_coleta(owner_id, tipo_alvo, alvo, 1, [])
+                        progresso_alvos[chave_alvo] = {"pagina": 1, "familias_recentes": [], "retomado": False}
+                        if em_loop:
+                            paginas_loop[chave_alvo] = 1
+                            buffers_loop[chave_alvo] = []
+                        registrar_evento(
+                            f"Fim dos resultados de {alvo}; voltando à página 1 no próximo ciclo.",
+                            "INFO",
+                        )
 
                 if novos_produtos_coletados:
                     produtos_totais_nesta_execucao += len(produtos)
@@ -975,7 +1031,11 @@ def executar_bot(
                     # Cada passagem consome somente um pequeno lote do alvo atual.
                     # O restante fica em memória para a próxima vez que a fila voltar
                     # a esta categoria, garantindo revezamento real sem perder itens.
-                    candidatos = [produto for produto in buffers_loop[chave_alvo] if produto not in vistos_ciclo]
+                    candidatos = [
+                        produto for produto in buffers_loop[chave_alvo]
+                        if produto not in vistos_ciclo
+                        and not produto_ja_processado(resultados, produto, categoria_resultado)
+                    ]
                     produtos_pendentes = candidatos[:LOTE_REVEZAMENTO_LOOP]
                     consumidos = set(produtos_pendentes)
                     buffers_loop[chave_alvo] = [p for p in buffers_loop[chave_alvo] if p not in consumidos]
@@ -1009,6 +1069,19 @@ def executar_bot(
                     detalhes = dados_afiliado.get("detalhes") or (
                         "Link de afiliado obtido com sucesso." if link_afiliado
                         else "Não foi possível obter o link de afiliado após as tentativas configuradas."
+                    )
+
+                    # Atualiza o pequeno histórico semântico com o nome real quando
+                    # disponível. Isso melhora a variedade nas próximas passagens.
+                    familia_atual = familia_produto(dados_afiliado.get("nome") or url_produto)
+                    familias_recentes = [f for f in familias_recentes if f != familia_atual]
+                    familias_recentes.append(familia_atual)
+                    familias_recentes = familias_recentes[-8:]
+                    progresso_alvos.setdefault(chave_alvo, {})["familias_recentes"] = familias_recentes
+                    salvar_progresso_coleta(
+                        owner_id, tipo_alvo, alvo,
+                        progresso_alvos.get(chave_alvo, {}).get("pagina", pagina + 1),
+                        familias_recentes,
                     )
 
                     # Um produto só conta como LINK obtido quando a URL foi

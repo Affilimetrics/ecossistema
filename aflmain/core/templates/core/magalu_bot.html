@@ -140,7 +140,8 @@
 <!-- ===================================================== -->
 
 <main class="container py-5">
-<div id="alertaCanalLive" aria-live="assertive" aria-atomic="true">{% include "core/_alertas.html" %}</div>
+<div id="alertaCanalLive" aria-live="assertive" aria-atomic="true">{% include "core/_alertas.html" %}
+<div id="runtimeWarnings"></div></div>
 
 
     <!-- ================================================= -->
@@ -1713,6 +1714,18 @@ async function controlarBot(
 // INICIAR BOT
 // ======================================================
 
+function mostrarAvisosDivulgacao(avisos) {
+    const box = document.getElementById("runtimeWarnings");
+    if (!box || !Array.isArray(avisos) || !avisos.length) return;
+    box.innerHTML = avisos.map((aviso) => `
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+            <div class="fw-bold"><i class="bi bi-megaphone me-1"></i>${aviso.titulo || "Aviso de divulgação"}</div>
+            <div>${aviso.mensagem || ""}</div>
+            <div class="small mt-1 opacity-75">A coleta continua normalmente.</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>`).join("");
+}
+
 iniciarBotao.addEventListener(
     "click",
     async () => {
@@ -1854,6 +1867,8 @@ iniciarBotao.addEventListener(
 
             const resultado =
                 await resposta.json();
+
+            mostrarAvisosDivulgacao(resultado.avisos);
 
 
             console.log(

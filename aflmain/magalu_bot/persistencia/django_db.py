@@ -1,6 +1,7 @@
 from decimal import Decimal, InvalidOperation
+from datetime import timedelta
 from django.utils import timezone
-from core.models import Produto, Afiliado, Execucao, LogExecucao, HistoricoPreco
+from core.models import Produto, Afiliado, Execucao, LogExecucao, HistoricoPreco, ProgressoColeta
 
 
 def decimal_or_none(value):
@@ -75,4 +76,45 @@ def finalizar_execucao(execucao_id, estado, erro=""):
         return
     Execucao.objects.filter(pk=execucao_id).update(
         estado=estado, erro=erro or "", fim=timezone.now()
+    )
+
+
+def obter_progresso_coleta(owner_id, tipo_alvo, alvo, marketplace="MAGALU", recente_horas=12):
+    """Retorna cursor recente do alvo; progresso antigo reinicia na página 1."""
+    if not owner_id or not alvo:
+        return {"pagina": 1, "familias_recentes": [], "retomado": False}
+
+    progresso = ProgressoColeta.objects.filter(
+        owner_id=owner_id,
+        marketplace=marketplace,
+        tipo_alvo=tipo_alvo,
+        alvo=alvo,
+    ).first()
+
+    if not progresso:
+        return {"pagina": 1, "familias_recentes": [], "retomado": False}
+
+    limite = timezone.now() - timedelta(hours=recente_horas)
+    if progresso.atualizado_em < limite:
+        return {"pagina": 1, "familias_recentes": [], "retomado": False}
+
+    return {
+        "pagina": max(1, int(progresso.proxima_pagina or 1)),
+        "familias_recentes": list(progresso.familias_recentes or []),
+        "retomado": True,
+    }
+
+
+def salvar_progresso_coleta(owner_id, tipo_alvo, alvo, proxima_pagina, familias_recentes=None, marketplace="MAGALU"):
+    if not owner_id or not alvo:
+        return
+    defaults = {"proxima_pagina": max(1, int(proxima_pagina or 1))}
+    if familias_recentes is not None:
+        defaults["familias_recentes"] = list(familias_recentes)[-8:]
+    ProgressoColeta.objects.update_or_create(
+        owner_id=owner_id,
+        marketplace=marketplace,
+        tipo_alvo=tipo_alvo,
+        alvo=alvo,
+        defaults=defaults,
     )

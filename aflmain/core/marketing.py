@@ -8,6 +8,7 @@ from __future__ import annotations
 import random
 import re
 import html
+import unicodedata
 from decimal import Decimal
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -58,6 +59,104 @@ URGENCY = {
 }
 
 
+# Sinais simples de intenção por família de produto. O objetivo não é
+# classificar todo o catálogo, mas detectar conflitos fortes antes de usar
+# uma copy contextual. Quando não há evidência suficiente, o fluxo atual é
+# preservado; quando há conflito claro, usamos uma chamada neutra.
+CATEGORY_SIGNALS = {
+    "cozinha": (
+        "air fryer", "fritadeira", "panela", "frigideira", "caçarola",
+        "liquidificador", "batedeira", "cafeteira", "microondas",
+        "micro ondas", "forno", "fogão", "fogao", "cooktop",
+        "paneleiro", "armário de cozinha", "armario de cozinha",
+        "balcão de cozinha", "balcao de cozinha", "jogo de talheres",
+        "talher", "escorredor", "utensílio de cozinha", "utensilio de cozinha",
+    ),
+    "banheiro": (
+        "gabinete para banheiro", "gabinete de banheiro", "armário de banheiro",
+        "armario de banheiro", "chuveiro", "ducha", "vaso sanitário",
+        "vaso sanitario", "assento sanitário", "assento sanitario",
+        "toalheiro", "porta toalha", "saboneteira", "box banheiro",
+        "kit banheiro", "cuba para banheiro", "espelho para banheiro",
+    ),
+    "quarto": (
+        "cama", "colchão", "colchao", "travesseiro", "guarda roupa",
+        "guarda-roupa", "cabeceira", "criado mudo", "criado-mudo",
+        "mesa de cabeceira", "lençol", "lencol", "edredom", "cobertor",
+    ),
+    "sala": (
+        "sofá", "sofa", "rack", "painel para tv", "painel tv", "poltrona",
+        "mesa de centro", "aparador", "estante para sala", "home theater",
+    ),
+}
+
+
+def _texto_normalizado(valor):
+    texto = unicodedata.normalize("NFKD", str(valor or "").casefold())
+    texto = "".join(ch for ch in texto if not unicodedata.combining(ch))
+    texto = re.sub(r"[^a-z0-9]+", " ", texto)
+    return " ".join(texto.split())
+
+
+def _contem_sinal(texto, sinal):
+    texto = _texto_normalizado(texto)
+    sinal = _texto_normalizado(sinal)
+    if not texto or not sinal:
+        return False
+    texto_delimitado = f" {texto} "
+    if f" {sinal} " in texto_delimitado:
+        return True
+
+    # Plural simples é comum em títulos de marketplace (panela/panelas,
+    # frigideira/frigideiras etc.). Para sinais de uma palavra, aceitamos
+    # também a forma com "s" sem partir para fuzzy matching amplo.
+    if " " not in sinal and len(sinal) >= 4:
+        if f" {sinal}s " in texto_delimitado:
+            return True
+    return False
+
+
+def _categorias_sugeridas_pelo_nome(nome):
+    encontradas = set()
+    for categoria, sinais in CATEGORY_SIGNALS.items():
+        for sinal in sinais:
+            if _contem_sinal(nome, sinal):
+                encontradas.add(categoria)
+                break
+    return encontradas
+
+
+def avaliar_compatibilidade_contexto(nome, categoria=""):
+    """Valida se a categoria/keyword usada na coleta contradiz o produto.
+
+    Retorna ``(compativel, motivo)``. A validação é propositalmente
+    conservadora: só rejeita quando o nome aponta de forma clara para outra
+    categoria conhecida. Itens sem sinal suficiente continuam seguindo o
+    comportamento normal.
+    """
+    categoria_raw = str(categoria or "").strip()
+    is_keyword = categoria_raw.casefold().startswith("keyword:")
+    chave = categoria_raw.split(":", 1)[1].strip() if is_keyword and ":" in categoria_raw else categoria_raw
+    chave_norm = _texto_normalizado(chave)
+    sugeridas = _categorias_sugeridas_pelo_nome(nome)
+
+    # Para categorias principais, um produto claramente identificado como
+    # pertencente a outra família não deve receber a copy da categoria de
+    # origem (ex.: panela coletada como banheiro).
+    categorias_conhecidas = {_texto_normalizado(k): k for k in CATEGORY_SIGNALS}
+    categoria_contexto = categorias_conhecidas.get(chave_norm)
+    if categoria_contexto and sugeridas and categoria_contexto not in sugeridas:
+        return False, f"produto sugere {', '.join(sorted(sugeridas))}, contexto informa {categoria_contexto}"
+
+    # Keywords que representam uma das categorias conhecidas recebem a mesma
+    # proteção. Keywords livres continuam válidas para não quebrar templates
+    # personalizados do usuário.
+    if is_keyword and categoria_contexto and sugeridas and categoria_contexto not in sugeridas:
+        return False, f"produto sugere {', '.join(sorted(sugeridas))}, keyword informa {categoria_contexto}"
+
+    return True, "sem conflito forte"
+
+
 def _money(v):
     if v is None:
         return None
@@ -100,8 +199,11 @@ def chamada_inteligente(nome, categoria="", preco_atual=None, owner=None):
     texto = (nome or "").casefold()
     categoria_raw = (categoria or "").strip()
     categoria_limpa = categoria_raw.replace("keyword:", "", 1).strip()
+    contexto_compativel, _motivo = avaliar_compatibilidade_contexto(nome, categoria_raw)
 
-    if owner is not None:
+    # Template personalizado/nativo só é aplicado quando não existe conflito
+    # forte entre o nome real do produto e o contexto salvo na coleta.
+    if owner is not None and contexto_compativel:
         try:
             from .models import TemplateOferta
             tipo = "KEYWORD" if categoria_raw.casefold().startswith("keyword:") else "CATEGORIA"
@@ -117,13 +219,21 @@ def chamada_inteligente(nome, categoria="", preco_atual=None, owner=None):
         except Exception:
             pass
 
-    categoria_upper = categoria_limpa.upper()
+    # Mesmo quando o contexto está errado, uma correspondência direta no nome
+    # do produto continua segura (ex.: Air Fryer reconhecida como Air Fryer).
     for palavra, frase in KEYWORDS.items():
         if palavra in texto:
             return frase
-    for chave, frases in CATEGORY.items():
-        if chave in categoria_upper or chave.casefold() in texto:
-            return random.choice(frases)
+
+    # Em caso de conflito forte NÃO usamos fallback por categoria. Assim uma
+    # panela coletada acidentalmente como "banheiro" nunca recebe chamada de
+    # banheiro; segue para uma copy neutra.
+    if contexto_compativel:
+        categoria_upper = categoria_limpa.upper()
+        for chave, frases in CATEGORY.items():
+            if chave in categoria_upper or chave.casefold() in texto:
+                return random.choice(frases)
+
     if preco_atual is not None and Decimal(str(preco_atual)) <= 40:
         return random.choice(["💰 Precinho camarada detectado!", "🛒 Menos de R$ 40: meu radar aprovou!"])
     return random.choice(GENERIC)

@@ -223,3 +223,31 @@ class PerfilUsuario(models.Model):
 
     def __str__(self):
         return f"Localização de {self.owner}: {self.timezone}"
+
+
+class ProgressoColeta(models.Model):
+    """Cursor persistente da coleta por usuário/alvo.
+
+    Permite que uma nova execução recente continue da próxima página em vez de
+    recomeçar sempre na página 1. Também guarda um pequeno histórico semântico
+    para favorecer variedade entre produtos do mesmo nicho.
+    """
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="progressos_coleta")
+    marketplace = models.CharField(max_length=40, default="MAGALU", db_index=True)
+    tipo_alvo = models.CharField(max_length=20, choices=(("categoria", "Categoria"), ("keyword", "Palavra-chave")))
+    alvo = models.CharField(max_length=180)
+    proxima_pagina = models.PositiveIntegerField(default=1)
+    familias_recentes = models.JSONField(default=list, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "marketplace", "tipo_alvo", "alvo"],
+                name="uniq_progresso_coleta_owner_alvo",
+            )
+        ]
+        ordering = ["-atualizado_em"]
+
+    def __str__(self):
+        return f"{self.owner} · {self.marketplace} · {self.tipo_alvo}:{self.alvo} → p.{self.proxima_pagina}"

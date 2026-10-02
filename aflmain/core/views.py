@@ -29,6 +29,27 @@ from magalu_bot.config.config import CATEGORIAS_PRINCIPAIS
 from magalu_bot.controlador import controlador_bot
 
 
+
+def _avisos_divulgacao_ao_iniciar(user):
+    """Avisos não bloqueantes quando uma coleta começa sem canais configurados."""
+    faltantes = []
+    for canal in ("TELEGRAM", "WHATSAPP"):
+        cfg = ConfiguracaoCanal.objects.filter(owner=user, canal=canal).first()
+        if canal == "TELEGRAM":
+            valido = bool(cfg and cfg.token and cfg.destino)
+        else:
+            valido = bool(cfg and cfg.token and cfg.destino and cfg.endpoint)
+        if not valido:
+            faltantes.append("Telegram" if canal == "TELEGRAM" else "WhatsApp")
+    if not faltantes:
+        return []
+    nomes = " e ".join(faltantes)
+    return [{
+        "nivel": "WARNING",
+        "titulo": "Divulgação não configurada",
+        "mensagem": f"{nomes} ainda não possui configuração completa. A coleta continuará normalmente, mas os produtos não serão divulgados por esses canais.",
+    }]
+
 def index(request):
     if request.user.is_authenticated:
         return redirect("home")
@@ -330,6 +351,7 @@ def iniciar_bot_view(request):
             "keywords": keywords,
             "keywords_loop": keywords_loop,
             "categorias_loop": categorias_loop,
+            "avisos": _avisos_divulgacao_ao_iniciar(request.user),
         }
     )
 
@@ -377,7 +399,12 @@ def controlar_coleta_dashboard_view(request):
     )
     if not iniciou:
         return JsonResponse({"sucesso": False, "erro": "Não foi possível iniciar a coleta.", "status": "parado"}, status=409)
-    return JsonResponse({"sucesso": True, "mensagem": "Coleta iniciada com a última configuração.", "status": controlador_bot.status()["status"]})
+    return JsonResponse({
+        "sucesso": True,
+        "mensagem": "Coleta iniciada com a última configuração.",
+        "status": controlador_bot.status()["status"],
+        "avisos": _avisos_divulgacao_ao_iniciar(request.user),
+    })
 
 
 @login_required

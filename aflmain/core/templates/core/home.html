@@ -38,6 +38,7 @@
 
 <main class="main">
   {% include "core/_alertas.html" %}
+  <div id="runtimeWarnings"></div>
   {% for message in messages %}<div class="alert alert-success alert-dismissible fade show js-auto-dismiss-success" role="alert"><i class="bi bi-check-circle-fill me-2"></i>{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button></div>{% endfor %}
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -140,6 +141,12 @@
   const csrf = () => document.cookie.split('; ').find(x => x.startsWith('csrftoken='))?.split('=')[1] || '';
   const activeStates = new Set(['iniciando','verificando_login','aguardando_login','logado','executando','pausando','pausado','parando']);
 
+  function showRuntimeWarnings(avisos) {
+    const box = document.getElementById('runtimeWarnings');
+    if (!box || !Array.isArray(avisos) || !avisos.length) return;
+    box.innerHTML = avisos.map(a => `<div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert"><div class="fw-bold"><i class="bi bi-megaphone me-1"></i>${a.titulo || 'Aviso de divulgação'}</div><div>${a.mensagem || ''}</div><div class="small mt-1 opacity-75">A coleta continua normalmente.</div><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button></div>`).join('');
+  }
+
   function paint(status) {
     const value = String(status || 'parado').toLowerCase();
     const active = activeStates.has(value);
@@ -165,6 +172,7 @@
       const response = await fetch(controlUrl, {method:'POST', headers:{'X-CSRFToken':csrf(),'X-Requested-With':'XMLHttpRequest'}});
       const data = await response.json();
       paint(data.status);
+      showRuntimeWarnings(data.avisos);
       msgEl.textContent = data.mensagem || data.erro || '';
       msgEl.className = 'dashboard-message small mt-2 ' + (data.sucesso ? 'text-success' : 'text-warning');
       if (data.status === 'sem_configuracao') {
