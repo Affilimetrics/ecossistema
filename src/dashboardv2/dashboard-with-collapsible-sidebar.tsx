@@ -26,6 +26,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
+import { motion, AnimatePresence } from "framer-motion";
+import { DonutChart, DonutChartSegment } from "@/components/ui/donut-chart";
 
 // Helper simples no lugar de cn
 const cn = (...classes: (string | undefined | false | null)[]) =>
@@ -315,7 +317,7 @@ const FinancialThermometer = ({ value }: ThermometerProps) => {
 };
 
 /* ============================================================
-   GRÁFICO DE LINHA (adaptado do template, sem a grid de métricas)
+   DADOS DOS GRÁFICOS
    ============================================================ */
 
 const platformData = [
@@ -366,14 +368,14 @@ const CustomTooltip = ({ active, payload }: TooltipProps) => {
 
 const RevenueChart = () => {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm mb-8 overflow-hidden">
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden h-full flex flex-col">
       <div className="px-6 pt-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Receita ao longo do tempo</h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Últimos 18 dias (fictício)</p>
       </div>
 
-      <div className="px-2.5 py-6">
-        <div className="h-80 w-full overflow-visible">
+      <div className="px-2.5 py-6 flex-1">
+        <div className="h-72 w-full overflow-visible">
           <LineChart
             data={platformData}
             margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
@@ -392,7 +394,7 @@ const RevenueChart = () => {
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: 'currentColor' }}
+              tick={{ fontSize: 10, fill: 'currentColor' }}
               tickMargin={10}
               tickFormatter={(value) => {
                 const date = new Date(value);
@@ -403,7 +405,7 @@ const RevenueChart = () => {
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: 'currentColor' }}
+              tick={{ fontSize: 10, fill: 'currentColor' }}
               tickMargin={10}
               tickCount={6}
               tickFormatter={(value) => `R$${value}k`}
@@ -437,11 +439,344 @@ const RevenueChart = () => {
 };
 
 /* ============================================================
+   GRÁFICO DE ROSCA - LINKS POR CATEGORIA
+   ============================================================ */
+
+const categoryData: DonutChartSegment[] = [
+  { value: 245, color: "#3b82f6", label: "Eletrônicos" },
+  { value: 180, color: "#22c55e", label: "Casa e Cozinha" },
+  { value: 120, color: "#f59e0b", label: "Moda" },
+  { value: 85, color: "#a855f7", label: "Esportes" },
+  { value: 60, color: "#ef4444", label: "Livros" },
+  { value: 45, color: "#06b6d4", label: "Brinquedos" },
+];
+
+const CategoryDonutChart = () => {
+  const [hoveredSegment, setHoveredSegment] = useState<DonutChartSegment | null>(null);
+
+  const totalValue = categoryData.reduce((sum, d) => sum + d.value, 0);
+
+  const activeSegment = hoveredSegment;
+  const displayValue = activeSegment?.value ?? totalValue;
+  const displayLabel = activeSegment?.label ?? "Total";
+  const displayPercentage = activeSegment
+    ? (activeSegment.value / totalValue) * 100
+    : 100;
+
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden h-full flex flex-col">
+      <div className="px-6 pt-6 pb-2 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Links por categoria
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Categorias predefinidas + palavras-chave em Outros.
+          </p>
+        </div>
+        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+          <Tag className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        </div>
+      </div>
+
+      <div className="p-6 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+        {/* Donut Chart */}
+        <div className="flex items-center justify-center">
+          <DonutChart
+            data={categoryData}
+            size={200}
+            strokeWidth={26}
+            animationDuration={1.2}
+            animationDelayPerSegment={0.05}
+            highlightOnHover={true}
+            onSegmentHover={setHoveredSegment}
+            centerContent={
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={displayLabel}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2, ease: "circOut" }}
+                  className="flex flex-col items-center justify-center text-center"
+                >
+                  <p className="text-gray-500 dark:text-gray-400 text-[10px] font-medium truncate max-w-[90px]">
+                    {displayLabel}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {displayValue}
+                  </p>
+                  {activeSegment && (
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {displayPercentage.toFixed(1)}%
+                    </p>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            }
+          />
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-col space-y-1 w-full">
+          {categoryData.map((segment, index) => (
+            <motion.div
+              key={segment.label}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.8 + index * 0.08, duration: 0.4 }}
+              onMouseEnter={() => setHoveredSegment(segment)}
+              onMouseLeave={() => setHoveredSegment(null)}
+              className={`flex items-center justify-between p-2 rounded-lg transition-all duration-200 cursor-pointer ${
+                hoveredSegment?.label === segment.label
+                  ? "bg-gray-100 dark:bg-gray-800"
+                  : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              }`}
+            >
+              <div className="flex items-center space-x-2 min-w-0">
+                <span
+                  className="h-2.5 w-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: segment.color }}
+                />
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                  {segment.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                  {segment.value}
+                </span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 w-10 text-right">
+                  {((segment.value / totalValue) * 100).toFixed(1)}%
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   GRÁFICOS DINÂMICOS POR CARD
+   ============================================================ */
+
+type ChartType = 'vendas' | 'afiliados' | 'pedidos' | 'produtos';
+
+interface DynamicChartProps {
+  type: ChartType;
+  onClose: () => void;
+}
+
+const chartConfig: Record<ChartType, { title: string; subtitle: string; color: string; dataKey: string; prefix: string; suffix: string }> = {
+  vendas: {
+    title: 'Total de vendas',
+    subtitle: 'Últimos 18 dias (fictício)',
+    color: '#3b82f6',
+    dataKey: 'valor',
+    prefix: '$',
+    suffix: '',
+  },
+  afiliados: {
+    title: 'Links Afiliados',
+    subtitle: 'Cliques nos últimos 18 dias (fictício)',
+    color: '#22c55e',
+    dataKey: 'valor',
+    prefix: '',
+    suffix: '',
+  },
+  pedidos: {
+    title: 'Pedidos',
+    subtitle: 'Pedidos por dia (fictício)',
+    color: '#a855f7',
+    dataKey: 'valor',
+    prefix: '',
+    suffix: '',
+  },
+  produtos: {
+    title: 'Produtos Coletados',
+    subtitle: 'Coletas por dia (fictício)',
+    color: '#f97316',
+    dataKey: 'valor',
+    prefix: '',
+    suffix: '',
+  },
+};
+
+const generateData = (type: ChartType) => {
+  const baseValues: Record<ChartType, number[]> = {
+    vendas: [820, 450, 680, 910, 1120, 280, 980, 1210, 380, 720, 850, 1380, 820, 310, 510, 750, 1720, 1290],
+    afiliados: [45, 32, 58, 71, 92, 18, 78, 101, 28, 62, 85, 118, 72, 21, 41, 65, 142, 99],
+    pedidos: [12, 8, 15, 22, 28, 5, 18, 31, 9, 16, 21, 35, 19, 7, 11, 17, 42, 29],
+    produtos: [3, 1, 5, 8, 12, 0, 6, 14, 2, 4, 7, 18, 9, 1, 3, 5, 22, 13],
+  };
+
+  return platformData.map((item, i) => ({
+    date: item.date,
+    valor: baseValues[type][i] ?? 0,
+  }));
+};
+
+const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
+  const config = chartConfig[type];
+  const data = generateData(type);
+
+  const DynamicTooltip = ({ active, payload }: TooltipProps) => {
+    if (active && payload && payload.length) {
+      const entry = payload[0];
+      return (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[120px]">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-gray-500 dark:text-gray-400">{config.title}:</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
+              {config.prefix}{entry.value.toFixed(0)}{config.suffix}
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm mb-8 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="px-6 pt-6 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{config.title}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{config.subtitle}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Fechar gráfico"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="px-2.5 py-6">
+        <div className="h-80 w-full overflow-visible">
+          <LineChart
+            data={data}
+            margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
+            style={{ width: '100%', height: '100%' }}
+          >
+            <defs>
+              <filter id={`lineShadow-${type}`} x="-100%" y="-100%" width="300%" height="300%">
+                <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${config.color}60`} />
+              </filter>
+              <filter id={`dotShadow-${type}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
+              </filter>
+            </defs>
+
+            <XAxis
+              dataKey="date"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fill: 'currentColor' }}
+              tickMargin={10}
+              tickFormatter={(value) => {
+                const date = new Date(value);
+                return date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' });
+              }}
+            />
+
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 11, fill: 'currentColor' }}
+              tickMargin={10}
+              tickCount={6}
+              tickFormatter={(value) => `${config.prefix}${value}${config.suffix}`}
+            />
+
+            <RechartsTooltip
+              content={<DynamicTooltip />}
+              cursor={{ strokeDasharray: '3 3', stroke: '#9ca3af' }}
+            />
+
+            <Line
+              type="monotone"
+              dataKey="valor"
+              stroke={config.color}
+              strokeWidth={2}
+              filter={`url(#lineShadow-${type})`}
+              dot={false}
+              activeDot={{
+                r: 6,
+                fill: config.color,
+                stroke: 'white',
+                strokeWidth: 2,
+                filter: `url(#dotShadow-${type})`,
+              }}
+            />
+          </LineChart>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
    CONTEÚDO PRINCIPAL
    ============================================================ */
 
+const statsCards = [
+  {
+    key: 'vendas' as ChartType,
+    icon: DollarSign,
+    title: 'Total de vendas',
+    value: '$24,567',
+    change: '+12% em relação ao mês passado',
+    iconBg: 'bg-blue-50 dark:bg-blue-900/20',
+    iconColor: 'text-blue-600 dark:text-blue-400',
+    ringColor: 'ring-blue-500',
+    activeBg: 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600',
+  },
+  {
+    key: 'afiliados' as ChartType,
+    icon: Users,
+    title: 'Links Afiliados',
+    value: '1,234',
+    change: '+5% em relação à semana passada',
+    iconBg: 'bg-green-50 dark:bg-green-900/20',
+    iconColor: 'text-green-600 dark:text-green-400',
+    ringColor: 'ring-green-500',
+    activeBg: 'bg-green-50 dark:bg-green-900/30 border-green-400 dark:border-green-600',
+  },
+  {
+    key: 'pedidos' as ChartType,
+    icon: ShoppingCart,
+    title: 'Pedidos',
+    value: '456',
+    change: '+8% em relação a ontem',
+    iconBg: 'bg-purple-50 dark:bg-purple-900/20',
+    iconColor: 'text-purple-600 dark:text-purple-400',
+    ringColor: 'ring-purple-500',
+    activeBg: 'bg-purple-50 dark:bg-purple-900/30 border-purple-400 dark:border-purple-600',
+  },
+  {
+    key: 'produtos' as ChartType,
+    icon: Package,
+    title: 'Produtos Coletados',
+    value: '89',
+    change: '+3 novos esta semana',
+    iconBg: 'bg-orange-50 dark:bg-orange-900/20',
+    iconColor: 'text-orange-600 dark:text-orange-400',
+    ringColor: 'ring-orange-500',
+    activeBg: 'bg-orange-50 dark:bg-orange-900/30 border-orange-400 dark:border-orange-600',
+  },
+];
+
 const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
   const [thermometerValue, setThermometerValue] = useState(72);
+  const [selectedCard, setSelectedCard] = useState<ChartType | null>(null);
 
   return (
     <div className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-auto">
@@ -468,59 +803,47 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
         </div>
       </div>
       
-      {/* Stats Grid (suas grids antigas) */}
+      {/* Stats Grid - clicáveis */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </div>
-          <h3 className="font-medium text-gray-600 dark:text-gray-400 mb-1">Total de vendas</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">$24,567</p>
-          <p className="text-sm text-green-600 dark:text-green-400 mt-1">+12% em relação ao mês passado</p>
-        </div>
-        
-        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </div>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </div>
-          <h3 className="font-medium text-gray-600 dark:text-gray-400 mb-1">Links Afiliados</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">1,234</p>
-          <p className="text-sm text-green-600 dark:text-green-400 mt-1">+5% em relação à semana passada</p>
-        </div>
-        
-        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <ShoppingCart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </div>
-          <h3 className="font-medium text-gray-600 dark:text-gray-400 mb-1">Pedidos</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">456</p>
-          <p className="text-sm text-green-600 dark:text-green-400 mt-1">+8% em relação a ontem</p>
-        </div>
-
-        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <Package className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-            </div>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </div>
-          <h3 className="font-medium text-gray-600 dark:text-gray-400 mb-1">Produtos Coletados</h3>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">89</p>
-          <p className="text-sm text-green-600 dark:text-green-400 mt-1">+3 novos esta semana</p>
-        </div>
+        {statsCards.map((card) => {
+          const isActive = selectedCard === card.key;
+          return (
+            <button
+              key={card.key}
+              onClick={() => setSelectedCard(isActive ? null : card.key)}
+              className={`text-left p-6 rounded-xl border bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 cursor-pointer ${
+                isActive
+                  ? `${card.activeBg} shadow-md ring-2 ${card.ringColor} ring-offset-1 dark:ring-offset-gray-950`
+                  : 'border-gray-200 dark:border-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2 rounded-lg ${card.iconBg}`}>
+                  <card.icon className={`h-5 w-5 ${card.iconColor}`} />
+                </div>
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              </div>
+              <h3 className="font-medium text-gray-600 dark:text-gray-400 mb-1">{card.title}</h3>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{card.value}</p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">{card.change}</p>
+              <p className={`text-xs mt-3 font-medium transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}>
+                {isActive ? '✓ Gráfico aberto abaixo' : ''}
+              </p>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Gráfico de linha — logo abaixo das grids antigas */}
-      <RevenueChart />
+      {/* Gráfico dinâmico baseado no card selecionado */}
+      {selectedCard && (
+        <DynamicChart type={selectedCard} onClose={() => setSelectedCard(null)} />
+      )}
+
+      {/* Grid: Receita + Links por categoria lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <RevenueChart />
+        <CategoryDonutChart />
+      </div>
 
       {/* Termômetro Financeiro */}
       <FinancialThermometer value={thermometerValue} />
