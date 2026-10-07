@@ -23,10 +23,14 @@ export function FloatingPathsBackground({ position, children, className }) {
     [position],
   );
 
+  // Em vez de anexar o portal no FINAL do <body> (ordem imprevisível frente
+  // ao #root e a qualquer background que o CssBaseline/tema MUI aplique),
+  // criamos um <div> dedicado e o inserimos como o PRIMEIRO filho do <body>.
+  // Assim, por ordem natural do DOM (sem precisar de z-index), tudo que a
+  // MUI renderiza dentro de #root pinta por cima dele automaticamente.
   const [portalNode, setPortalNode] = useState(null);
 
-  
-  seEffect(() => {
+  useEffect(() => {
     const node = document.createElement('div');
     node.setAttribute('data-floating-paths-bg', '');
     document.body.insertBefore(node, document.body.firstChild);
@@ -40,7 +44,7 @@ export function FloatingPathsBackground({ position, children, className }) {
     <div className={cn('fixed inset-0 pointer-events-none', className)}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <svg
-          className="w-full h-full text-slate-500"
+          className="w-full h-full text-slate-950 dark:text-white"
           viewBox="0 0 696 316"
           preserveAspectRatio="xMidYMid slice"
           fill="none"

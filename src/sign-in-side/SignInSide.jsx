@@ -4,40 +4,27 @@ import AppTheme from '../shared-theme/AppTheme';
 import ColorModeSelect from '../shared-theme/ColorModeSelect';
 import SignInCard from './components/SignInCard';
 import Content from './components/Content';
+import { FloatingPathsBackground } from '../components/ui/floating-paths';
 
 export default function SignInSide(props) {
   return (
     <AppTheme {...props}>
       <CssBaseline enableColorScheme />
-      <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
       <Stack
         direction="column"
         component="main"
-        sx={[
-          {
-            justifyContent: 'center',
-            height: 'calc((1 - var(--template-frame-height, 0)) * 100%)',
-            marginTop: 'max(40px - var(--template-frame-height, 0px), 0px)',
-            minHeight: '100%',
-          },
-          (theme) => ({
-            '&::before': {
-              content: '""',
-              display: 'block',
-              position: 'absolute',
-              zIndex: -1,
-              inset: 0,
-              backgroundImage:
-                'radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))',
-              backgroundRepeat: 'no-repeat',
-              ...theme.applyStyles('dark', {
-                backgroundImage:
-                  'radial-gradient(at 50% 50%, hsla(182, 100%, 30%, 0.50), hsl(219, 100%, 14%))',
-              }),
-            },
-          }),
-        ]}
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          overflow: 'hidden',
+          justifyContent: 'center',
+          height: 'calc((1 - var(--template-frame-height, 0)) * 100%)',
+          marginTop: 'max(40px - var(--template-frame-height, 0px), 0px)',
+          minHeight: '100%',
+        }}
       >
+        <FloatingPathsBackground position={-1} />
+        <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
         <Stack
           direction={{ xs: 'column-reverse', md: 'row' }}
           sx={{

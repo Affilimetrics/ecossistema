@@ -16,7 +16,7 @@ export default function FiltersCard() {
   const [nicho, setNicho] = React.useState('todos');
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card variant="outlined" sx={{ height: '100%' }}>
       <CardContent>
         <Stack direction="row" sx={{ alignItems: 'center', gap: 1, mb: 1 }}>
           <FilterAltRoundedIcon fontSize="small" />
