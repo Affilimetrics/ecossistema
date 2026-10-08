@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, useMemo, Dispatch, SetStateAction } from "react";
+import { useState, useMemo, Dispatch, SetStateAction } from "react";
 import {
   ChevronDown,
   RefreshCw,

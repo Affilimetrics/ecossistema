@@ -1,5 +1,10 @@
-"use client"
-import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
+import {
+  useState,
+  createContext,
+  useContext,
+  Dispatch,
+  SetStateAction,
+} from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
@@ -32,9 +37,9 @@ import { Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip } from "recha
 import { motion, AnimatePresence } from "framer-motion";
 import { DonutChart, DonutChartSegment } from "../components/ui/donut-chart";
 
-// Helper simples no lugar de cn
-const cn = (...classes: (string | undefined | false | null)[]) =>
-  classes.filter(Boolean).join(" ");
+/* ============================================================
+   TIPOS
+   ============================================================ */
 
 interface OptionProps {
   Icon: LucideIcon;
@@ -67,7 +72,7 @@ interface DashboardShellProps {
 }
 
 /* ============================================================
-   DASHBOARD SHELL — wrapper reutilizável (sidebar + dark mode)
+   DASHBOARD SHELL
    ============================================================ */
 
 export const DashboardShell = ({ children, isDark, setIsDark }: DashboardShellProps) => {
@@ -82,35 +87,36 @@ export const DashboardShell = ({ children, isDark, setIsDark }: DashboardShellPr
 };
 
 /* ============================================================
-   HOOK DE TEMA
+   TEMA (Context)
    ============================================================ */
 
-export const useDarkMode = () => {
+interface DarkModeContextValue {
+  isDark: boolean;
+  setIsDark: Dispatch<SetStateAction<boolean>>;
+}
+
+const DarkModeContext = createContext<DarkModeContextValue | null>(null);
+
+export const DarkModeProvider = ({ children }: { children: React.ReactNode }) => {
   const [isDark, setIsDark] = useState(false);
 
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDark]);
-
-  return { isDark, setIsDark };
-};
-
-/* ============================================================
-   EXAMPLE (dashboard padrão)
-   ============================================================ */
-
-export const Example = () => {
-  const { isDark, setIsDark } = useDarkMode();
+  if (typeof document !== "undefined") {
+    document.documentElement.classList.toggle("dark", isDark);
+  }
 
   return (
-    <DashboardShell isDark={isDark} setIsDark={setIsDark}>
-      <ExampleContent isDark={isDark} setIsDark={setIsDark} />
-    </DashboardShell>
+    <DarkModeContext.Provider value={{ isDark, setIsDark }}>
+      {children}
+    </DarkModeContext.Provider>
   );
+};
+
+export const useDarkMode = (): DarkModeContextValue => {
+  const ctx = useContext(DarkModeContext);
+  if (!ctx) {
+    throw new Error("useDarkMode precisa estar dentro de <DarkModeProvider>");
+  }
+  return ctx;
 };
 
 /* ============================================================
@@ -180,7 +186,7 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: Opti
       </div>
 
       {open && (
-        <span className={`text-sm font-medium transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}>
+        <span className="text-sm font-medium transition-opacity duration-200">
           {title}
         </span>
       )}
@@ -201,7 +207,7 @@ const TitleSection = ({ open }: TitleSectionProps) => {
         <div className="flex items-center gap-3">
           <Logo />
           {open && (
-            <div className={`transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}>
+            <div className="transition-opacity duration-200">
               <div className="flex items-center gap-2">
                 <div>
                   <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -247,121 +253,12 @@ const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
           />
         </div>
         {open && (
-          <span className={`text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200">
             Ocultar
           </span>
         )}
       </div>
     </button>
-  );
-};
-
-/* ============================================================
-   TERMÔMETRO FINANCEIRO
-   ============================================================ */
-
-interface ThermometerProps {
-  value: number;
-}
-
-const FinancialThermometer = ({ value }: ThermometerProps) => {
-  const clamped = Math.max(0, Math.min(100, value));
-
-  const zone =
-    clamped < 33
-      ? {
-          label: "Prejuízo",
-          color: "text-red-600 dark:text-red-400",
-          bg: "bg-red-50 dark:bg-red-900/20",
-          border: "border-red-200 dark:border-red-800",
-          dot: "bg-red-500",
-          icon: TrendingDown,
-          description: "Suas finanças estão no vermelho. Reduza custos e reavalie investimentos.",
-        }
-      : clamped < 66
-      ? {
-          label: "Zona de Investimento",
-          color: "text-yellow-600 dark:text-yellow-400",
-          bg: "bg-yellow-50 dark:bg-yellow-900/20",
-          border: "border-yellow-200 dark:border-yellow-800",
-          dot: "bg-yellow-500",
-          icon: AlertTriangle,
-          description: "Momento de equilíbrio. Invista com cautela e acompanhe o mercado.",
-        }
-      : {
-          label: "Lucro",
-          color: "text-green-600 dark:text-green-400",
-          bg: "bg-green-50 dark:bg-green-900/20",
-          border: "border-green-200 dark:border-green-800",
-          dot: "bg-green-500",
-          icon: CheckCircle2,
-          description: "Excelente! Suas finanças estão saudáveis. Considere expandir os investimentos.",
-        };
-
-  const ZoneIcon = zone.icon;
-
-  return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 rounded-lg">
-            <Thermometer className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Termômetro Financeiro</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Saúde financeira em tempo real (fictício)</p>
-          </div>
-        </div>
-
-        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${zone.bg} ${zone.border}`}>
-          <ZoneIcon className={`h-4 w-4 ${zone.color}`} />
-          <span className={`text-sm font-medium ${zone.color}`}>{zone.label}</span>
-        </div>
-      </div>
-
-      <div className="relative mb-4">
-        <div className="h-6 w-full rounded-full overflow-hidden bg-gradient-to-r from-red-500 via-yellow-400 to-green-500 shadow-inner">
-          <div className="relative h-full w-full">
-            <div className="absolute left-1/3 top-0 h-full w-px bg-white/40" />
-            <div className="absolute left-2/3 top-0 h-full w-px bg-white/40" />
-          </div>
-        </div>
-
-        <div className="absolute -top-2 transition-all duration-500 ease-out" style={{ left: `calc(${clamped}% - 14px)` }}>
-          <div className="flex flex-col items-center">
-            <div className={`h-10 w-7 rounded-full border-4 border-white dark:border-gray-900 shadow-lg ${zone.dot} flex items-center justify-center`}>
-              <div className="h-1.5 w-1.5 rounded-full bg-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-between mt-3 text-xs font-medium">
-          <span className="text-red-600 dark:text-red-400">Prejuízo</span>
-          <span className="text-yellow-600 dark:text-yellow-400">Zona de Investimento</span>
-          <span className="text-green-600 dark:text-green-400">Lucro</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
-        <div className={`p-4 rounded-lg border ${zone.bg} ${zone.border}`}>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Saldo atual</p>
-          <p className={`text-xl font-bold ${zone.color}`}>R$ 18.450,00</p>
-        </div>
-        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Receitas (mês)</p>
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">R$ 32.800,00</p>
-        </div>
-        <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Despesas (mês)</p>
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">R$ 14.350,00</p>
-        </div>
-      </div>
-
-      <div className={`mt-4 flex items-start gap-3 p-4 rounded-lg ${zone.bg} ${zone.border} border`}>
-        <ZoneIcon className={`h-5 w-5 mt-0.5 shrink-0 ${zone.color}`} />
-        <p className={`text-sm ${zone.color}`}>{zone.description}</p>
-      </div>
-    </div>
   );
 };
 
@@ -618,13 +515,12 @@ interface DynamicChartProps {
 
 const chartConfig: Record<
   ChartType,
-  { title: string; subtitle: string; color: string; dataKey: string; prefix: string; suffix: string }
+  { title: string; subtitle: string; color: string; prefix: string; suffix: string }
 > = {
   vendas: {
     title: "Total de vendas",
     subtitle: "Últimos 18 dias (fictício)",
     color: "#3b82f6",
-    dataKey: "valor",
     prefix: "$",
     suffix: "",
   },
@@ -632,7 +528,6 @@ const chartConfig: Record<
     title: "Links Afiliados",
     subtitle: "Cliques nos últimos 18 dias (fictício)",
     color: "#22c55e",
-    dataKey: "valor",
     prefix: "",
     suffix: "",
   },
@@ -640,7 +535,6 @@ const chartConfig: Record<
     title: "Pedidos",
     subtitle: "Pedidos por dia (fictício)",
     color: "#a855f7",
-    dataKey: "valor",
     prefix: "",
     suffix: "",
   },
@@ -648,7 +542,6 @@ const chartConfig: Record<
     title: "Produtos Coletados",
     subtitle: "Coletas por dia (fictício)",
     color: "#f97316",
-    dataKey: "valor",
     prefix: "",
     suffix: "",
   },
@@ -835,7 +728,14 @@ const statsCards = [
   },
 ];
 
-const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
+const topProducts = [
+  { name: "iPhone 15 Pro", price: 1299 },
+  { name: "MacBook Air M2", price: 1099 },
+  { name: "AirPods Pro", price: 249 },
+  { name: "iPad Air", price: 599 },
+];
+
+export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
   const [thermometerValue, setThermometerValue] = useState(72);
   const [selectedCard, setSelectedCard] = useState<ChartType | null>(null);
 
@@ -900,25 +800,6 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <RevenueChart />
         <CategoryDonutChart />
-      </div>
-
-      <FinancialThermometer value={thermometerValue} />
-
-      <div className="mb-8 p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50">
-        <label className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-          <span className="font-medium whitespace-nowrap">Ajustar termômetro (demo):</span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={thermometerValue}
-            onChange={(e) => setThermometerValue(Number(e.target.value))}
-            className="flex-1 accent-blue-500"
-          />
-          <span className="font-mono text-gray-900 dark:text-gray-100 w-10 text-right">
-            {thermometerValue}
-          </span>
-        </label>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1008,11 +889,11 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Principais produtos</h3>
             <div className="space-y-3">
-              {["iPhone 15 Pro", "MacBook Air M2", "AirPods Pro", "iPad Air"].map((product, i) => (
-                <div key={i} className="flex items-center justify-between py-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">{product}</span>
+              {topProducts.map((product) => (
+                <div key={product.name} className="flex items-center justify-between py-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{product.name}</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    ${Math.floor(Math.random() * 1000 + 500)}
+                    ${product.price}
                   </span>
                 </div>
               ))}
@@ -1023,5 +904,3 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
     </div>
   );
 };
-
-export default Example;

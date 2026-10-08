@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState, Dispatch, SetStateAction } from "react";
+import { useState, Dispatch, SetStateAction } from "react";
 import {
   Bell,
   Sun,
