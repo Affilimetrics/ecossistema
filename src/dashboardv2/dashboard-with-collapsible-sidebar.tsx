@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   DollarSign,
@@ -24,10 +25,12 @@ import {
   Thermometer,
   AlertTriangle,
   CheckCircle2,
+  Flame,
+  Radar,
 } from "lucide-react";
 import { Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
-import { DonutChart, DonutChartSegment } from "@/components/ui/donut-chart";
+import { DonutChart, DonutChartSegment } from "../components/ui/donut-chart";
 
 // Helper simples no lugar de cn
 const cn = (...classes: (string | undefined | false | null)[]) =>
@@ -40,6 +43,7 @@ interface OptionProps {
   setSelected: Dispatch<SetStateAction<string>>;
   open: boolean;
   notifs?: number;
+  path?: string;
 }
 
 interface TitleSectionProps {
@@ -56,44 +60,82 @@ interface ExampleContentProps {
   setIsDark: Dispatch<SetStateAction<boolean>>;
 }
 
-export const Example = () => {
-  const [isDark, setIsDark] = useState(false);
+interface DashboardShellProps {
+  children: React.ReactNode;
+  isDark: boolean;
+  setIsDark: Dispatch<SetStateAction<boolean>>;
+}
 
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDark]);
+/* ============================================================
+   DASHBOARD SHELL — wrapper reutilizável (sidebar + dark mode)
+   ============================================================ */
 
+export const DashboardShell = ({ children, isDark, setIsDark }: DashboardShellProps) => {
   return (
-    <div className={`flex min-h-screen w-full ${isDark ? 'dark' : ''}`}>
+    <div className={`flex min-h-screen w-full ${isDark ? "dark" : ""}`}>
       <div className="flex w-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         <Sidebar />
-        <ExampleContent isDark={isDark} setIsDark={setIsDark} />
+        {children}
       </div>
     </div>
   );
 };
 
-const Sidebar = () => {
+/* ============================================================
+   HOOK DE TEMA
+   ============================================================ */
+
+export const useDarkMode = () => {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDark]);
+
+  return { isDark, setIsDark };
+};
+
+/* ============================================================
+   EXAMPLE (dashboard padrão)
+   ============================================================ */
+
+export const Example = () => {
+  const { isDark, setIsDark } = useDarkMode();
+
+  return (
+    <DashboardShell isDark={isDark} setIsDark={setIsDark}>
+      <ExampleContent isDark={isDark} setIsDark={setIsDark} />
+    </DashboardShell>
+  );
+};
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+
+export const Sidebar = () => {
   const [open, setOpen] = useState(true);
   const [selected, setSelected] = useState("Painel");
 
   return (
     <nav
       className={`sticky top-0 h-screen shrink-0 border-r transition-all duration-300 ease-in-out ${
-        open ? 'w-64' : 'w-16'
+        open ? "w-64" : "w-16"
       } border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm`}
     >
       <TitleSection open={open} />
 
       <div className="space-y-1 mb-8">
-        <Option Icon={Home} title="Painel" selected={selected} setSelected={setSelected} open={open} />
+        <Option Icon={Home} title="Painel" selected={selected} setSelected={setSelected} open={open} path="/dashboardv2" />
         <Option Icon={DollarSign} title="Vendas" selected={selected} setSelected={setSelected} open={open} notifs={3} />
         <Option Icon={Monitor} title="Ver site" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} />
+        <Option Icon={Flame} title="Produtos Quentes" selected={selected} setSelected={setSelected} open={open} path="/produtos-quentes" />
+        <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
         <Option Icon={Tag} title="Tags" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={Users} title="Membros" selected={selected} setSelected={setSelected} open={open} notifs={12} />
@@ -114,24 +156,31 @@ const Sidebar = () => {
   );
 };
 
-const Option = ({ Icon, title, selected, setSelected, open, notifs }: OptionProps) => {
-  const isSelected = selected === title;
-  
+const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: OptionProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isSelected = path ? location.pathname === path : selected === title;
+
+  const handleClick = () => {
+    setSelected(title);
+    if (path) navigate(path);
+  };
+
   return (
     <button
-      onClick={() => setSelected(title)}
+      onClick={handleClick}
       className={`relative flex h-11 w-full items-center rounded-md transition-all duration-200 ${
-        isSelected 
-          ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shadow-sm border-l-2 border-blue-500" 
+        isSelected
+          ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shadow-sm border-l-2 border-blue-500"
           : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
       }`}
     >
       <div className="grid h-full w-12 place-content-center">
         <Icon className="h-4 w-4" />
       </div>
-      
+
       {open && (
-        <span className={`text-sm font-medium transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}>
+        <span className={`text-sm font-medium transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}>
           {title}
         </span>
       )}
@@ -152,7 +201,7 @@ const TitleSection = ({ open }: TitleSectionProps) => {
         <div className="flex items-center gap-3">
           <Logo />
           {open && (
-            <div className={`transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}>
               <div className="flex items-center gap-2">
                 <div>
                   <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -198,7 +247,7 @@ const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
           />
         </div>
         {open && (
-          <span className={`text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}>
+          <span className={`text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`}>
             Ocultar
           </span>
         )}
@@ -321,27 +370,27 @@ const FinancialThermometer = ({ value }: ThermometerProps) => {
    ============================================================ */
 
 const platformData = [
-  { date: '2024-04-01', receita: 8.2 },
-  { date: '2024-04-02', receita: 4.5 },
-  { date: '2024-04-03', receita: 6.8 },
-  { date: '2024-04-04', receita: 9.1 },
-  { date: '2024-04-05', receita: 11.2 },
-  { date: '2024-04-06', receita: 2.8 },
-  { date: '2024-04-07', receita: 9.8 },
-  { date: '2024-04-08', receita: 12.1 },
-  { date: '2024-04-09', receita: 3.8 },
-  { date: '2024-04-10', receita: 7.2 },
-  { date: '2024-04-11', receita: 8.5 },
-  { date: '2024-04-12', receita: 13.8 },
-  { date: '2024-04-13', receita: 8.2 },
-  { date: '2024-04-14', receita: 3.1 },
-  { date: '2024-04-15', receita: 5.1 },
-  { date: '2024-04-16', receita: 7.5 },
-  { date: '2024-04-17', receita: 17.2 },
-  { date: '2024-04-18', receita: 12.9 },
+  { date: "2024-04-01", receita: 8.2 },
+  { date: "2024-04-02", receita: 4.5 },
+  { date: "2024-04-03", receita: 6.8 },
+  { date: "2024-04-04", receita: 9.1 },
+  { date: "2024-04-05", receita: 11.2 },
+  { date: "2024-04-06", receita: 2.8 },
+  { date: "2024-04-07", receita: 9.8 },
+  { date: "2024-04-08", receita: 12.1 },
+  { date: "2024-04-09", receita: 3.8 },
+  { date: "2024-04-10", receita: 7.2 },
+  { date: "2024-04-11", receita: 8.5 },
+  { date: "2024-04-12", receita: 13.8 },
+  { date: "2024-04-13", receita: 8.2 },
+  { date: "2024-04-14", receita: 3.1 },
+  { date: "2024-04-15", receita: 5.1 },
+  { date: "2024-04-16", receita: 7.5 },
+  { date: "2024-04-17", receita: 17.2 },
+  { date: "2024-04-18", receita: 12.9 },
 ];
 
-const chartColor = '#84cc16'; // lime-500
+const chartColor = "#84cc16";
 
 interface TooltipProps {
   active?: boolean;
@@ -379,7 +428,7 @@ const RevenueChart = () => {
           <LineChart
             data={platformData}
             margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-            style={{ width: '100%', height: '100%' }}
+            style={{ width: "100%", height: "100%" }}
           >
             <defs>
               <filter id="lineShadow" x="-100%" y="-100%" width="300%" height="300%">
@@ -394,18 +443,18 @@ const RevenueChart = () => {
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: 'currentColor' }}
+              tick={{ fontSize: 10, fill: "currentColor" }}
               tickMargin={10}
               tickFormatter={(value) => {
                 const date = new Date(value);
-                return date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' });
+                return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
               }}
             />
 
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: 'currentColor' }}
+              tick={{ fontSize: 10, fill: "currentColor" }}
               tickMargin={10}
               tickCount={6}
               tickFormatter={(value) => `R$${value}k`}
@@ -413,7 +462,7 @@ const RevenueChart = () => {
 
             <RechartsTooltip
               content={<CustomTooltip />}
-              cursor={{ strokeDasharray: '3 3', stroke: '#9ca3af' }}
+              cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
             />
 
             <Line
@@ -426,9 +475,9 @@ const RevenueChart = () => {
               activeDot={{
                 r: 6,
                 fill: chartColor,
-                stroke: 'white',
+                stroke: "white",
                 strokeWidth: 2,
-                filter: 'url(#dotShadow)',
+                filter: "url(#dotShadow)",
               }}
             />
           </LineChart>
@@ -439,7 +488,7 @@ const RevenueChart = () => {
 };
 
 /* ============================================================
-   GRÁFICO DE ROSCA - LINKS POR CATEGORIA
+   GRÁFICO DE ROSCA
    ============================================================ */
 
 const categoryData: DonutChartSegment[] = [
@@ -480,7 +529,6 @@ const CategoryDonutChart = () => {
       </div>
 
       <div className="p-6 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-        {/* Donut Chart */}
         <div className="flex items-center justify-center">
           <DonutChart
             data={categoryData}
@@ -517,7 +565,6 @@ const CategoryDonutChart = () => {
           />
         </div>
 
-        {/* Legend */}
         <div className="flex flex-col space-y-1 w-full">
           {categoryData.map((segment, index) => (
             <motion.div
@@ -559,48 +606,51 @@ const CategoryDonutChart = () => {
 };
 
 /* ============================================================
-   GRÁFICOS DINÂMICOS POR CARD
+   GRÁFICOS DINÂMICOS
    ============================================================ */
 
-type ChartType = 'vendas' | 'afiliados' | 'pedidos' | 'produtos';
+type ChartType = "vendas" | "afiliados" | "pedidos" | "produtos";
 
 interface DynamicChartProps {
   type: ChartType;
   onClose: () => void;
 }
 
-const chartConfig: Record<ChartType, { title: string; subtitle: string; color: string; dataKey: string; prefix: string; suffix: string }> = {
+const chartConfig: Record<
+  ChartType,
+  { title: string; subtitle: string; color: string; dataKey: string; prefix: string; suffix: string }
+> = {
   vendas: {
-    title: 'Total de vendas',
-    subtitle: 'Últimos 18 dias (fictício)',
-    color: '#3b82f6',
-    dataKey: 'valor',
-    prefix: '$',
-    suffix: '',
+    title: "Total de vendas",
+    subtitle: "Últimos 18 dias (fictício)",
+    color: "#3b82f6",
+    dataKey: "valor",
+    prefix: "$",
+    suffix: "",
   },
   afiliados: {
-    title: 'Links Afiliados',
-    subtitle: 'Cliques nos últimos 18 dias (fictício)',
-    color: '#22c55e',
-    dataKey: 'valor',
-    prefix: '',
-    suffix: '',
+    title: "Links Afiliados",
+    subtitle: "Cliques nos últimos 18 dias (fictício)",
+    color: "#22c55e",
+    dataKey: "valor",
+    prefix: "",
+    suffix: "",
   },
   pedidos: {
-    title: 'Pedidos',
-    subtitle: 'Pedidos por dia (fictício)',
-    color: '#a855f7',
-    dataKey: 'valor',
-    prefix: '',
-    suffix: '',
+    title: "Pedidos",
+    subtitle: "Pedidos por dia (fictício)",
+    color: "#a855f7",
+    dataKey: "valor",
+    prefix: "",
+    suffix: "",
   },
   produtos: {
-    title: 'Produtos Coletados',
-    subtitle: 'Coletas por dia (fictício)',
-    color: '#f97316',
-    dataKey: 'valor',
-    prefix: '',
-    suffix: '',
+    title: "Produtos Coletados",
+    subtitle: "Coletas por dia (fictício)",
+    color: "#f97316",
+    dataKey: "valor",
+    prefix: "",
+    suffix: "",
   },
 };
 
@@ -631,7 +681,9 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
             <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-gray-500 dark:text-gray-400">{config.title}:</span>
             <span className="font-semibold text-gray-900 dark:text-gray-100">
-              {config.prefix}{entry.value.toFixed(0)}{config.suffix}
+              {config.prefix}
+              {entry.value.toFixed(0)}
+              {config.suffix}
             </span>
           </div>
         </div>
@@ -652,7 +704,16 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
           className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label="Fechar gráfico"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
@@ -664,7 +725,7 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
           <LineChart
             data={data}
             margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-            style={{ width: '100%', height: '100%' }}
+            style={{ width: "100%", height: "100%" }}
           >
             <defs>
               <filter id={`lineShadow-${type}`} x="-100%" y="-100%" width="300%" height="300%">
@@ -679,18 +740,18 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: 'currentColor' }}
+              tick={{ fontSize: 11, fill: "currentColor" }}
               tickMargin={10}
               tickFormatter={(value) => {
                 const date = new Date(value);
-                return date.toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' });
+                return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
               }}
             />
 
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: 'currentColor' }}
+              tick={{ fontSize: 11, fill: "currentColor" }}
               tickMargin={10}
               tickCount={6}
               tickFormatter={(value) => `${config.prefix}${value}${config.suffix}`}
@@ -698,7 +759,7 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
 
             <RechartsTooltip
               content={<DynamicTooltip />}
-              cursor={{ strokeDasharray: '3 3', stroke: '#9ca3af' }}
+              cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
             />
 
             <Line
@@ -711,7 +772,7 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
               activeDot={{
                 r: 6,
                 fill: config.color,
-                stroke: 'white',
+                stroke: "white",
                 strokeWidth: 2,
                 filter: `url(#dotShadow-${type})`,
               }}
@@ -724,53 +785,53 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
 };
 
 /* ============================================================
-   CONTEÚDO PRINCIPAL
+   CONTEÚDO DO DASHBOARD
    ============================================================ */
 
 const statsCards = [
   {
-    key: 'vendas' as ChartType,
+    key: "vendas" as ChartType,
     icon: DollarSign,
-    title: 'Total de vendas',
-    value: '$24,567',
-    change: '+12% em relação ao mês passado',
-    iconBg: 'bg-blue-50 dark:bg-blue-900/20',
-    iconColor: 'text-blue-600 dark:text-blue-400',
-    ringColor: 'ring-blue-500',
-    activeBg: 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600',
+    title: "Total de vendas",
+    value: "$24,567",
+    change: "+12% em relação ao mês passado",
+    iconBg: "bg-blue-50 dark:bg-blue-900/20",
+    iconColor: "text-blue-600 dark:text-blue-400",
+    ringColor: "ring-blue-500",
+    activeBg: "bg-blue-50 dark:bg-blue-900/30 border-blue-400 dark:border-blue-600",
   },
   {
-    key: 'afiliados' as ChartType,
+    key: "afiliados" as ChartType,
     icon: Users,
-    title: 'Links Afiliados',
-    value: '1,234',
-    change: '+5% em relação à semana passada',
-    iconBg: 'bg-green-50 dark:bg-green-900/20',
-    iconColor: 'text-green-600 dark:text-green-400',
-    ringColor: 'ring-green-500',
-    activeBg: 'bg-green-50 dark:bg-green-900/30 border-green-400 dark:border-green-600',
+    title: "Links Afiliados",
+    value: "1,234",
+    change: "+5% em relação à semana passada",
+    iconBg: "bg-green-50 dark:bg-green-900/20",
+    iconColor: "text-green-600 dark:text-green-400",
+    ringColor: "ring-green-500",
+    activeBg: "bg-green-50 dark:bg-green-900/30 border-green-400 dark:border-green-600",
   },
   {
-    key: 'pedidos' as ChartType,
+    key: "pedidos" as ChartType,
     icon: ShoppingCart,
-    title: 'Pedidos',
-    value: '456',
-    change: '+8% em relação a ontem',
-    iconBg: 'bg-purple-50 dark:bg-purple-900/20',
-    iconColor: 'text-purple-600 dark:text-purple-400',
-    ringColor: 'ring-purple-500',
-    activeBg: 'bg-purple-50 dark:bg-purple-900/30 border-purple-400 dark:border-purple-600',
+    title: "Pedidos",
+    value: "456",
+    change: "+8% em relação a ontem",
+    iconBg: "bg-purple-50 dark:bg-purple-900/20",
+    iconColor: "text-purple-600 dark:text-purple-400",
+    ringColor: "ring-purple-500",
+    activeBg: "bg-purple-50 dark:bg-purple-900/30 border-purple-400 dark:border-purple-600",
   },
   {
-    key: 'produtos' as ChartType,
+    key: "produtos" as ChartType,
     icon: Package,
-    title: 'Produtos Coletados',
-    value: '89',
-    change: '+3 novos esta semana',
-    iconBg: 'bg-orange-50 dark:bg-orange-900/20',
-    iconColor: 'text-orange-600 dark:text-orange-400',
-    ringColor: 'ring-orange-500',
-    activeBg: 'bg-orange-50 dark:bg-orange-900/30 border-orange-400 dark:border-orange-600',
+    title: "Produtos Coletados",
+    value: "89",
+    change: "+3 novos esta semana",
+    iconBg: "bg-orange-50 dark:bg-orange-900/20",
+    iconColor: "text-orange-600 dark:text-orange-400",
+    ringColor: "ring-orange-500",
+    activeBg: "bg-orange-50 dark:bg-orange-900/30 border-orange-400 dark:border-orange-600",
   },
 ];
 
@@ -802,8 +863,8 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
           </button>
         </div>
       </div>
-      
-      {/* Stats Grid - clicáveis */}
+
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {statsCards.map((card) => {
           const isActive = selectedCard === card.key;
@@ -814,7 +875,7 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
               className={`text-left p-6 rounded-xl border bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 cursor-pointer ${
                 isActive
                   ? `${card.activeBg} shadow-md ring-2 ${card.ringColor} ring-offset-1 dark:ring-offset-gray-950`
-                  : 'border-gray-200 dark:border-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700'
+                  : "border-gray-200 dark:border-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700"
               }`}
             >
               <div className="flex items-center justify-between mb-4">
@@ -826,29 +887,23 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
               <h3 className="font-medium text-gray-600 dark:text-gray-400 mb-1">{card.title}</h3>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{card.value}</p>
               <p className="text-sm text-green-600 dark:text-green-400 mt-1">{card.change}</p>
-              <p className={`text-xs mt-3 font-medium transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`}>
-                {isActive ? '✓ Gráfico aberto abaixo' : ''}
+              <p className={`text-xs mt-3 font-medium transition-opacity ${isActive ? "opacity-100" : "opacity-0"}`}>
+                {isActive ? "✓ Gráfico aberto abaixo" : ""}
               </p>
             </button>
           );
         })}
       </div>
 
-      {/* Gráfico dinâmico baseado no card selecionado */}
-      {selectedCard && (
-        <DynamicChart type={selectedCard} onClose={() => setSelectedCard(null)} />
-      )}
+      {selectedCard && <DynamicChart type={selectedCard} onClose={() => setSelectedCard(null)} />}
 
-      {/* Grid: Receita + Links por categoria lado a lado */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <RevenueChart />
         <CategoryDonutChart />
       </div>
 
-      {/* Termômetro Financeiro */}
       <FinancialThermometer value={thermometerValue} />
 
-      {/* Controle fictício para testar o termômetro */}
       <div className="mb-8 p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-900/50">
         <label className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
           <span className="font-medium whitespace-nowrap">Ajustar termômetro (demo):</span>
@@ -866,7 +921,6 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
         </label>
       </div>
 
-      {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
@@ -885,20 +939,32 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
                 { icon: Bell, title: "Nova notificação", desc: "Resultados da campanha de marketing", time: "há 2 horas", color: "red" },
               ].map((activity, i) => (
                 <div key={i} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
-                  <div className={`p-2 rounded-lg ${
-                    activity.color === 'green' ? 'bg-green-50 dark:bg-green-900/20' :
-                    activity.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20' :
-                    activity.color === 'purple' ? 'bg-purple-50 dark:bg-purple-900/20' :
-                    activity.color === 'orange' ? 'bg-orange-50 dark:bg-orange-900/20' :
-                    'bg-red-50 dark:bg-red-900/20'
-                  }`}>
-                    <activity.icon className={`h-4 w-4 ${
-                      activity.color === 'green' ? 'text-green-600 dark:text-green-400' :
-                      activity.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                      activity.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
-                      activity.color === 'orange' ? 'text-orange-600 dark:text-orange-400' :
-                      'text-red-600 dark:text-red-400'
-                    }`} />
+                  <div
+                    className={`p-2 rounded-lg ${
+                      activity.color === "green"
+                        ? "bg-green-50 dark:bg-green-900/20"
+                        : activity.color === "blue"
+                        ? "bg-blue-50 dark:bg-blue-900/20"
+                        : activity.color === "purple"
+                        ? "bg-purple-50 dark:bg-purple-900/20"
+                        : activity.color === "orange"
+                        ? "bg-orange-50 dark:bg-orange-900/20"
+                        : "bg-red-50 dark:bg-red-900/20"
+                    }`}
+                  >
+                    <activity.icon
+                      className={`h-4 w-4 ${
+                        activity.color === "green"
+                          ? "text-green-600 dark:text-green-400"
+                          : activity.color === "blue"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : activity.color === "purple"
+                          ? "text-purple-600 dark:text-purple-400"
+                          : activity.color === "orange"
+                          ? "text-orange-600 dark:text-orange-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{activity.title}</p>
@@ -920,21 +986,21 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">3.2%</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: '32%' }}></div>
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: "32%" }}></div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Taxa de rejeição</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">45%</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-orange-500 h-2 rounded-full" style={{ width: '45%' }}></div>
+                <div className="bg-orange-500 h-2 rounded-full" style={{ width: "45%" }}></div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Visualizações de página</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">8.7k</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '87%' }}></div>
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: "87%" }}></div>
               </div>
             </div>
           </div>
@@ -942,7 +1008,7 @@ const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Principais produtos</h3>
             <div className="space-y-3">
-              {['iPhone 15 Pro', 'MacBook Air M2', 'AirPods Pro', 'iPad Air'].map((product, i) => (
+              {["iPhone 15 Pro", "MacBook Air M2", "AirPods Pro", "iPad Air"].map((product, i) => (
                 <div key={i} className="flex items-center justify-between py-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">{product}</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-gray-100">

@@ -1,17 +1,21 @@
 "use client";
 
-import React, { useState, useMemo, Dispatch, SetStateAction } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ChevronDown,
   RefreshCw,
   Flame,
   TrendingDown,
   ExternalLink,
-  Bell,
+  LayoutTemplate,
+  Home as HomeIcon,
   Sun,
   Moon,
+  Bell,
   User,
+  Tag,
 } from "lucide-react";
+import { useDarkMode } from "./dashboard-with-collapsible-sidebar";
 
 /* ============================================================
    TIPOS
@@ -27,11 +31,6 @@ interface HotProduct {
   currentPrice: number;
   previousPrice: number;
   affiliateUrl: string;
-}
-
-interface HotProductsContentProps {
-  isDark: boolean;
-  setIsDark: Dispatch<SetStateAction<boolean>>;
 }
 
 /* ============================================================
@@ -134,7 +133,8 @@ const formatBRL = (value: number) =>
    COMPONENTE PRINCIPAL
    ============================================================ */
 
-const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
+const HotProductsContent = () => {
+  const { isDark, setIsDark } = useDarkMode();
   const [selectedCategory, setSelectedCategory] = useState("todas");
   const [open, setOpen] = useState(false);
 
@@ -159,20 +159,25 @@ const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
           </p>
         </div>
 
-        {/* Ações no topo: Bell + Tema + User */}
         <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <LayoutTemplate className="h-4 w-4" />
+            Templates
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <HomeIcon className="h-4 w-4" />
+            Home
+          </button>
           <button className="relative p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
             <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full" />
+            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
           </button>
-
           <button
             onClick={() => setIsDark(!isDark)}
             className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-
           <button className="p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
             <User className="h-5 w-5" />
           </button>
@@ -180,8 +185,9 @@ const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
       </div>
 
       {/* ============ FILTROS ============ */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm p-6 mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm p-6 mb-8">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          {/* Dropdown */}
           <div className="flex-1 max-w-md">
             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
               Categoria
@@ -226,6 +232,7 @@ const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
             </div>
           </div>
 
+          {/* Última atualização + botão */}
           <div className="flex flex-col items-start md:items-end gap-2">
             <span className="text-xs text-gray-500 dark:text-gray-400">
               Última atualização: {lastUpdate}
@@ -238,8 +245,21 @@ const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
         </div>
       </div>
 
-      {/* ============ ESTATÍSTICAS (movidas para cima) ============ */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* ============ GRID DE PRODUTOS ============ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {filtered.map((product) => (
+          <HotProductCard key={product.id} product={product} />
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+          Nenhum produto encontrado nessa categoria.
+        </div>
+      )}
+
+      {/* ============ ESTATÍSTICAS ============ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         <StatCard
           Icon={Flame}
           label="Produtos quentes"
@@ -264,19 +284,6 @@ const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
           color="blue"
         />
       </div>
-
-      {/* ============ GRID DE PRODUTOS ============ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {filtered.map((product) => (
-          <HotProductCard key={product.id} product={product} />
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-          Nenhum produto encontrado nessa categoria.
-        </div>
-      )}
     </div>
   );
 };
