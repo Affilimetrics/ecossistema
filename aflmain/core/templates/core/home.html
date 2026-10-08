@@ -23,10 +23,11 @@
     .thermometer-marker { position:absolute; left:calc(100% + 12px); bottom:calc(var(--score) * 1%); transform:translateY(50%); white-space:nowrap; font-size:.75rem; font-weight:700; padding:5px 8px; border-radius:8px; background:#fff; color:#111; }
     .thermometer-marker::before { content:''; position:absolute; right:100%; top:50%; transform:translateY(-50%); border:6px solid transparent; border-right-color:#fff; }
     .execution-state { font-size:.76rem; letter-spacing:.04em; text-transform:uppercase; }
-    .chief-product-card { background:linear-gradient(135deg, rgba(46,204,113,.13), rgba(43,122,236,.08)); border:1px solid rgba(46,204,113,.35); border-radius:22px; box-shadow:0 18px 45px rgba(0,0,0,.22); }
-    .chief-product-image, .chief-product-placeholder { width:150px; height:150px; object-fit:contain; border-radius:18px; background:#fff; padding:10px; }
-    .chief-product-placeholder { display:flex; align-items:center; justify-content:center; color:#8a939d; font-size:3rem; }
-    .chief-reason { max-width:430px; padding:12px 16px; border-radius:14px; background:rgba(0,0,0,.22); }
+    .chief-product-card { background:linear-gradient(135deg, rgba(46,204,113,.10), rgba(43,122,236,.06)); border:1px solid rgba(46,204,113,.28); border-radius:18px; }
+    .chief-product-image, .chief-product-placeholder { width:88px; height:88px; object-fit:contain; border-radius:14px; background:#fff; padding:7px; }
+    .chief-product-placeholder { display:flex; align-items:center; justify-content:center; color:#8a939d; font-size:2rem; }
+    .chief-reason { max-width:360px; padding:9px 12px; border-radius:12px; background:rgba(0,0,0,.18); }
+    .thermometer-category-box { border-top:1px solid var(--border); margin-top:18px; padding-top:16px; text-align:left; }
     .dashboard-message { min-height:24px; }
     @media(max-width: 900px) {
       .main { padding:20px; }
@@ -53,63 +54,6 @@
     <a href="{% url 'coleta_geral' %}" class="btn btn-success"><i class="bi bi-play-circle me-2"></i>Ir para coleta</a>
   </div>
 
-  {% if produto_chefe %}
-  <section class="chief-product-card mb-4 p-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-      <div>
-        <span class="badge rounded-pill text-bg-warning text-dark px-3 py-2">⭐ PRODUTO CHEFE DE HOJE</span>
-        <h2 class="h4 fw-bold mt-3 mb-1">{{ produto_chefe.nome|default:"Produto selecionado" }}</h2>
-        <p class="text-secondary mb-0">A melhor oportunidade encontrada com os dados disponíveis.</p>
-      </div>
-      <div class="chief-reason">
-        <div class="small text-secondary mb-1">Por que foi escolhido?</div>
-        <strong><i class="bi bi-lightning-charge-fill me-1"></i>{{ motivo_produto_chefe }}</strong>
-      </div>
-    </div>
-
-    <div class="row g-4 align-items-center mt-1">
-      <div class="col-md-3 col-lg-2 text-center">
-        {% if produto_chefe.imagem_url %}
-          <img src="{{ produto_chefe.imagem_url }}" alt="{{ produto_chefe.nome }}" class="chief-product-image">
-        {% else %}
-          <div class="chief-product-placeholder"><i class="bi bi-image"></i></div>
-        {% endif %}
-      </div>
-      <div class="col-md-9 col-lg-7">
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          {% if produto_chefe.calcular_desconto_porcentagem > 0 %}
-            <span class="badge text-bg-danger">-{{ produto_chefe.calcular_desconto_porcentagem }}% OFF</span>
-          {% endif %}
-          <span class="badge text-bg-success">{{ produto_chefe.comissao_porcentagem|floatformat:2 }}% comissão</span>
-          <span class="badge bg-secondary">{{ produto_chefe.marketplace }}</span>
-        </div>
-        <div class="d-flex align-items-end gap-3 flex-wrap">
-          <div>
-            <div class="small text-secondary">Preço atual</div>
-            <div class="display-6 fw-bold">R$ {{ produto_chefe.preco_atual|floatformat:2|default:"0,00" }}</div>
-          </div>
-          {% if produto_chefe.preco_anterior %}
-            <div class="pb-1">
-              <div class="small text-secondary">Preço anterior</div>
-              <div class="text-secondary text-decoration-line-through">R$ {{ produto_chefe.preco_anterior|floatformat:2 }}</div>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-      <div class="col-lg-3 d-grid gap-2">
-        {% if produto_chefe.afiliado.link_afiliado %}
-          <a href="{{ produto_chefe.afiliado.link_afiliado }}" target="_blank" rel="noopener noreferrer" class="btn btn-success">
-            <i class="bi bi-box-arrow-up-right me-2"></i>Ver link de afiliado
-          </a>
-        {% endif %}
-        <a href="{% url 'templates_oferta' %}" class="btn btn-outline-light">
-          <i class="bi bi-chat-square-text me-2"></i>Central de templates
-        </a>
-      </div>
-    </div>
-  </section>
-  {% endif %}
-
   <div class="row g-4 mb-4">
     <div class="col-xl-3">
       <section class="opportunity-card text-center">
@@ -121,6 +65,22 @@
         <div class="mt-5 fw-bold">{{ oportunidade.label }}</div>
         <div class="text-secondary small">{{ oportunidade.reason }}</div>
         <div class="text-secondary small mt-1">{{ oportunidade.local_time|date:"H:i" }} · {{ oportunidade.timezone_name }}</div>
+
+        <div class="thermometer-category-box">
+          <label for="categoriaTermometro" class="form-label small text-secondary mb-2">Interesse em ofertas por categoria</label>
+          <select id="categoriaTermometro" class="form-select form-select-sm bg-dark text-white border-secondary">
+            <option value="" {% if not categoria_termometro %}selected{% endif %}>Visão geral — todas as categorias</option>
+            {% for categoria in categorias_nativas %}
+              <option value="{{ categoria }}" {% if categoria_termometro == categoria %}selected{% endif %}>{{ categoria|title }}</option>
+            {% endfor %}
+          </select>
+          {% if categoria_termometro %}
+            <div class="small text-success mt-2"><i class="bi bi-clock me-1"></i>Melhores horários: {{ oportunidade.melhor_horario }}</div>
+          {% else %}
+            <div class="small text-secondary mt-2">Escolha uma categoria para personalizar o termômetro.</div>
+          {% endif %}
+        </div>
+
         <hr class="border-secondary my-4">
         <a href="{% url 'coleta_geral' %}" class="btn btn-outline-light w-100 mb-2"><i class="bi bi-sliders me-2"></i>Ir para coleta</a>
         <button id="dashboardCollectBtn" class="btn btn-success w-100" type="button" {% if not coleta_configurada %}data-needs-config="1"{% endif %}>
@@ -137,6 +97,32 @@
         <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Ofertas</div><div class="metric-value">{{ ofertas }}</div></div></div>
         <div class="col-sm-6 col-xl-3"><div class="metric"><div class="metric-label">Ofertas enviadas</div><div class="metric-value">{{ enviadas }}</div></div></div>
       </div>
+
+      {% if produto_chefe %}
+      <section class="chief-product-card p-3 mb-4">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+          {% if produto_chefe.imagem_url %}
+            <img src="{{ produto_chefe.imagem_url }}" alt="{{ produto_chefe.nome }}" class="chief-product-image">
+          {% else %}
+            <div class="chief-product-placeholder"><i class="bi bi-image"></i></div>
+          {% endif %}
+          <div class="flex-grow-1 min-w-0">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <span class="badge rounded-pill text-bg-warning text-dark">⭐ Produto Chefe de hoje</span>
+              <span class="badge text-bg-success">{{ produto_chefe.comissao_porcentagem|floatformat:2 }}% comissão</span>
+              {% if produto_chefe.calcular_desconto_porcentagem > 0 %}<span class="badge text-bg-danger">-{{ produto_chefe.calcular_desconto_porcentagem }}% OFF</span>{% endif %}
+            </div>
+            <div class="fw-bold text-truncate">{{ produto_chefe.nome|default:"Produto selecionado" }}</div>
+            <div class="small text-secondary">R$ {{ produto_chefe.preco_atual|floatformat:2|default:"0,00" }}{% if produto_chefe.preco_anterior %} · <span class="text-decoration-line-through">R$ {{ produto_chefe.preco_anterior|floatformat:2 }}</span>{% endif %} · {{ motivo_produto_chefe }}</div>
+          </div>
+          <div class="d-flex gap-2 ms-auto">
+            {% if produto_chefe.afiliado.link_afiliado %}<a href="{{ produto_chefe.afiliado.link_afiliado }}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm"><i class="bi bi-box-arrow-up-right me-1"></i>Afiliado</a>{% endif %}
+            <a href="{% url 'templates_oferta' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-chat-square-text me-1"></i>Templates</a>
+          </div>
+        </div>
+      </section>
+      {% endif %}
+
       <div class="row g-4">
     <div class="col-xl-6">
       <div class="chart-card p-4 h-100">
@@ -189,6 +175,18 @@
     );
   });
   window.addEventListener('resize', () => google.charts.setOnLoadCallback(() => {}));
+</script>
+<script>
+(() => {
+  const select = document.getElementById('categoriaTermometro');
+  if (!select) return;
+  select.addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    if (select.value) url.searchParams.set('categoria_termometro', select.value);
+    else url.searchParams.delete('categoria_termometro');
+    window.location.href = url.toString();
+  });
+})();
 </script>
 <script>
 (() => {

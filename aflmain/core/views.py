@@ -106,7 +106,11 @@ def home(request):
     enviadas = Oferta.objects.filter(owner=request.user, status="ENVIADA").count()
     ultima_execucao = Execucao.objects.filter(owner=request.user).first()
     perfil, _ = PerfilUsuario.objects.get_or_create(owner=request.user)
-    oportunidade = calcular_oportunidade(perfil.timezone)
+    categoria_termometro = (request.GET.get("categoria_termometro") or "").strip()
+    categorias_nativas = list(CATEGORIAS_PRINCIPAIS.values())
+    if categoria_termometro not in categorias_nativas:
+        categoria_termometro = ""
+    oportunidade = calcular_oportunidade(perfil.timezone, categoria=categoria_termometro or None)
     coleta_configurada = bool(
         ultima_execucao and (ultima_execucao.categorias or ultima_execucao.keywords)
     )
@@ -121,6 +125,8 @@ def home(request):
         "categorias_chart": json.dumps(categorias_chart, ensure_ascii=False),
         "marketplaces_chart": json.dumps(marketplaces_chart, ensure_ascii=False),
         "oportunidade": oportunidade,
+        "categoria_termometro": categoria_termometro,
+        "categorias_nativas": categorias_nativas,
         "coleta_configurada": coleta_configurada,
         "produto_chefe": produto_chefe,
         "motivo_produto_chefe": produto_chefe.obter_motivo_chefe() if produto_chefe else "",
