@@ -45,6 +45,8 @@ def salvar_produto_resultado(execucao_id, categoria, url_produto, dados, numero=
     preco_atual = decimal_or_none(dados.get("preco_atual"))
     link = dados.get("link_afiliado")
     status = dados.get("status") or ("OK" if link else "REVISAR")
+    comissao_porcentagem = decimal_or_none(dados.get("comissao_porcentagem")) or Decimal("0.00")
+    comissao_valor = decimal_or_none(dados.get("comissao_valor")) or Decimal("0.00")
 
     produto, _ = Produto.objects.update_or_create(
         owner_id=owner_id,
@@ -56,6 +58,8 @@ def salvar_produto_resultado(execucao_id, categoria, url_produto, dados, numero=
             "preco_anterior": preco_anterior,
             "preco_atual": preco_atual,
             "imagem_url": dados.get("imagem_url") or "",
+            "comissao_porcentagem": comissao_porcentagem,
+            "comissao_valor": comissao_valor,
         },
     )
     Afiliado.objects.update_or_create(

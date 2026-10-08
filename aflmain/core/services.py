@@ -1,9 +1,37 @@
 """Serviços de ofertas. A copy é gerada automaticamente pelo motor de marketing."""
 from django.utils import timezone
-from .models import ConfiguracaoCanal, Mensagem, Oferta
+from .models import ConfiguracaoCanal, Mensagem, Oferta, Produto
 from .marketing import gerar_mensagem, desconto
 from .publicacao import enviar_telegram as _enviar_telegram, enviar_whatsapp_api as _enviar_whatsapp
 from .alerts import registrar_alerta_canal, resolver_alerta_canal
+
+
+def obter_produto_chefe_usuario(user):
+    """Retorna o melhor produto acionável do usuário para o destaque da Home.
+
+    O filtro é sempre restrito ao usuário autenticado e exige um link de
+    afiliado válido armazenado. Em caso de empate, o produto mais recentemente
+    atualizado vence.
+    """
+    if not getattr(user, "is_authenticated", False):
+        return None
+
+    produtos = (
+        Produto.objects
+        .filter(owner=user, afiliado__link_afiliado__isnull=False)
+        .exclude(afiliado__link_afiliado="")
+        .select_related("afiliado")
+    )
+
+    melhor = None
+    melhor_score = None
+    for produto in produtos.iterator():
+        score = produto.score_chefe()
+        if melhor is None or score > melhor_score:
+            melhor = produto
+            melhor_score = score
+
+    return melhor
 
 
 def formatar_oferta(produto, link=None, turno=None, campanha=None):
