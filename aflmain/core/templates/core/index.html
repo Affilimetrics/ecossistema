@@ -1,227 +1,107 @@
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt-br" data-bs-theme="dark">
+<!doctype html>
+<html lang="pt-br" data-bs-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Afillimetrics</title>
-
-  <!-- Bootstrap 5 CSS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skallora — Ecossistema para afiliados</title>
+  <meta name="description" content="Organize a coleta de produtos, links de afiliado, templates de oferta e canais de divulgação em um só lugar.">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-  <style>
-    :root {
-      --bg-dark: #0a0a0a;
-      --card-bg: #1a1a1a;
-      --brand-blue: #2B7AEC;
-      --brand-green: #2ECC71;
-    }
-    body { background-color: var(--bg-dark); color: #fff; }
-    .bg-card { background-color: var(--card-bg); border: 1px solid #2d3748; }
-    .btn-green { background-color: var(--brand-green); color: #fff; }
-    .btn-green:hover { background-color: #27ae60; color: #fff; }
-    .text-green { color: var(--brand-green); }
-    .text-blue { color: var(--brand-blue); }
-    .hero-card {
-      background: linear-gradient(135deg, rgba(43,122,236,0.2), rgba(46,204,113,0.2));
-    }
-    .cta-banner {
-      background: linear-gradient(90deg, var(--brand-blue), var(--brand-green));
-    }
-  </style>
-<link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
+  <link rel="stylesheet" href="{% static 'core/auth-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'core/ui-loader.css' %}">
 </head>
-<body>
-<div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
-
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-md border-bottom border-secondary py-3">
+<body class="landing-page">
+  <div id="pageTransitionLoader"><div class="page-loader-ring"></div></div>
+  <nav class="navbar navbar-expand-lg landing-nav sticky-top py-3">
     <div class="container">
-      <a class="navbar-brand fw-bold text-white fs-4" href="#">Afillimetrics</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="nav">
-        <ul class="navbar-nav mx-auto mb-2 mb-md-0 gap-3">
-          <li class="nav-item"><a class="nav-link text-secondary" href="#produtos">Produtos</a></li>
-          <li class="nav-item"><a class="nav-link text-secondary" href="#paraquem">Para quem</a></li>
-          <li class="nav-item"><a class="nav-link text-secondary" href="#precos">Preços</a></li>
-          <li class="nav-item"><a class="nav-link text-secondary" href="#blog">Blog</a></li>
+      <a class="navbar-brand" href="{% url 'index' %}"><span class="auth-brand-mark"><i class="bi bi-graph-up-arrow"></i></span>Skallora</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#landingNav" aria-controls="landingNav" aria-expanded="false" aria-label="Abrir navegação"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="landingNav">
+        <ul class="navbar-nav mx-auto my-3 my-lg-0 gap-lg-3">
+          <li class="nav-item"><a class="nav-link" href="#recursos">Recursos</a></li>
+          <li class="nav-item"><a class="nav-link" href="#fluxo">Como funciona</a></li>
         </ul>
-        <div class="d-flex gap-2 align-items-center">
+        <div class="d-flex flex-wrap align-items-center gap-2">
           {% if user.is_authenticated %}
-            <span class="text-secondary small d-none d-lg-inline">Olá, {{ user.first_name|default:user.username }}</span>
-            <a href="{% url 'dashboard' %}" class="btn btn-outline-light rounded-3 px-4">Home</a>
-            <a href="{% url 'magalu_bot' %}" class="btn btn-green rounded-3 px-4">Coletor Magalu</a>
-            <form method="post" action="{% url 'logout' %}" class="d-inline">{% csrf_token %}<button class="btn btn-outline-secondary" type="submit">Sair</button></form>
+            <span class="text-secondary small me-1">Olá, {{ user.first_name|default:user.username }}</span>
+            <a href="{% url 'home' %}" class="btn btn-outline-primary rounded-3 px-3">Abrir painel</a>
+            <a href="{% url 'coleta_geral' %}" class="btn btn-primary rounded-3 px-3">Coleta geral</a>
           {% else %}
-            <a href="{% url 'login' %}" class="btn text-blue">Entrar</a>
-            <a href="{% url 'cadastro' %}" class="btn btn-green rounded-3 px-4">Testar Grátis</a>
+            <a href="{% url 'login' %}" class="btn btn-link text-decoration-none">Entrar</a>
+            <a href="{% url 'cadastro' %}" class="btn btn-primary rounded-3 px-4">Criar conta</a>
           {% endif %}
         </div>
       </div>
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <section class="container py-5 my-4">
-    <div class="row align-items-center g-5">
-      <div class="col-lg-6">
-        <h1 class="display-4 fw-bold mb-3">Todo o poder do marketing de afiliados em um só lugar</h1>
-        <p class="lead text-secondary mb-4">Simplifique suas análises, automatize divulgações e aumente suas conversões. Entenda tudo sobre suas vendas em 5 minutos.</p>
-        <a href="{% url 'login' %}" class="btn btn-green btn-lg rounded-3 px-4">
-          Começar agora <i class="bi bi-arrow-right ms-2"></i>
-        </a>
-      </div>
-      <div class="col-lg-6">
-        <div class="hero-card p-4 rounded-4 shadow-lg border border-secondary">
-          <div class="bg-card p-4 rounded-3">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="text-secondary small">ROI atual</span>
-              <span class="fs-3 fw-bold text-green">+32%</span>
-            </div>
-            <div class="d-flex align-items-end justify-content-around p-3 bg-dark rounded-3" style="height: 120px;">
-              <div class="bg-success rounded-top w-100 mx-1" style="height: 60%;"></div>
-              <div class="bg-success rounded-top w-100 mx-1" style="height: 80%;"></div>
-              <div class="bg-success rounded-top w-100 mx-1" style="height: 100%;"></div>
-              <div class="bg-success rounded-top w-100 mx-1" style="height: 70%;"></div>
-            </div>
+  <header class="landing-hero">
+    <div class="container landing-section">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-8">
+          <span class="landing-kicker mb-4"><i class="bi bi-stars me-2"></i>Organização para quem trabalha com afiliados</span>
+          <h1 class="mt-3 mb-4">Menos tarefas espalhadas. <span>Mais clareza na sua operação.</span></h1>
+          <p class="mb-4">Centralize a coleta de produtos, acompanhe links de afiliado, organize mensagens de oferta e mantenha os canais de divulgação em um só painel.</p>
+          <div class="d-flex flex-wrap gap-3">
+            {% if user.is_authenticated %}
+              <a href="{% url 'home' %}" class="btn btn-primary btn-lg px-4 rounded-3">Acessar painel <i class="bi bi-arrow-right ms-2"></i></a>
+              <a href="{% url 'coleta_geral' %}" class="btn btn-outline-primary btn-lg px-4 rounded-3">Ir para coleta</a>
+            {% else %}
+              <a href="{% url 'cadastro' %}" class="btn btn-primary btn-lg px-4 rounded-3">Criar minha conta <i class="bi bi-arrow-right ms-2"></i></a>
+              <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg px-4 rounded-3">Já tenho uma conta</a>
+            {% endif %}
+          </div>
+          <div class="d-flex flex-wrap gap-3 gap-md-4 mt-4 small text-secondary">
+            <span><i class="bi bi-check-circle-fill text-success me-2"></i>Fluxos organizados por conta</span>
+            <span><i class="bi bi-check-circle-fill text-success me-2"></i>Coleta e divulgação separadas</span>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="landing-card p-4">
+            <div class="d-flex align-items-center gap-3 mb-4"><span class="landing-icon mb-0"><i class="bi bi-grid-1x2"></i></span><div><div class="fw-bold">Painel operacional</div><small class="text-secondary">Seu trabalho em um lugar só</small></div></div>
+            <div class="d-flex align-items-center gap-3 py-3 border-top"><span class="landing-mini-icon text-primary"><i class="bi bi-radar"></i></span><div><div class="fw-semibold">Coleta Geral</div><small class="text-secondary">Categorias e palavras-chave</small></div><i class="bi bi-check-circle-fill text-success ms-auto"></i></div>
+            <div class="d-flex align-items-center gap-3 py-3 border-top"><span class="landing-mini-icon text-success"><i class="bi bi-link-45deg"></i></span><div><div class="fw-semibold">Links de afiliado</div><small class="text-secondary">Produtos e links registrados</small></div><i class="bi bi-check-circle-fill text-success ms-auto"></i></div>
+            <div class="d-flex align-items-center gap-3 py-3 border-top"><span class="landing-mini-icon text-warning"><i class="bi bi-fire"></i></span><div><div class="fw-semibold">Produtos Quentes</div><small class="text-secondary">Ranking calculado pelo sistema</small></div><i class="bi bi-check-circle-fill text-success ms-auto"></i></div>
+            <div class="small text-secondary mt-3">Os indicadores refletem os dados disponíveis na sua conta; a plataforma não garante vendas ou lucro.</div>
           </div>
         </div>
       </div>
     </div>
-  </section>
+  </header>
 
-  <!-- Problema vs Solução -->
-  <section class="bg-dark border-top border-bottom border-secondary py-5">
-    <div class="container py-4">
-      <div class="row g-4">
-        <div class="col-md-6">
-          <div class="bg-card p-4 rounded-4 h-100">
-            <div class="bg-danger bg-opacity-20 text-danger rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 50px; height: 50px;">
-              <i class="bi bi-bar-chart fs-4"></i>
-            </div>
-            <h3 class="h4 fw-bold">O problema</h3>
-            <p class="text-secondary mb-0">Gráficos complexos e plataformas desconectadas que dificultam a análise e tomada de decisão.</p>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="bg-card p-4 rounded-4 h-100 border-2 border-success">
-            <div class="bg-success bg-opacity-20 text-green rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 50px; height: 50px;">
-              <i class="bi bi-check-circle fs-4"></i>
-            </div>
-            <h3 class="h4 fw-bold">A solução</h3>
-            <p class="text-secondary mb-0">Afillimetrics: dados claros, automação e remarketing em uma única plataforma intuitiva.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Funcionalidades -->
-  <section class="container py-5 my-4">
-    <h2 class="text-center fw-bold fs-1 mb-5">Funcionalidades que fazem a diferença</h2>
-    <div class="row g-4">
-      <div class="col-md-6">
-        <div class="bg-card p-4 rounded-4 h-100">
-          <div class="d-flex align-items-center gap-3 mb-3">
-            <div class="rounded-3 p-2 bg-warning bg-opacity-20 text-warning"><i class="bi bi-traffic-light fs-4"></i></div>
-            <h3 class="h5 fw-bold mb-0">Semáforo Financeiro</h3>
-          </div>
-          <p class="text-secondary mb-0">Visualize rapidamente a saúde financeira dos seus produtos com indicadores verde, amarelo e vermelho.</p>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="bg-card p-4 rounded-4 h-100">
-          <div class="d-flex align-items-center gap-3 mb-3">
-            <div class="rounded-3 p-2 bg-primary bg-opacity-20 text-blue"><i class="bi bi-graph-up-arrow fs-4"></i></div>
-            <h3 class="h5 fw-bold mb-0">Métricas Intuitivas</h3>
-          </div>
-          <p class="text-secondary mb-0">ROI, LTV e CPA apresentados em gráficos simples e fáceis de entender.</p>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="bg-card p-4 rounded-4 h-100">
-          <div class="d-flex align-items-center gap-3 mb-3">
-            <div class="rounded-3 p-2 bg-success bg-opacity-20 text-green"><i class="bi bi-box-seam fs-4"></i></div>
-            <h3 class="h5 fw-bold mb-0">Catálogo Inteligente</h3>
-          </div>
-          <p class="text-secondary mb-0">Produtos recomendados com base no seu perfil, com filtros e divulgação automática.</p>
-        </div>
-      </div>
-      <div class="col-md-6">
-        <div class="bg-card p-4 rounded-4 h-100">
-          <div class="d-flex align-items-center gap-3 mb-3">
-            <div class="rounded-3 p-2 bg-primary bg-opacity-20 text-blue"><i class="bi bi-envelope fs-4"></i></div>
-            <h3 class="h5 fw-bold mb-0">Remarketing Inteligente</h3>
-          </div>
-          <p class="text-secondary mb-0">Recupere leads não convertidos entendendo os motivos de abandono e enviando ofertas personalizadas.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Prova Social -->
-  <section class="container my-5">
-    <div class="bg-card p-5 rounded-4 text-center mx-auto" style="max-width: 800px;">
-      <p class="fs-4 italic text-light mb-4">"Antes eu perdia horas analisando dados. Agora, em 5 minutos sei onde focar."</p>
-      <div class="d-flex align-items-center justify-content-center gap-3">
-        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 45px; height: 45px;">J</div>
-        <div class="text-start">
-          <h6 class="mb-0 fw-bold">João</h6>
-          <small class="text-secondary">Afiliado iniciante</small>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- CTA Final -->
-  <section class="container my-5">
-    <div class="cta-banner p-5 rounded-4 text-center text-white">
-      <h2 class="fw-bold fs-1 mb-4">Pronto para simplificar suas vendas?</h2>
-      <a href="{% url 'login' %}" class="btn btn-dark btn-lg px-5 rounded-3 fw-bold">Testar grátis</a>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="border-top border-secondary py-5 mt-5">
+  <section id="recursos" class="landing-section">
     <div class="container">
-      <div class="row g-4">
-        <div class="col-md-3">
-          <h5 class="fw-bold mb-3">Afillimetrics</h5>
-          <p class="text-secondary small">Simplifique seu marketing de afiliados.</p>
-        </div>
-        <div class="col-md-3">
-          <h6 class="fw-bold mb-3">Produto</h6>
-          <ul class="list-unstyled text-secondary small">
-            <li><a href="#" class="text-decoration-none text-secondary">Funcionalidades</a></li>
-            <li><a href="#" class="text-decoration-none text-secondary">Preços</a></li>
-          </ul>
-        </div>
-        <div class="col-md-3">
-          <h6 class="fw-bold mb-3">Empresa</h6>
-          <ul class="list-unstyled text-secondary small">
-            <li><a href="#" class="text-decoration-none text-secondary">Sobre</a></li>
-            <li><a href="#" class="text-decoration-none text-secondary">Contato</a></li>
-          </ul>
-        </div>
-        <div class="col-md-3">
-          <h6 class="fw-bold mb-3">Legal</h6>
-          <ul class="list-unstyled text-secondary small">
-            <li><a href="#" class="text-decoration-none text-secondary">Privacidade</a></li>
-            <li><a href="#" class="text-decoration-none text-secondary">Termos</a></li>
-          </ul>
-        </div>
+      <div class="text-center mx-auto mb-5" style="max-width:700px">
+        <span class="landing-kicker">Recursos disponíveis</span>
+        <h2 class="display-6 fw-bold mt-3 mb-3" style="letter-spacing:-.045em">Ferramentas conectadas ao que você já faz</h2>
+        <p class="text-secondary mb-0">A interface apresenta as funcionalidades que estão ligadas à operação atual da Skallora.</p>
       </div>
-      <hr class="my-4 border-secondary">
-      <p class="text-center text-secondary small mb-0">&copy; {% now "Y" %} Afillimetrics. Todos os direitos reservados.</p>
+      <div class="row g-3">
+        <div class="col-md-6 col-xl-4"><article class="landing-card"><span class="landing-icon"><i class="bi bi-radar"></i></span><h3 class="h5 fw-bold">Coleta Geral</h3><p class="text-secondary mb-3">Selecione categorias nativas ou palavras-chave personalizadas e acompanhe o estado da coleta.</p><a href="{% url 'coleta_geral' %}" class="landing-card-link">Conhecer a coleta <i class="bi bi-arrow-up-right ms-1"></i></a></article></div>
+        <div class="col-md-6 col-xl-4"><article class="landing-card"><span class="landing-icon"><i class="bi bi-fire"></i></span><h3 class="h5 fw-bold">Produtos Quentes</h3><p class="text-secondary mb-3">Consulte o ranking calculado a partir dos produtos registrados, seus preços e outros sinais disponíveis.</p><a href="{% url 'produtos_quentes' %}" class="landing-card-link">Ver o ranking <i class="bi bi-arrow-up-right ms-1"></i></a></article></div>
+        <div class="col-md-6 col-xl-4"><article class="landing-card"><span class="landing-icon"><i class="bi bi-chat-square-text"></i></span><h3 class="h5 fw-bold">Templates de oferta</h3><p class="text-secondary mb-3">Organize chamadas por categoria e palavra-chave para uso nos fluxos de divulgação.</p><a href="{% url 'templates_oferta' %}" class="landing-card-link">Ver templates <i class="bi bi-arrow-up-right ms-1"></i></a></article></div>
+        <div class="col-md-6 col-xl-4"><article class="landing-card"><span class="landing-icon"><i class="bi bi-thermometer-half"></i></span><h3 class="h5 fw-bold">Termômetro de Oportunidade</h3><p class="text-secondary mb-0">Veja uma estimativa geral ou personalize a leitura por categoria. Os horários são heurísticos, não previsões garantidas.</p></article></div>
+        <div class="col-md-6 col-xl-4"><article class="landing-card"><span class="landing-icon"><i class="bi bi-megaphone"></i></span><h3 class="h5 fw-bold">Canais de divulgação</h3><p class="text-secondary mb-3">Configure os canais disponíveis, acompanhe alertas e diferencie falhas de divulgação da coleta.</p><a href="{% url 'configuracoes' %}" class="landing-card-link">Configurar canais <i class="bi bi-arrow-up-right ms-1"></i></a></article></div>
+        <div class="col-md-6 col-xl-4"><article class="landing-card"><span class="landing-icon"><i class="bi bi-shop"></i></span><h3 class="h5 fw-bold">Central Magalu</h3><p class="text-secondary mb-0">Acesse o fluxo de coleta implementado para o Magalu. Outros marketplaces continuam identificados como integrações futuras.</p></article></div>
+      </div>
     </div>
-  </footer>
+  </section>
 
-  <!-- Bootstrap Bundle JS -->
+  <section id="fluxo" class="py-5">
+    <div class="container">
+      <div class="landing-cta p-4 p-md-5 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
+        <div><div class="text-white-50 small text-uppercase fw-bold mb-2" style="letter-spacing:.12em">Próximo passo</div><h2 class="h2 fw-bold mb-2">Organize sua rotina de afiliado.</h2><p class="mb-0 text-white-50">Comece pelos recursos disponíveis e configure o restante conforme sua operação.</p></div>
+        <div class="d-flex flex-wrap gap-2">{% if user.is_authenticated %}<a href="{% url 'home' %}" class="btn btn-lg rounded-3 px-4">Abrir painel</a>{% else %}<a href="{% url 'cadastro' %}" class="btn btn-lg rounded-3 px-4">Criar conta</a><a href="{% url 'login' %}" class="btn btn-outline-light btn-lg rounded-3 px-4">Entrar</a>{% endif %}</div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="landing-footer py-4 mt-4"><div class="container d-flex flex-wrap align-items-center justify-content-between gap-2"><a href="{% url 'index' %}" class="landing-brand-footer text-decoration-none fw-bold"><i class="bi bi-graph-up-arrow me-2"></i>Skallora</a><small>© {% now "Y" %} Skallora. Ferramentas de apoio para operações de afiliados.</small></div></footer>
+  <style>
+    .landing-mini-icon{width:35px;height:35px;display:grid;place-items:center;border-radius:10px;background:#f1f5fb;font-size:1rem;flex:0 0 35px}.landing-card-link{color:#2563eb;text-decoration:none;font-weight:750;font-size:.84rem}.landing-card-link:hover{text-decoration:underline}.landing-brand-footer{color:#172033}.landing-page .navbar-toggler{border-color:#d6deeb}.landing-page .navbar-toggler:focus{box-shadow:0 0 0 .2rem rgba(37,99,235,.15)}
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{% static 'core/ui-loader.js' %}"></script>
+  <script src="{% static 'core/ui-loader.js' %}"></script>
 </body>
 </html>
