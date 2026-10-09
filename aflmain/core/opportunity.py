@@ -18,6 +18,8 @@ class OpportunityReading:
     timezone_name: str
     local_time: datetime
     reason: str
+    categoria: str | None = None
+    melhor_horario: str = ""
 
 
 # Faixas iniciais/simbólicas. score = 0 (frio) ... 100 (quente).
@@ -32,6 +34,24 @@ _TIME_BANDS = (
     (23, 24, 46, "Atividade em redução"),
 )
 
+# Heurística inicial por categoria nativa. Ela não finge ter dados de vendas
+# que o banco ainda não possui: representa os horários mais favoráveis para
+# cada nicho e pode ser substituída futuramente por histórico real.
+_CATEGORY_SCHEDULES = {
+    "cozinha": ((7, 9), (11, 13), (18, 21)),
+    "quarto": ((9, 11), (19, 23)),
+    "sala": ((12, 14), (19, 23)),
+    "banheiro": ((7, 9), (18, 21)),
+    "acessórios": ((8, 10), (12, 14), (19, 22)),
+}
+
+
+def _melhor_janela(categoria):
+    janelas = _CATEGORY_SCHEDULES.get((categoria or "").strip().casefold())
+    if not janelas:
+        return ""
+    return " · ".join(f"{inicio:02d}h–{fim:02d}h" for inicio, fim in janelas)
+
 
 def _label(score):
     if score >= 85:
@@ -45,7 +65,7 @@ def _label(score):
     return "Frio"
 
 
-def calcular_oportunidade(timezone_name, now=None):
+def calcular_oportunidade(timezone_name, categoria=None, now=None):
     tz_name = (timezone_name or "America/Sao_Paulo").strip()
     try:
         tz = ZoneInfo(tz_name)
@@ -58,16 +78,34 @@ def calcular_oportunidade(timezone_name, now=None):
         base = timezone.make_aware(base, datetime_timezone.utc)
     local = base.astimezone(tz)
 
+    categoria_normalizada = (categoria or "").strip().casefold()
     score, reason = 35, "Faixa intermediária"
-    for start, end, band_score, band_reason in _TIME_BANDS:
-        if start <= local.hour < end:
-            score, reason = band_score, band_reason
-            break
+
+    if categoria_normalizada in _CATEGORY_SCHEDULES:
+        janelas = _CATEGORY_SCHEDULES[categoria_normalizada]
+        if any(inicio <= local.hour < fim for inicio, fim in janelas):
+            score, reason = 96, f"Horário favorável para {categoria}"
+        else:
+            # Mantém uma leitura gradual fora da janela principal, em vez de
+            # zerar o termômetro. O objetivo é indicar interesse, não bloquear coleta.
+            distancia = min(
+                min(abs(local.hour - inicio), abs(local.hour - fim))
+                for inicio, fim in janelas
+            )
+            score = max(30, 78 - (distancia * 9))
+            reason = f"Fora da janela principal de {categoria}"
+    else:
+        for start, end, band_score, band_reason in _TIME_BANDS:
+            if start <= local.hour < end:
+                score, reason = band_score, band_reason
+                break
 
     return OpportunityReading(
-        score=score,
-        label=_label(score),
+        score=int(score),
+        label=_label(int(score)),
         timezone_name=tz_name,
         local_time=local,
         reason=reason,
+        categoria=categoria or None,
+        melhor_horario=_melhor_janela(categoria),
     )

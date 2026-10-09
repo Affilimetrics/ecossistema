@@ -1,5 +1,6 @@
 from django.test import TestCase
 from .models import Produto, Afiliado, Execucao, Oferta
+from .services import obter_produto_chefe_usuario
 from .services import criar_oferta
 
 
@@ -130,3 +131,62 @@ class TemplateCompatibilityTests(TestCase):
             "banheiro",
         )
         self.assertTrue(compativel)
+
+
+class ProdutoChefeTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        self.User = get_user_model()
+        self.owner = self.User.objects.create_user(username="chefe-owner", password="x")
+        self.outro = self.User.objects.create_user(username="chefe-outro", password="x")
+
+    def test_calcula_desconto_porcentagem(self):
+        produto = Produto.objects.create(
+            owner=self.owner,
+            categoria="cozinha",
+            nome="Air Fryer",
+            url_produto="https://example.com/air-fryer",
+            preco_anterior="400.00",
+            preco_atual="300.00",
+        )
+        self.assertEqual(produto.calcular_desconto_porcentagem(), 25)
+
+    def test_score_chefe_prioriza_desconto_e_comissao_no_afiliado(self):
+        produto = Produto.objects.create(
+            owner=self.owner,
+            categoria="cozinha",
+            nome="Produto Chefe",
+            url_produto="https://example.com/produto-chefe",
+            preco_anterior="500.00",
+            preco_atual="400.00",
+            comissao_porcentagem="10.00",
+        )
+        self.assertEqual(produto.score_chefe(), 16)
+        self.assertIn("Comissão alta", produto.obter_motivo_chefe())
+
+    def test_obter_produto_chefe_respeita_owner(self):
+        chefe = Produto.objects.create(
+            owner=self.owner, categoria="casa", nome="Chefe",
+            url_produto="https://example.com/chefe", preco_anterior="200",
+            preco_atual="100", comissao_porcentagem="10",
+        )
+        outro = Produto.objects.create(
+            owner=self.outro, categoria="casa", nome="Outro",
+            url_produto="https://example.com/outro", preco_anterior="1000",
+            preco_atual="100", comissao_porcentagem="20",
+        )
+        Afiliado.objects.create(produto=chefe, link_afiliado="https://example.com/afiliado-chefe")
+        Afiliado.objects.create(produto=outro, link_afiliado="https://example.com/afiliado-outro")
+
+        resultado = obter_produto_chefe_usuario(self.owner)
+        self.assertEqual(resultado.pk, chefe.pk)
+        self.assertNotEqual(resultado.pk, outro.pk)
+
+    def test_score_futuro_prioriza_vendas_e_lucro(self):
+        produto = Produto.objects.create(
+            owner=self.owner, categoria="casa", nome="Produto Futuro",
+            url_produto="https://example.com/futuro", vendas_count=80,
+            lucro_estimado="1000.00", comissao_porcentagem="50.00",
+        )
+        self.assertEqual(produto.score_chefe(), 52)
+        self.assertIn("vendas", produto.obter_motivo_chefe().lower())

@@ -1,5 +1,6 @@
 import re
 import time
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from urllib.parse import urlparse
 
 from selenium.webdriver.common.by import By
@@ -363,6 +364,119 @@ def _capturar_imagem(driver):
         return ""
 
 
+def _normalizar_percentual(valor):
+    if valor in (None, ""):
+        return Decimal("0.00")
+    texto = str(valor).strip().replace("%", "").replace(" ", "")
+    texto = texto.replace(".", "").replace(",", ".") if texto.count(",") == 1 else texto.replace(",", ".")
+    try:
+        percentual = Decimal(texto)
+    except (InvalidOperation, ValueError):
+        return Decimal("0.00")
+    if percentual < 0 or percentual > 100:
+        return Decimal("0.00")
+    return percentual.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _normalizar_valor_monetario(valor):
+    if valor in (None, ""):
+        return None
+    texto = str(valor).strip().replace("R$", "").replace(" ", "")
+    if "," in texto:
+        texto = texto.replace(".", "").replace(",", ".")
+    try:
+        return Decimal(texto).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _extrair_comissao_texto(texto):
+    """Extrai comissão de textos do modal/página sem depender de um seletor fixo."""
+    if not texto:
+        return Decimal("0.00"), None
+
+    texto = re.sub(r"\s+", " ", str(texto))
+    rotulo = re.compile(r"(?:comiss(?:ão|ao)|commission)", re.IGNORECASE)
+    percentual_regex = re.compile(r"([0-9]+(?:[.,][0-9]{1,2})?)\s*%")
+    valor_regex = re.compile(r"R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*(?:,[0-9]{2})|[0-9]+(?:,[0-9]{2})?)")
+
+    for match_rotulo in rotulo.finditer(texto):
+        trecho = texto[match_rotulo.start():min(len(texto), match_rotulo.end() + 140)]
+        match_percentual = percentual_regex.search(trecho)
+        if not match_percentual:
+            continue
+        percentual = _normalizar_percentual(match_percentual.group(1))
+        if percentual <= 0:
+            continue
+        valor_match = valor_regex.search(trecho)
+        valor = _normalizar_valor_monetario(valor_match.group(1)) if valor_match else None
+        return percentual, valor
+
+    # Também aceita layouts que exibem a porcentagem antes do rótulo.
+    for match_percentual in percentual_regex.finditer(texto):
+        trecho = texto[match_percentual.start():min(len(texto), match_percentual.end() + 80)]
+        if rotulo.search(trecho):
+            percentual = _normalizar_percentual(match_percentual.group(1))
+            valor_match = valor_regex.search(trecho)
+            valor = _normalizar_valor_monetario(valor_match.group(1)) if valor_match else None
+            return percentual, valor
+
+    return Decimal("0.00"), None
+
+
+def _capturar_comissao(driver, preco_atual=None):
+    """Captura a comissão exibida pelo Magalu, com fallback seguro para 0%.
+
+    A interface do marketplace pode mudar; por isso a extração prioriza textos
+    de modais visíveis e atributos que contenham 'comissao/commission', em vez
+    de depender de um único seletor frágil. Nenhuma credencial é registrada.
+    """
+    textos = []
+    try:
+        modais = driver.find_elements(By.CSS_SELECTOR, '[role="dialog"], [aria-modal="true"], [data-testid*="modal"], [data-testid*="dialog"]')
+        for modal in modais:
+            try:
+                if modal.is_displayed():
+                    texto = (modal.text or "").strip()
+                    if texto:
+                        textos.append(texto)
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    try:
+        for elemento in driver.find_elements(By.CSS_SELECTOR, '[data-testid*="comiss"], [data-testid*="commission"], [class*="comiss"], [class*="commission"], [aria-label*="comiss"], [aria-label*="commission"]'):
+            try:
+                if elemento.is_displayed():
+                    texto = (elemento.text or elemento.get_attribute("aria-label") or "").strip()
+                    if texto:
+                        textos.append(texto)
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    try:
+        body = driver.find_element(By.TAG_NAME, "body").text
+        if body:
+            textos.append(body)
+    except Exception:
+        pass
+
+    for texto in textos:
+        percentual, valor = _extrair_comissao_texto(texto)
+        if percentual > 0 or valor is not None:
+            if valor is None and percentual > 0 and preco_atual is not None:
+                try:
+                    valor = (Decimal(str(preco_atual).replace("R$", "").replace(".", "").replace(",", ".")) * percentual / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                except (InvalidOperation, ValueError):
+                    valor = None
+            return percentual, valor or Decimal("0.00")
+
+    return Decimal("0.00"), Decimal("0.00")
+
+
 def _tentativa_gerar_link(driver, url_produto, tentativa):
     """Executa uma tentativa completa: abrir, aguardar, clicar e capturar."""
     log_info(f"Tentativa {tentativa}/{MAX_TENTATIVAS_AFILIADO} para gerar link: {url_produto}")
@@ -390,18 +504,20 @@ def _tentativa_gerar_link(driver, url_produto, tentativa):
     try:
         link = _capturar_link_apos_clique(driver, links_antes)
         if validar_link_afiliado(link):
+            comissao_porcentagem, comissao_valor = _capturar_comissao(driver, preco_atual)
             log_ok(f"Link de afiliado obtido na tentativa {tentativa}: {link}")
+            log_info(f"Comissão capturada: {comissao_porcentagem}%")
             _fechar_modal(driver)
-            return link, preco_anterior, preco_atual, imagem_url, nome_produto, None
+            return link, preco_anterior, preco_atual, imagem_url, nome_produto, comissao_porcentagem, comissao_valor, None
     except Exception as erro:
         diagnostico = _diagnostico_falha(driver, url_produto, tentativa)
         log_revisar(f"Captura falhou na tentativa {tentativa}: {erro} | {diagnostico}")
         _fechar_modal(driver)
-        return None, preco_anterior, preco_atual, str(erro)
+        return None, preco_anterior, preco_atual, imagem_url, nome_produto, Decimal("0.00"), Decimal("0.00"), str(erro)
 
     diagnostico = _diagnostico_falha(driver, url_produto, tentativa)
     _fechar_modal(driver)
-    return None, preco_anterior, preco_atual, imagem_url, nome_produto, diagnostico
+    return None, preco_anterior, preco_atual, imagem_url, nome_produto, Decimal("0.00"), Decimal("0.00"), diagnostico
 
 
 def gerar_link_afiliado(driver, wait, url_produto):
@@ -422,12 +538,15 @@ def gerar_link_afiliado(driver, wait, url_produto):
     erros = []
     imagem_final = ""
     nome_final = ""
+    comissao_porcentagem_final = Decimal("0.00")
+    comissao_valor_final = Decimal("0.00")
 
     for tentativa in range(1, MAX_TENTATIVAS_AFILIADO + 1):
         try:
-            link, preco_ant, preco_atual_tentativa, imagem_url, nome_produto, erro = _tentativa_gerar_link(
-                driver, url_produto, tentativa
-            )
+            (
+                link, preco_ant, preco_atual_tentativa, imagem_url, nome_produto,
+                comissao_porcentagem_tentativa, comissao_valor_tentativa, erro,
+            ) = _tentativa_gerar_link(driver, url_produto, tentativa)
             if preco_ant:
                 preco_anterior = preco_ant
             if preco_atual_tentativa:
@@ -436,6 +555,10 @@ def gerar_link_afiliado(driver, wait, url_produto):
                 imagem_final = imagem_url
             if nome_produto:
                 nome_final = nome_produto
+            if comissao_porcentagem_tentativa is not None:
+                comissao_porcentagem_final = comissao_porcentagem_tentativa
+            if comissao_valor_tentativa is not None:
+                comissao_valor_final = comissao_valor_tentativa
 
             if link and validar_link_afiliado(link):
                 return {
@@ -444,6 +567,8 @@ def gerar_link_afiliado(driver, wait, url_produto):
                     "preco_atual": preco_atual,
                     "imagem_url": imagem_final,
                     "nome": nome_final,
+                    "comissao_porcentagem": comissao_porcentagem_final,
+                    "comissao_valor": comissao_valor_final,
                     "status": "OK",
                     "detalhes": f"Link obtido na tentativa {tentativa}.",
                 }
@@ -478,6 +603,8 @@ def gerar_link_afiliado(driver, wait, url_produto):
         "preco_atual": preco_atual,
         "imagem_url": imagem_final,
         "nome": nome_final,
+        "comissao_porcentagem": comissao_porcentagem_final,
+        "comissao_valor": comissao_valor_final,
         "status": "REVISAR",
         "detalhes": detalhes,
     }

@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from decimal import Decimal, ROUND_HALF_UP
 from .fields import EncryptedTextField
 
 
@@ -13,12 +14,74 @@ class Produto(models.Model):
     preco_anterior = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     preco_atual = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     imagem_url = models.URLField(max_length=3000, blank=True, default="")
+
+    # Indicadores atuais do ecossistema de afiliados.
+    comissao_porcentagem = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    comissao_valor = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
+    # Campos preparados para as próximas etapas da jornada: dropshipping e
+    # e-commerce com estoque. Permanecem neutros enquanto essas fases não
+    # estiverem ativas no produto.
+    vendas_count = models.PositiveIntegerField(default=0)
+    lucro_estimado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-atualizado_em"]
         constraints = [models.UniqueConstraint(fields=["owner", "url_produto"], name="uniq_produto_por_owner_url")]
+
+    def calcular_desconto_porcentagem(self):
+        """Retorna o desconto percentual atual, limitado a zero quando não há queda."""
+        if self.preco_anterior is None or self.preco_atual is None:
+            return Decimal("0.00")
+        if self.preco_anterior <= 0 or self.preco_atual >= self.preco_anterior:
+            return Decimal("0.00")
+        desconto = ((self.preco_anterior - self.preco_atual) / self.preco_anterior) * Decimal("100")
+        return desconto.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def score_chefe(self):
+        """Calcula um score extensível para eleger o Produto Chefe.
+
+        Enquanto o produto estiver na fase de afiliado (sem métricas de vendas
+        ou lucro), desconto e comissão recebem pesos de 60/40. Quando as fases
+        futuras começarem a alimentar vendas/lucro, esses indicadores passam a
+        ter prioridade, normalizados para manter o score em uma faixa previsível.
+        """
+        vendas = int(self.vendas_count or 0)
+        lucro = Decimal(self.lucro_estimado or 0)
+
+        if vendas > 0 or lucro > 0:
+            vendas_score = min(Decimal(vendas), Decimal("100"))
+            lucro_score = min(max(lucro, Decimal("0")), Decimal("10000")) / Decimal("100")
+            score = (vendas_score * Decimal("0.60")) + (lucro_score * Decimal("0.40"))
+        else:
+            desconto = self.calcular_desconto_porcentagem()
+            comissao = max(Decimal(self.comissao_porcentagem or 0), Decimal("0"))
+            score = (desconto * Decimal("0.60")) + (comissao * Decimal("0.40"))
+
+        return score.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    def obter_motivo_chefe(self):
+        """Retorna uma justificativa curta e compreensível para o destaque."""
+        desconto = self.calcular_desconto_porcentagem()
+        comissao = Decimal(self.comissao_porcentagem or 0)
+
+        if self.vendas_count or self.lucro_estimado:
+            if self.vendas_count and self.lucro_estimado:
+                return "Bom histórico de vendas e lucro estimado."
+            if self.vendas_count:
+                return "Bom histórico de vendas."
+            return "Maior potencial de lucro estimado entre os produtos."
+
+        if desconto > 0 and comissao > 0:
+            return "Comissão alta e desconto promocional bom."
+        if desconto > 0:
+            return "Desconto promocional bom."
+        if comissao > 0:
+            return "Comissão de afiliado atrativa."
+        return "Melhor oportunidade disponível com os dados atuais."
 
     def __str__(self):
         return self.nome or self.url_produto

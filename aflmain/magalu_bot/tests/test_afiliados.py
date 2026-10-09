@@ -20,3 +20,17 @@ class AfiliadosTests(unittest.TestCase):
     def test_rejeita_url_nao_permitida(self):
         texto = "https://example.com/abc https://www.magazinevoce.com.br/loja"
         self.assertEqual(extrair_links_validos_de_texto(texto), [])
+
+
+class ComissaoParsingTests(unittest.TestCase):
+    def test_extrai_comissao_percentual(self):
+        from magalu_bot.automacao.afiliados import _extrair_comissao_texto
+        percentual, valor = _extrair_comissao_texto("Comissão: 12,50%")
+        self.assertEqual(percentual, 12.50)
+        self.assertIsNone(valor)
+
+    def test_fallback_seguro_quando_comissao_nao_existe(self):
+        from magalu_bot.automacao.afiliados import _extrair_comissao_texto
+        percentual, valor = _extrair_comissao_texto("Link gerado com sucesso")
+        self.assertEqual(percentual, 0)
+        self.assertIsNone(valor)
