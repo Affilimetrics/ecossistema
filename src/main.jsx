@@ -47,7 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/" element={<SignInSide />} />
           <Route element={<DashboardLayout />}>
             <Route path="/dashboardv2" element={<DashboardPage />} />
-            <Route path="/produtos-quentes" element={<HotProductsPage />} />
+            <Route path="/hot-products" element={<HotProductsPage />} />
             <Route path="/coleta-geral" element={<ColetaGeralPage />} />
           </Route>
           <Route path="/sign-up" element={<SignUp />} />

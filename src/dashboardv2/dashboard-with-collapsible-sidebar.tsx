@@ -140,7 +140,7 @@ export const Sidebar = () => {
         <Option Icon={DollarSign} title="Vendas" selected={selected} setSelected={setSelected} open={open} notifs={3} />
         <Option Icon={Monitor} title="Ver site" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} />
-        <Option Icon={Flame} title="Produtos Quentes" selected={selected} setSelected={setSelected} open={open} path="/produtos-quentes" />
+        <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={open} path="/hot-products" />
         <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
         <Option Icon={Tag} title="Tags" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} />
@@ -211,7 +211,7 @@ const TitleSection = ({ open }: TitleSectionProps) => {
               <div className="flex items-center gap-2">
                 <div>
                   <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    TomIsLoading
+                    Scallora
                   </span>
                   <span className="block text-xs text-gray-500 dark:text-gray-400">
                     Plano Pro

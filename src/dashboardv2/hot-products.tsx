@@ -149,7 +149,7 @@ const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
       <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Produtos Quentes
+            Produtos Em Alta
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Ranking para reforço/repotagem. É recalculado automaticamente a cada
@@ -240,7 +240,7 @@ const HotProductsContent = ({ isDark, setIsDark }: HotProductsContentProps) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatCard
           Icon={Flame}
-          label="Produtos quentes"
+          label="Produtos Em Alta"
           value={filtered.length.toString()}
           hint="na categoria selecionada"
           color="orange"
