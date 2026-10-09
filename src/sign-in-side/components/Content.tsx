@@ -45,11 +45,11 @@ export default function Content() {
           variant="h5"
           sx={{ fontWeight: 700, letterSpacing: '-0.02em' }}
         >
-          A
+          S
           <Box component="span" sx={{ color: '#00D3AB' }}>
-            ff
+            ca
           </Box>
-          limetrics
+          llora
         </Typography>
       </Box>
       {items.map((item, index) => (

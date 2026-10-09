@@ -107,11 +107,11 @@ export default function SignInCard() {
           variant="h5"
           sx={{ fontWeight: 700, letterSpacing: '-0.02em' }}
         >
-          A
+          S
           <Box component="span" sx={{ color: '#ffffff' }}>
-            ff
+            ca
           </Box>
-          limetrics
+          llora
         </Typography>
       </Box>
       <Typography
