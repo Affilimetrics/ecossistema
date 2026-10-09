@@ -17,7 +17,6 @@ import { styled } from '@mui/material/styles';
 import AppTheme from '../shared-theme/AppTheme';
 import ColorModeSelect from '../shared-theme/ColorModeSelect';
 import { GoogleIcon, SitemarkIcon } from './components/CustomIcons';
-import { FloatingPathsBackground } from '../components/ui/floating-paths';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -114,7 +113,6 @@ export default function SignUp(props) {
       <CssBaseline enableColorScheme />
       <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
       <SignUpContainer direction="column" sx={{ justifyContent: 'space-between' }}>
-        <FloatingPathsBackground position={-1} />
         <Card variant="outlined">
           <SitemarkIcon />
           <Typography
