@@ -32,10 +32,20 @@ import {
   CheckCircle2,
   Flame,
   Radar,
+  Target,
+  Percent,
 } from "lucide-react";
-import { Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
-import { motion, AnimatePresence } from "framer-motion";
-import { DonutChart, DonutChartSegment } from "../components/ui/donut-chart";
+import {
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+} from "recharts";
+import { motion } from "framer-motion";
+import RemarketingPage from "./remarketing";
 
 /* ============================================================
    TIPOS
@@ -70,6 +80,33 @@ interface DashboardShellProps {
   isDark: boolean;
   setIsDark: Dispatch<SetStateAction<boolean>>;
 }
+
+/* ============================================================
+   CATEGORIAS (filtro global)
+   ============================================================ */
+
+const CATEGORIES = [
+  "Todas",
+  "Eletrônicos",
+  "Casa e Cozinha",
+  "Moda",
+  "Esportes",
+  "Livros",
+  "Brinquedos",
+] as const;
+
+type Category = (typeof CATEGORIES)[number];
+
+/* Fator multiplicador por categoria (simula variação dos dados) */
+const categoryMultiplier: Record<Category, number> = {
+  Todas: 1,
+  Eletrônicos: 1.15,
+  "Casa e Cozinha": 0.85,
+  Moda: 0.72,
+  Esportes: 0.6,
+  Livros: 0.4,
+  Brinquedos: 0.32,
+};
 
 /* ============================================================
    DASHBOARD SHELL
@@ -144,6 +181,7 @@ export const Sidebar = () => {
         <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
         <Option Icon={Tag} title="Tags" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} />
+        <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={open} path="/remarketing" />
         <Option Icon={Users} title="Membros" selected={selected} setSelected={setSelected} open={open} notifs={12} />
       </div>
 
@@ -263,239 +301,222 @@ const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
 };
 
 /* ============================================================
+   COMPONENTE DE FILTRO POR CATEGORIA
+   ============================================================ */
+
+interface CategoryFilterProps {
+  value: Category;
+  onChange: (c: Category) => void;
+}
+
+const CategoryFilter = ({ value, onChange }: CategoryFilterProps) => {
+  return (
+    <div className="flex items-center gap-2">
+      <Tag className="h-3.5 w-3.5 text-gray-400" />
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as Category)}
+        className="text-xs font-medium bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors cursor-pointer"
+      >
+        {CATEGORIES.map((cat) => (
+          <option key={cat} value={cat}>
+            {cat}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+/* ============================================================
    DADOS DOS GRÁFICOS
    ============================================================ */
 
-const platformData = [
-  { date: "2024-04-01", receita: 8.2 },
-  { date: "2024-04-02", receita: 4.5 },
-  { date: "2024-04-03", receita: 6.8 },
-  { date: "2024-04-04", receita: 9.1 },
-  { date: "2024-04-05", receita: 11.2 },
-  { date: "2024-04-06", receita: 2.8 },
-  { date: "2024-04-07", receita: 9.8 },
-  { date: "2024-04-08", receita: 12.1 },
-  { date: "2024-04-09", receita: 3.8 },
-  { date: "2024-04-10", receita: 7.2 },
-  { date: "2024-04-11", receita: 8.5 },
-  { date: "2024-04-12", receita: 13.8 },
-  { date: "2024-04-13", receita: 8.2 },
-  { date: "2024-04-14", receita: 3.1 },
-  { date: "2024-04-15", receita: 5.1 },
-  { date: "2024-04-16", receita: 7.5 },
-  { date: "2024-04-17", receita: 17.2 },
-  { date: "2024-04-18", receita: 12.9 },
+/**
+ * ROI diário (em %) — dados de demonstração.
+ */
+const roiData = [
+  { date: "2024-04-01", roi: 42 },
+  { date: "2024-04-02", roi: 28 },
+  { date: "2024-04-03", roi: 55 },
+  { date: "2024-04-04", roi: 61 },
+  { date: "2024-04-05", roi: 74 },
+  { date: "2024-04-06", roi: 18 },
+  { date: "2024-04-07", roi: 66 },
+  { date: "2024-04-08", roi: 82 },
+  { date: "2024-04-09", roi: 35 },
+  { date: "2024-04-10", roi: 58 },
+  { date: "2024-04-11", roi: 71 },
+  { date: "2024-04-12", roi: 96 },
+  { date: "2024-04-13", roi: 63 },
+  { date: "2024-04-14", roi: 22 },
+  { date: "2024-04-15", roi: 40 },
+  { date: "2024-04-16", roi: 59 },
+  { date: "2024-04-17", roi: 118 },
+  { date: "2024-04-18", roi: 87 },
 ];
 
-const chartColor = "#84cc16";
+const roiColor = "#06b6d4";
 
 interface TooltipProps {
   active?: boolean;
   payload?: Array<{ dataKey: string; value: number; color: string }>;
 }
 
-const CustomTooltip = ({ active, payload }: TooltipProps) => {
+const ROITooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     const entry = payload[0];
+    const positive = entry.value >= 0;
     return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[120px]">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[140px]">
         <div className="flex items-center gap-2 text-sm">
           <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-gray-500 dark:text-gray-400">Receita:</span>
-          <span className="font-semibold text-gray-900 dark:text-gray-100">
-            R${entry.value.toFixed(2)}k
+          <span className="text-gray-500 dark:text-gray-400">ROI:</span>
+          <span
+            className={`font-semibold ${
+              positive
+                ? "text-green-600 dark:text-green-400"
+                : "text-red-600 dark:text-red-400"
+            }`}
+          >
+            {positive ? "+" : ""}
+            {entry.value.toFixed(1)}%
           </span>
         </div>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+          (receita − investimento) ÷ investimento
+        </p>
       </div>
     );
   }
   return null;
 };
 
-const RevenueChart = () => {
-  return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden h-full flex flex-col">
-      <div className="px-6 pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Receita ao longo do tempo</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Últimos 18 dias (fictício)</p>
-      </div>
-
-      <div className="px-2.5 py-6 flex-1">
-        <div className="h-72 w-full overflow-visible">
-          <LineChart
-            data={platformData}
-            margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-            style={{ width: "100%", height: "100%" }}
-          >
-            <defs>
-              <filter id="lineShadow" x="-100%" y="-100%" width="300%" height="300%">
-                <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${chartColor}60`} />
-              </filter>
-              <filter id="dotShadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
-              </filter>
-            </defs>
-
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: "currentColor" }}
-              tickMargin={10}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
-              }}
-            />
-
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: "currentColor" }}
-              tickMargin={10}
-              tickCount={6}
-              tickFormatter={(value) => `R$${value}k`}
-            />
-
-            <RechartsTooltip
-              content={<CustomTooltip />}
-              cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
-            />
-
-            <Line
-              type="monotone"
-              dataKey="receita"
-              stroke={chartColor}
-              strokeWidth={2}
-              filter="url(#lineShadow)"
-              dot={false}
-              activeDot={{
-                r: 6,
-                fill: chartColor,
-                stroke: "white",
-                strokeWidth: 2,
-                filter: "url(#dotShadow)",
-              }}
-            />
-          </LineChart>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 /* ============================================================
-   GRÁFICO DE ROSCA
+   ROI (Retorno sobre Investimento)
    ============================================================ */
 
-const categoryData: DonutChartSegment[] = [
-  { value: 245, color: "#3b82f6", label: "Eletrônicos" },
-  { value: 180, color: "#22c55e", label: "Casa e Cozinha" },
-  { value: 120, color: "#f59e0b", label: "Moda" },
-  { value: 85, color: "#a855f7", label: "Esportes" },
-  { value: 60, color: "#ef4444", label: "Livros" },
-  { value: 45, color: "#06b6d4", label: "Brinquedos" },
-];
+const ROIChart = () => {
+  const [category, setCategory] = useState<Category>("Todas");
+  const multiplier = categoryMultiplier[category];
 
-const CategoryDonutChart = () => {
-  const [hoveredSegment, setHoveredSegment] = useState<DonutChartSegment | null>(null);
-
-  const totalValue = categoryData.reduce((sum, d) => sum + d.value, 0);
-
-  const activeSegment = hoveredSegment;
-  const displayValue = activeSegment?.value ?? totalValue;
-  const displayLabel = activeSegment?.label ?? "Total";
-  const displayPercentage = activeSegment
-    ? (activeSegment.value / totalValue) * 100
-    : 100;
+  const filteredData = roiData.map((d) => ({
+    ...d,
+    roi: +(d.roi * multiplier).toFixed(1),
+  }));
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden h-full flex flex-col">
-      <div className="px-6 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-6 pt-6 flex items-start justify-between gap-4 shrink-0">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Links por categoria
+            ROI — Retorno sobre Investimento
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Categorias predefinidas + palavras-chave em Outros.
+            Últimos 18 dias · {category}
           </p>
         </div>
-        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-          <Tag className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <CategoryFilter value={category} onChange={setCategory} />
+      </div>
+
+      <div className="px-2.5 py-6 flex-1 min-h-0">
+        <div className="h-full w-full min-h-[288px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={filteredData}
+              margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
+            >
+              <defs>
+                <filter id="roiLineShadow" x="-100%" y="-100%" width="300%" height="300%">
+                  <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${roiColor}60`} />
+                </filter>
+                <filter id="roiDotShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
+                </filter>
+              </defs>
+
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "currentColor" }}
+                tickMargin={10}
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
+                }}
+              />
+
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "currentColor" }}
+                tickMargin={10}
+                tickCount={6}
+                tickFormatter={(value) => `${value}%`}
+              />
+
+              <ReferenceLine
+                y={0}
+                stroke="#9ca3af"
+                strokeDasharray="4 4"
+                strokeOpacity={0.6}
+              />
+
+              <RechartsTooltip
+                content={<ROITooltip />}
+                cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
+              />
+
+              <Line
+                type="monotone"
+                dataKey="roi"
+                stroke={roiColor}
+                strokeWidth={2}
+                filter="url(#roiLineShadow)"
+                dot={false}
+                activeDot={{
+                  r: 6,
+                  fill: roiColor,
+                  stroke: "white",
+                  strokeWidth: 2,
+                  filter: "url(#roiDotShadow)",
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="p-6 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-        <div className="flex items-center justify-center">
-          <DonutChart
-            data={categoryData}
-            size={200}
-            strokeWidth={26}
-            animationDuration={1.2}
-            animationDelayPerSegment={0.05}
-            highlightOnHover={true}
-            onSegmentHover={setHoveredSegment}
-            centerContent={
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={displayLabel}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.2, ease: "circOut" }}
-                  className="flex flex-col items-center justify-center text-center"
-                >
-                  <p className="text-gray-500 dark:text-gray-400 text-[10px] font-medium truncate max-w-[90px]">
-                    {displayLabel}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {displayValue}
-                  </p>
-                  {activeSegment && (
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                      {displayPercentage.toFixed(1)}%
-                    </p>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            }
-          />
-        </div>
-
-        <div className="flex flex-col space-y-1 w-full">
-          {categoryData.map((segment, index) => (
-            <motion.div
-              key={segment.label}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.8 + index * 0.08, duration: 0.4 }}
-              onMouseEnter={() => setHoveredSegment(segment)}
-              onMouseLeave={() => setHoveredSegment(null)}
-              className={`flex items-center justify-between p-2 rounded-lg transition-all duration-200 cursor-pointer ${
-                hoveredSegment?.label === segment.label
-                  ? "bg-gray-100 dark:bg-gray-800"
-                  : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
-              }`}
-            >
-              <div className="flex items-center space-x-2 min-w-0">
-                <span
-                  className="h-2.5 w-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: segment.color }}
-                />
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
-                  {segment.label}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
-                  {segment.value}
-                </span>
-                <span className="text-[10px] text-gray-500 dark:text-gray-400 w-10 text-right">
-                  {((segment.value / totalValue) * 100).toFixed(1)}%
-                </span>
-              </div>
-            </motion.div>
-          ))}
+      <div className="px-6 pb-6 shrink-0">
+        <div className="grid grid-cols-3 gap-3 border-t border-gray-200 dark:border-gray-800 pt-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              ROI médio
+            </p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {(
+                filteredData.reduce((s, d) => s + d.roi, 0) / filteredData.length
+              ).toFixed(1)}
+              %
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Melhor dia
+            </p>
+            <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+              +{Math.max(...filteredData.map((d) => d.roi)).toFixed(1)}%
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Pior dia
+            </p>
+            <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+              {Math.min(...filteredData.map((d) => d.roi)).toFixed(1)}%
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -503,10 +524,397 @@ const CategoryDonutChart = () => {
 };
 
 /* ============================================================
-   GRÁFICOS DINÂMICOS
+   SAÚDE FINANCEIRA (recebe dados prontos da API Django)
    ============================================================ */
 
-type ChartType = "vendas" | "afiliados" | "pedidos" | "produtos";
+type HealthLevelKey =
+  | "critical"
+  | "warning"
+  | "healthy"
+  | "excellent"
+  | "insufficient";
+
+interface HealthFactor {
+  key: string;
+  label: string;
+  value: number | null;
+  hint?: string;
+}
+
+interface HealthInsight {
+  strongest: { key: string; label: string; value: number } | null;
+  weakest: { key: string; label: string; value: number } | null;
+  trendPercent: number | null;
+  goalProgressPercent: number | null;
+  recommendation: string | null;
+}
+
+interface FinancialHealthData {
+  score: number | null;
+  level: HealthLevelKey;
+  factors: HealthFactor[];
+  insight: HealthInsight;
+}
+
+interface FinancialThermometerProps {
+  data: FinancialHealthData;
+}
+
+interface HealthLevelStyle {
+  label: string;
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  description: string;
+}
+
+const HEALTH_LEVEL_STYLES: Record<HealthLevelKey, HealthLevelStyle> = {
+  critical: {
+    label: "Crítico",
+    color: "#ef4444",
+    badgeBg: "bg-red-500/10",
+    badgeText: "text-red-600 dark:text-red-400",
+    description: "Sua operação precisa de ajustes urgentes para gerar receita consistente.",
+  },
+  warning: {
+    label: "Atenção",
+    color: "#eab308",
+    badgeBg: "bg-yellow-500/10",
+    badgeText: "text-yellow-600 dark:text-yellow-400",
+    description: "Há progresso, mas ainda há gargalos que limitam seu resultado.",
+  },
+  healthy: {
+    label: "Saudável",
+    color: "#3b82f6",
+    badgeBg: "bg-blue-500/10",
+    badgeText: "text-blue-600 dark:text-blue-400",
+    description: "Sua operação está consistente e próxima do desempenho esperado.",
+  },
+  excellent: {
+    label: "Excelente",
+    color: "#22c55e",
+    badgeBg: "bg-green-500/10",
+    badgeText: "text-green-600 dark:text-green-400",
+    description: "Desempenho acima do esperado. Mantenha o ritmo e diversifique.",
+  },
+  insufficient: {
+    label: "Dados insuficientes",
+    color: "#64748b",
+    badgeBg: "bg-slate-500/10",
+    badgeText: "text-slate-600 dark:text-slate-400",
+    description:
+      "Cadastre metas e colete dados por pelo menos 14 dias para calcular a pontuação.",
+  },
+};
+
+interface HealthGaugeProps {
+  score: number | null;
+  levelColor: string;
+  size?: number;
+}
+
+const HealthGauge = ({ score, levelColor, size = 220 }: HealthGaugeProps) => {
+  const stroke = 16;
+  const radius = (size - stroke) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = Math.PI * radius;
+  const progress = score == null ? 0 : (score / 100) * circumference;
+
+  return (
+    <svg
+      width={size}
+      height={size / 1.7}
+      viewBox={`0 0 ${size} ${size / 1.7}`}
+      className="overflow-visible"
+      role="img"
+      aria-label={
+        score == null
+          ? "Saúde financeira: dados insuficientes"
+          : `Saúde financeira: ${score} de 100`
+      }
+    >
+      <defs>
+        <linearGradient id="gaugeTrack" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.35" />
+          <stop offset="25%" stopColor="#eab308" stopOpacity="0.35" />
+          <stop offset="55%" stopColor="#3b82f6" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#22c55e" stopOpacity="0.35" />
+        </linearGradient>
+        <linearGradient id="gaugeProgress" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={levelColor} stopOpacity="0.85" />
+          <stop offset="100%" stopColor={levelColor} stopOpacity="1" />
+        </linearGradient>
+        <filter id="gaugeGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <path
+        d={`M ${stroke / 2} ${cy} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${cy}`}
+        fill="none"
+        stroke="url(#gaugeTrack)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+      />
+
+      <motion.path
+        d={`M ${stroke / 2} ${cy} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${cy}`}
+        fill="none"
+        stroke="url(#gaugeProgress)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        filter={score != null ? "url(#gaugeGlow)" : undefined}
+        initial={{ strokeDasharray: `0 ${circumference}` }}
+        animate={{ strokeDasharray: `${progress} ${circumference}` }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
+      />
+
+      {score != null && (
+        <motion.circle
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 0.3 }}
+          r={stroke / 2 - 2}
+          className="fill-white dark:fill-slate-950"
+          stroke={levelColor}
+          strokeWidth={3}
+          style={{ filter: "drop-shadow(0 0 6px rgba(0,0,0,0.25))" }}
+          cx={cx + radius * Math.cos(Math.PI - Math.PI * (score / 100))}
+          cy={cy - radius * Math.sin(Math.PI - Math.PI * (score / 100))}
+        />
+      )}
+    </svg>
+  );
+};
+
+const FactorBar = ({ factor }: { factor: HealthFactor }) => {
+  const hasData = factor.value != null;
+  const value = factor.value ?? 0;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-gray-700 dark:text-slate-300">
+            {factor.label}
+          </span>
+          {factor.hint && (
+            <span
+              className="text-[10px] text-gray-400 dark:text-slate-500 cursor-help"
+              title={factor.hint}
+            >
+              ⓘ
+            </span>
+          )}
+        </div>
+        <span className="text-xs font-semibold text-gray-900 dark:text-slate-100">
+          {hasData ? `${Math.round(value)}%` : "—"}
+        </span>
+      </div>
+      <div className="w-full bg-gray-200 dark:bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+        {hasData ? (
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${value}%` }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="h-full rounded-full"
+            style={{
+              background:
+                value >= 80
+                  ? "linear-gradient(90deg,#16a34a,#22c55e)"
+                  : value >= 55
+                  ? "linear-gradient(90deg,#1d4ed8,#3b82f6)"
+                  : value >= 25
+                  ? "linear-gradient(90deg,#b45309,#eab308)"
+                  : "linear-gradient(90deg,#991b1b,#ef4444)",
+            }}
+          />
+        ) : (
+          <div className="h-full w-full bg-gray-300/60 dark:bg-slate-700/40" />
+        )}
+      </div>
+    </div>
+  );
+};
+
+const FinancialThermometer = ({ data }: FinancialThermometerProps) => {
+  const { score, level, factors, insight } = data;
+  const style = HEALTH_LEVEL_STYLES[level];
+
+  const LevelIcon =
+    level === "excellent"
+      ? Flame
+      : level === "healthy"
+      ? CheckCircle2
+      : level === "insufficient"
+      ? Activity
+      : AlertTriangle;
+
+  const trendLabel =
+    insight.trendPercent == null
+      ? "Sem histórico"
+      : `${insight.trendPercent >= 0 ? "+" : ""}${(
+          insight.trendPercent * 100
+        ).toFixed(1)}%`;
+
+  const trendColor =
+    insight.trendPercent == null
+      ? "text-gray-500 dark:text-slate-400"
+      : insight.trendPercent >= 0
+      ? "text-green-600 dark:text-green-400"
+      : "text-red-600 dark:text-red-400";
+
+  return (
+    <div className="relative rounded-2xl border border-gray-200 dark:border-slate-800 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-950 shadow-xl overflow-hidden h-full flex flex-col">
+      <div
+        className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full opacity-20 blur-3xl"
+        style={{ background: style.color }}
+      />
+
+      <div className="relative px-6 pt-6 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
+            Saúde Financeira
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+            Indicador composto do seu desempenho
+          </p>
+        </div>
+        <div
+          className="p-2 rounded-lg"
+          style={{ backgroundColor: `${style.color}20` }}
+          title="Como a pontuação é calculada"
+        >
+          <Thermometer className="h-5 w-5" style={{ color: style.color }} />
+        </div>
+      </div>
+
+      <div className="relative px-6 pt-2 flex flex-col items-center">
+        <div className="relative">
+          <HealthGauge score={score} levelColor={style.color} size={220} />
+          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pointer-events-none">
+            {score == null ? (
+              <>
+                <p className="text-2xl font-bold text-gray-700 dark:text-slate-300">—</p>
+                <p className="text-xs text-gray-500 dark:text-slate-500 mt-0.5">
+                  Dados insuficientes
+                </p>
+              </>
+            ) : (
+              <>
+                <motion.p
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6, duration: 0.4 }}
+                  className="text-4xl font-bold text-gray-900 dark:text-slate-50 tabular-nums"
+                >
+                  {score}
+                  <span className="text-base font-medium text-gray-400 dark:text-slate-500">
+                    /100
+                  </span>
+                </motion.p>
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.75, duration: 0.4 }}
+                  className={`mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${style.badgeBg}`}
+                >
+                  <LevelIcon className={`h-3.5 w-3.5 ${style.badgeText}`} />
+                  <span className={`text-xs font-semibold ${style.badgeText}`}>
+                    {style.label}
+                  </span>
+                </motion.div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 dark:text-slate-400 text-center mt-3 max-w-[260px]">
+          {style.description}
+        </p>
+      </div>
+
+      {factors.length > 0 && (
+        <div className="relative px-6 pt-5 space-y-3">
+          {factors.map((f) => (
+            <FactorBar key={f.key} factor={f} />
+          ))}
+        </div>
+      )}
+
+      {(insight.strongest ||
+        insight.weakest ||
+        insight.recommendation ||
+        insight.goalProgressPercent != null) && (
+        <div className="relative mt-5 px-6 pb-6 pt-4 border-t border-gray-200 dark:border-slate-800 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {insight.goalProgressPercent != null && (
+              <div className="rounded-lg bg-gray-100 dark:bg-slate-800/50 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-slate-500">
+                  Meta do período
+                </p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                  {insight.goalProgressPercent.toFixed(0)}%
+                </p>
+              </div>
+            )}
+            <div className="rounded-lg bg-gray-100 dark:bg-slate-800/50 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-slate-500">
+                Tendência
+              </p>
+              <p className={`text-sm font-semibold ${trendColor}`}>
+                {trendLabel}
+              </p>
+            </div>
+          </div>
+
+          {insight.strongest && (
+            <div className="flex items-start gap-2 text-xs">
+              <TrendingUp className="h-3.5 w-3.5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+              <p className="text-gray-600 dark:text-slate-400">
+                Ponto forte:{" "}
+                <span className="text-gray-900 dark:text-slate-200 font-medium">
+                  {insight.strongest.label}
+                </span>
+              </p>
+            </div>
+          )}
+
+          {insight.weakest && insight.weakest.key !== insight.strongest?.key && (
+            <div className="flex items-start gap-2 text-xs">
+              <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+              <p className="text-gray-600 dark:text-slate-400">
+                Atenção em:{" "}
+                <span className="text-gray-900 dark:text-slate-200 font-medium">
+                  {insight.weakest.label}
+                </span>
+              </p>
+            </div>
+          )}
+
+          {insight.recommendation && (
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
+              <p className="text-[11px] leading-relaxed text-blue-700 dark:text-blue-200/90">
+                💡 {insight.recommendation}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ============================================================
+   GRÁFICOS DINÂMICOS (com filtro)
+   ============================================================ */
+
+type ChartType = "vendas" | "afiliados" | "pedidos" | "produtos" | "linksCategoria";
 
 interface DynamicChartProps {
   type: ChartType;
@@ -519,51 +927,61 @@ const chartConfig: Record<
 > = {
   vendas: {
     title: "Total de vendas",
-    subtitle: "Últimos 18 dias (fictício)",
+    subtitle: "Últimos 18 dias",
     color: "#3b82f6",
     prefix: "$",
     suffix: "",
   },
   afiliados: {
     title: "Links Afiliados",
-    subtitle: "Cliques nos últimos 18 dias (fictício)",
+    subtitle: "Cliques nos últimos 18 dias",
     color: "#22c55e",
     prefix: "",
     suffix: "",
   },
   pedidos: {
     title: "Pedidos",
-    subtitle: "Pedidos por dia (fictício)",
+    subtitle: "Pedidos por dia",
     color: "#a855f7",
     prefix: "",
     suffix: "",
   },
   produtos: {
     title: "Produtos Coletados",
-    subtitle: "Coletas por dia (fictício)",
+    subtitle: "Coletas por dia",
     color: "#f97316",
+    prefix: "",
+    suffix: "",
+  },
+  linksCategoria: {
+    title: "Links por categoria",
+    subtitle: "Desempenho nos últimos 18 dias",
+    color: "#06b6d4",
     prefix: "",
     suffix: "",
   },
 };
 
-const generateData = (type: ChartType) => {
+const generateData = (type: ChartType, multiplier: number) => {
   const baseValues: Record<ChartType, number[]> = {
     vendas: [820, 450, 680, 910, 1120, 280, 980, 1210, 380, 720, 850, 1380, 820, 310, 510, 750, 1720, 1290],
     afiliados: [45, 32, 58, 71, 92, 18, 78, 101, 28, 62, 85, 118, 72, 21, 41, 65, 142, 99],
     pedidos: [12, 8, 15, 22, 28, 5, 18, 31, 9, 16, 21, 35, 19, 7, 11, 17, 42, 29],
     produtos: [3, 1, 5, 8, 12, 0, 6, 14, 2, 4, 7, 18, 9, 1, 3, 5, 22, 13],
+    linksCategoria: [50, 65, 45, 80, 95, 60, 75, 88, 55, 70, 82, 91, 68, 52, 73, 86, 99, 78],
   };
 
-  return platformData.map((item, i) => ({
+  return roiData.map((item, i) => ({
     date: item.date,
-    valor: baseValues[type][i] ?? 0,
+    valor: +((baseValues[type][i] ?? 0) * multiplier).toFixed(2),
   }));
 };
 
 const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
   const config = chartConfig[type];
-  const data = generateData(type);
+  const [category, setCategory] = useState<Category>("Todas");
+  const multiplier = categoryMultiplier[category];
+  const data = generateData(type, multiplier);
 
   const DynamicTooltip = ({ active, payload }: TooltipProps) => {
     if (active && payload && payload.length) {
@@ -587,90 +1005,202 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm mb-8 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="px-6 pt-6 flex items-center justify-between">
+      <div className="px-6 pt-6 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{config.title}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{config.subtitle}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {config.subtitle} · {category}
+          </p>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          aria-label="Fechar gráfico"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div className="flex items-center gap-2">
+          <CategoryFilter value={category} onChange={setCategory} />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label="Fechar gráfico"
           >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="px-2.5 py-6">
-        <div className="h-80 w-full overflow-visible">
-          <LineChart
-            data={data}
-            margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-            style={{ width: "100%", height: "100%" }}
-          >
-            <defs>
-              <filter id={`lineShadow-${type}`} x="-100%" y="-100%" width="300%" height="300%">
-                <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${config.color}60`} />
-              </filter>
-              <filter id={`dotShadow-${type}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
-              </filter>
-            </defs>
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
+            >
+              <defs>
+                <filter id={`lineShadow-${type}`} x="-100%" y="-100%" width="300%" height="300%">
+                  <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${config.color}60`} />
+                </filter>
+                <filter id={`dotShadow-${type}`} x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
+                </filter>
+              </defs>
 
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: "currentColor" }}
-              tickMargin={10}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
-              }}
-            />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "currentColor" }}
+                tickMargin={10}
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
+                }}
+              />
 
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 11, fill: "currentColor" }}
-              tickMargin={10}
-              tickCount={6}
-              tickFormatter={(value) => `${config.prefix}${value}${config.suffix}`}
-            />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "currentColor" }}
+                tickMargin={10}
+                tickCount={6}
+                tickFormatter={(value) => `${config.prefix}${value}${config.suffix}`}
+              />
 
-            <RechartsTooltip
-              content={<DynamicTooltip />}
-              cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
-            />
+              <RechartsTooltip
+                content={<DynamicTooltip />}
+                cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
+              />
 
-            <Line
-              type="monotone"
-              dataKey="valor"
-              stroke={config.color}
-              strokeWidth={2}
-              filter={`url(#lineShadow-${type})`}
-              dot={false}
-              activeDot={{
-                r: 6,
-                fill: config.color,
-                stroke: "white",
-                strokeWidth: 2,
-                filter: `url(#dotShadow-${type})`,
-              }}
-            />
-          </LineChart>
+              <Line
+                type="monotone"
+                dataKey="valor"
+                stroke={config.color}
+                strokeWidth={2}
+                filter={`url(#lineShadow-${type})`}
+                dot={false}
+                activeDot={{
+                  r: 6,
+                  fill: config.color,
+                  stroke: "white",
+                  strokeWidth: 2,
+                  filter: `url(#dotShadow-${type})`,
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   CARD DE LINKS POR CATEGORIA (só o gráfico, com filtro)
+   ============================================================ */
+
+const MetricCard = () => {
+  const [category, setCategory] = useState<Category>("Todas");
+  const multiplier = categoryMultiplier[category];
+  const data = generateData("linksCategoria", multiplier);
+  const config = chartConfig.linksCategoria;
+
+  const MetricTooltip = ({ active, payload }: TooltipProps) => {
+    if (active && payload && payload.length) {
+      const entry = payload[0];
+      return (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[120px]">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-gray-500 dark:text-gray-400">{config.title}:</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
+              {entry.value.toFixed(0)}
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden h-full flex flex-col">
+      <div className="px-6 pt-6 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Links por categoria
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Desempenho nos últimos 18 dias · {category}
+          </p>
+        </div>
+        <CategoryFilter value={category} onChange={setCategory} />
+      </div>
+
+      <div className="px-2.5 py-6 flex-1">
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
+            >
+              <defs>
+                <filter id="lineShadow-metric-card" x="-100%" y="-100%" width="300%" height="300%">
+                  <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${config.color}60`} />
+                </filter>
+                <filter id="dotShadow-metric-card" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
+                </filter>
+              </defs>
+
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "currentColor" }}
+                tickMargin={10}
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
+                }}
+              />
+
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "currentColor" }}
+                tickMargin={10}
+                tickCount={6}
+              />
+
+              <RechartsTooltip
+                content={<MetricTooltip />}
+                cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
+              />
+
+              <Line
+                type="monotone"
+                dataKey="valor"
+                stroke={config.color}
+                strokeWidth={2}
+                filter="url(#lineShadow-metric-card)"
+                dot={false}
+                activeDot={{
+                  r: 6,
+                  fill: config.color,
+                  stroke: "white",
+                  strokeWidth: 2,
+                  filter: "url(#dotShadow-metric-card)",
+                }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
@@ -735,8 +1265,46 @@ const topProducts = [
   { name: "iPad Air", price: 599 },
 ];
 
+const MOCK_HEALTH: FinancialHealthData = {
+  score: 72,
+  level: "healthy",
+  factors: [
+    {
+      key: "revenue",
+      label: "Receita vs. meta",
+      value: 74,
+      hint: "Quanto da sua meta de receita foi atingido.",
+    },
+    {
+      key: "conversion",
+      label: "Taxa de conversão",
+      value: 62,
+      hint: "Conversões sobre cliques nos links.",
+    },
+    {
+      key: "commission",
+      label: "Comissões recebidas",
+      value: 64,
+      hint: "Proporção da comissão já paga.",
+    },
+    {
+      key: "trend",
+      label: "Tendência",
+      value: 78,
+      hint: "Variação vs. período anterior.",
+    },
+  ],
+  insight: {
+    strongest: { key: "trend", label: "Tendência", value: 78 },
+    weakest: { key: "conversion", label: "Taxa de conversão", value: 62 },
+    trendPercent: 0.21,
+    goalProgressPercent: 73.6,
+    recommendation:
+      "Sua taxa de conversão está abaixo do esperado. Revise os produtos e links com mais cliques e menos vendas.",
+  },
+};
+
 export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
-  const [thermometerValue, setThermometerValue] = useState(72);
   const [selectedCard, setSelectedCard] = useState<ChartType | null>(null);
 
   return (
@@ -797,9 +1365,19 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
 
       {selectedCard && <DynamicChart type={selectedCard} onClose={() => setSelectedCard(null)} />}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <RevenueChart />
-        <CategoryDonutChart />
+      {/* ROI + Saúde Financeira */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          <ROIChart />
+        </div>
+        <div className="lg:col-span-1">
+          <FinancialThermometer data={MOCK_HEALTH} />
+        </div>
+      </div>
+
+      {/* Links por categoria */}
+      <div className="mb-8">
+        <MetricCard />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

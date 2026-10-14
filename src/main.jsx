@@ -13,8 +13,8 @@ import {
 } from './dashboardv2/dashboard-with-collapsible-sidebar';
 import HotProductsContent from './dashboardv2/hot-products';
 import ColetaGeral from './dashboardv2/coleta-geral';
+import RemarketingPage from './dashboardv2/remarketing';
 
-// Layout único: a sidebar e o tema permanecem ao trocar de rota.
 const DashboardLayout = () => {
   const { isDark, setIsDark } = useDarkMode();
   return (
@@ -39,6 +39,11 @@ const ColetaGeralPage = () => {
   return <ColetaGeral isDark={isDark} setIsDark={setIsDark} />;
 };
 
+const RemarketingPageWrapper = () => {
+  const { isDark, setIsDark } = useDarkMode();
+  return <RemarketingPage isDark={isDark} setIsDark={setIsDark} />;
+};
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <DarkModeProvider>
@@ -49,6 +54,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/dashboardv2" element={<DashboardPage />} />
             <Route path="/hot-products" element={<HotProductsPage />} />
             <Route path="/coleta-geral" element={<ColetaGeralPage />} />
+            <Route path="/remarketing" element={<RemarketingPageWrapper />} />
           </Route>
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/marketing" element={<MarketingPage />} />
