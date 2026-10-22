@@ -19,7 +19,6 @@ import {
   Moon,
   Sun,
   TrendingUp,
-  TrendingDown,
   Activity,
   Package,
   Bell,
@@ -33,7 +32,7 @@ import {
   Flame,
   Radar,
   Target,
-  Percent,
+  Megaphone,
 } from "lucide-react";
 import {
   Line,
@@ -45,7 +44,6 @@ import {
   ReferenceLine,
 } from "recharts";
 import { motion } from "framer-motion";
-import RemarketingPage from "./remarketing";
 
 /* ============================================================
    TIPOS
@@ -97,7 +95,6 @@ const CATEGORIES = [
 
 type Category = (typeof CATEGORIES)[number];
 
-/* Fator multiplicador por categoria (simula variação dos dados) */
 const categoryMultiplier: Record<Category, number> = {
   Todas: 1,
   Eletrônicos: 1.15,
@@ -173,27 +170,24 @@ export const Sidebar = () => {
       <TitleSection open={open} />
 
       <div className="space-y-1 mb-8">
-        <Option Icon={Home} title="Painel" selected={selected} setSelected={setSelected} open={open} path="/dashboardv2" />
-        <Option Icon={DollarSign} title="Vendas" selected={selected} setSelected={setSelected} open={open} notifs={3} />
-        <Option Icon={Monitor} title="Ver site" selected={selected} setSelected={setSelected} open={open} />
-        <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} />
+        <Option Icon={Home} title="Dashboard" selected={selected} setSelected={setSelected} open={open} path="/dashboardv2" />
+        <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={open} path="/divulgacao" />
+        <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />  
         <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={open} path="/hot-products" />
         <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
-        <Option Icon={Tag} title="Tags" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} />
         <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={open} path="/remarketing" />
-        <Option Icon={Users} title="Membros" selected={selected} setSelected={setSelected} open={open} notifs={12} />
       </div>
 
-      {open && (
-        <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1">
+      <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1">
+        {open && (
           <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Conta
           </div>
-          <Option Icon={Settings} title="Configurações" selected={selected} setSelected={setSelected} open={open} />
-          <Option Icon={HelpCircle} title="Ajuda e suporte" selected={selected} setSelected={setSelected} open={open} />
-        </div>
-      )}
+        )}
+        <Option Icon={Settings} title="Configurações" selected={selected} setSelected={setSelected} open={open} path="/settings" />
+        <Option Icon={HelpCircle} title="Ajuda e suporte" selected={selected} setSelected={setSelected} open={open} />
+      </div>
 
       <ToggleClose open={open} setOpen={setOpen} />
     </nav>
@@ -213,7 +207,7 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: Opti
   return (
     <button
       onClick={handleClick}
-      className={`relative flex h-11 w-full items-center rounded-md transition-all duration-200 ${
+      className={`relative flex h-11 w-full items-center rounded-md transition-all duration-200 focus:outline-none ${
         isSelected
           ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shadow-sm border-l-2 border-blue-500"
           : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
@@ -268,7 +262,7 @@ const TitleSection = ({ open }: TitleSectionProps) => {
 const Logo = () => {
   return (
     <div className="grid size-10 shrink-0 place-content-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm">
-      <svg width="20" height="auto" viewBox="0 0 50 39" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-white">
+      <svg width="20" height="16" viewBox="0 0 50 39" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-white">
         <path d="M16.4992 2H37.5808L22.0816 24.9729H1L16.4992 2Z" />
         <path d="M17.4224 27.102L11.4192 36H33.5008L49 13.0271H32.7024L23.2064 27.102H17.4224Z" />
       </svg>
@@ -280,7 +274,7 @@ const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
   return (
     <button
       onClick={() => setOpen(!open)}
-      className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+      className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none"
     >
       <div className="flex items-center p-3">
         <div className="grid size-10 place-content-center">
@@ -332,9 +326,6 @@ const CategoryFilter = ({ value, onChange }: CategoryFilterProps) => {
    DADOS DOS GRÁFICOS
    ============================================================ */
 
-/**
- * ROI diário (em %) — dados de demonstração.
- */
 const roiData = [
   { date: "2024-04-01", roi: 42 },
   { date: "2024-04-02", roi: 28 },
@@ -420,11 +411,13 @@ const ROIChart = () => {
       </div>
 
       <div className="px-2.5 py-6 flex-1 min-h-0">
-        <div className="h-full w-full min-h-[288px]">
+        <div className="h-full w-full min-h-[288px]" tabIndex={-1} style={{ outline: "none" }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={filteredData}
               margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
+              tabIndex={-1}
+              style={{ outline: "none" }}
             >
               <defs>
                 <filter id="roiLineShadow" x="-100%" y="-100%" width="300%" height="300%">
@@ -456,11 +449,13 @@ const ROIChart = () => {
                 tickFormatter={(value) => `${value}%`}
               />
 
+              {/* Linha do zero — fina e discreta, sem aparentar borda */}
               <ReferenceLine
                 y={0}
                 stroke="#9ca3af"
-                strokeDasharray="4 4"
-                strokeOpacity={0.6}
+                strokeWidth={0.5}
+                strokeDasharray="2 6"
+                strokeOpacity={0.25}
               />
 
               <RechartsTooltip
@@ -475,6 +470,9 @@ const ROIChart = () => {
                 strokeWidth={2}
                 filter="url(#roiLineShadow)"
                 dot={false}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationEasing="ease-out"
                 activeDot={{
                   r: 6,
                   fill: roiColor,
@@ -524,7 +522,7 @@ const ROIChart = () => {
 };
 
 /* ============================================================
-   SAÚDE FINANCEIRA (recebe dados prontos da API Django)
+   SAÚDE FINANCEIRA
    ============================================================ */
 
 type HealthLevelKey =
@@ -911,7 +909,7 @@ const FinancialThermometer = ({ data }: FinancialThermometerProps) => {
 };
 
 /* ============================================================
-   GRÁFICOS DINÂMICOS (com filtro)
+   GRÁFICOS DINÂMICOS
    ============================================================ */
 
 type ChartType = "vendas" | "afiliados" | "pedidos" | "produtos" | "linksCategoria";
@@ -1016,7 +1014,7 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
           <CategoryFilter value={category} onChange={setCategory} />
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none"
             aria-label="Fechar gráfico"
           >
             <svg
@@ -1037,11 +1035,13 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
       </div>
 
       <div className="px-2.5 py-6">
-        <div className="h-80 w-full">
+        <div className="h-80 w-full" tabIndex={-1} style={{ outline: "none" }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
               margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
+              tabIndex={-1}
+              style={{ outline: "none" }}
             >
               <defs>
                 <filter id={`lineShadow-${type}`} x="-100%" y="-100%" width="300%" height="300%">
@@ -1085,6 +1085,9 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
                 strokeWidth={2}
                 filter={`url(#lineShadow-${type})`}
                 dot={false}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationEasing="ease-out"
                 activeDot={{
                   r: 6,
                   fill: config.color,
@@ -1102,7 +1105,7 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
 };
 
 /* ============================================================
-   CARD DE LINKS POR CATEGORIA (só o gráfico, com filtro)
+   CARD DE LINKS POR CATEGORIA
    ============================================================ */
 
 const MetricCard = () => {
@@ -1144,11 +1147,13 @@ const MetricCard = () => {
       </div>
 
       <div className="px-2.5 py-6 flex-1">
-        <div className="h-72 w-full">
+        <div className="h-72 w-full" tabIndex={-1} style={{ outline: "none" }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
               margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
+              tabIndex={-1}
+              style={{ outline: "none" }}
             >
               <defs>
                 <filter id="lineShadow-metric-card" x="-100%" y="-100%" width="300%" height="300%">
@@ -1191,6 +1196,9 @@ const MetricCard = () => {
                 strokeWidth={2}
                 filter="url(#lineShadow-metric-card)"
                 dot={false}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationEasing="ease-out"
                 activeDot={{
                   r: 6,
                   fill: config.color,
@@ -1316,17 +1324,17 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
           <p className="text-gray-600 dark:text-gray-400 mt-1">Bem-vindo de volta</p>
         </div>
         <div className="flex items-center gap-4">
-          <button className="relative p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+          <button className="relative p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none">
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
           </button>
           <button
             onClick={() => setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none"
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <button className="p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+          <button className="p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none">
             <User className="h-5 w-5" />
           </button>
         </div>
@@ -1340,7 +1348,7 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
             <button
               key={card.key}
               onClick={() => setSelectedCard(isActive ? null : card.key)}
-              className={`text-left p-6 rounded-xl border bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 cursor-pointer ${
+              className={`text-left p-6 rounded-xl border bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 cursor-pointer focus:outline-none ${
                 isActive
                   ? `${card.activeBg} shadow-md ring-2 ${card.ringColor} ring-offset-1 dark:ring-offset-gray-950`
                   : "border-gray-200 dark:border-gray-800 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-700"
