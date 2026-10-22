@@ -38,7 +38,7 @@ import {
   CONVERSION_STYLES,
   formatDateTime,
   formatBRL,
-} from "./mockRemarketing";
+} from "../../mocks/mockRemarketing";
 
 /* ============================================================
    PÁGINA

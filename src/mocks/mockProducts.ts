@@ -5,7 +5,7 @@
  * `/api/products/` assim que o backend estiver integrado.
  */
 
-import type { Product } from "./productTypes";
+import type { Product } from "../types/productTypes";
 
 export const MOCK_PRODUCTS: Product[] = [
   {

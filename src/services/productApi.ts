@@ -12,7 +12,7 @@ import type {
   ProductFilters,
   ProductKpis,
   ProductSortKey,
-} from "./productTypes";
+} from "../dashboardv2/productTypes";
 
 async function http<T>(url: string, init: RequestInit = {}): Promise<T | null> {
   try {

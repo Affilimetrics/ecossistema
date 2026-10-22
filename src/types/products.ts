@@ -31,14 +31,14 @@ import {
   type ProductFilters,
   type ProductOrigin,
   type ProductSortKey,
-} from "./productTypes";
+} from "../dashboardv2/productTypes";
 import {
   createProduct,
   deleteProduct,
   fetchProducts,
   syncProducts,
-} from "./productApi";
-import { MOCK_PRODUCTS } from "./mockProducts";
+} from "../services/productApi";
+import { MOCK_PRODUCTS } from "../dashboardv2/mockProducts";
 
 /* ============================================================
    HELPERS

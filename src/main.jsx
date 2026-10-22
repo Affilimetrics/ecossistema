@@ -2,21 +2,27 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import './styles.css';
-import SignInSide from './sign-in-side/SignInSide';
-import SignUp from './sign-up/SignUp';
-import MarketingPage from './marketing-page/MarketingPage';
+
+// Autenticação e Páginas Públicas
+import SignInSide from './pages/auth/sign-in-side/SignInSide';
+import SignUp from './pages/auth/sign-up/SignUp';
+import MarketingPage from './pages/marketing-page/MarketingPage';
+
+// Componentes de Layout do Dashboard
 import {
   DashboardShell,
   DarkModeProvider,
   ExampleContent,
   useDarkMode,
-} from './dashboardv2/dashboard-with-collapsible-sidebar';
-import HotProductsContent from './dashboardv2/hot-products';
-import ColetaGeral from './dashboardv2/coleta-geral';
-import RemarketingPage from './dashboardv2/remarketing';
-import SettingsPage from './dashboardv2/settings';
-import CentralDivulgacao from './dashboardv2/central-divulgacao';
-import ProductsPage from './dashboardv2/products';
+} from './components/layout/dashboard-with-collapsible-sidebar';
+
+// Páginas do Dashboard
+import HotProductsContent from './pages/dashboard/hot-products';
+import ColetaGeral from './pages/dashboard/coleta-geral';
+import RemarketingPage from './pages/dashboard/remarketing';
+import SettingsPage from './pages/dashboard/settings';
+import CentralDivulgacao from './pages/dashboard/central-divulgacao';
+import ProductsPage from './pages/dashboard/products';
 
 // Layout único: a sidebar e o tema permanecem ao trocar de rota.
 const DashboardLayout = () => {

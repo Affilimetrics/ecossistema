@@ -30,7 +30,7 @@ import {
   computeIntegrationKpis,
   formatDateTime,
   formatRelative,
-} from "./mockIntegrations";
+} from "../../mocks/mockIntegrations";
 import {
   CATEGORY_LABELS,
   STATUS_LABELS,
@@ -48,7 +48,7 @@ import {
   type GeneralPreferences,
   type NotificationPreferences,
   type SettingsTab,
-} from "./settingsTypes";
+} from "../../types/settingsTypes";
 
 /* ============================================================
    PÁGINA

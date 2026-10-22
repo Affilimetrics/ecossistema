@@ -15,7 +15,7 @@ import {
   ShoppingBasket,
   Play,
 } from "lucide-react";
-import type { Platform, PlatformFilters } from "./settingsTypes";
+import type { Platform, PlatformFilters } from "../types/settingsTypes";
 
 /* ============================================================
    CATÁLOGO DE PLATAFORMAS

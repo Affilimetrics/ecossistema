@@ -34,7 +34,7 @@ import type {
   Marketplace,
   MarketplaceStatus,
   NewCategoryInput,
-} from "./collectionTypes";
+} from "../../types/collectionTypes";
 import {
   createCategory,
   fetchCategories,
@@ -45,7 +45,7 @@ import {
   resumeCollection,
   startCollection,
   stopCollection,
-} from "./collectionApi";
+} from "../services/collectionApi";
 
 /* ============================================================
    CATÁLOGO PADRÃO DE MARKETPLACES

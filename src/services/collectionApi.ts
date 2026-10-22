@@ -26,7 +26,7 @@ import type {
   CollectionState,
   Marketplace,
   NewCategoryInput,
-} from "./collectionTypes";
+} from "../dashboardv2/collectionTypes";
 
 /** Helper genérico com CSRF pronto e parse seguro de JSON. */
 async function http<T>(
