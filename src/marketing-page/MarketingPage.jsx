@@ -1,33 +1,19 @@
-import React from 'react';
-import CssBaseline from '@mui/material/CssBaseline';
-import AppTheme from '../shared-theme/AppTheme';
-import AppAppBar from './components/AppAppBar';
-import Hero from './components/Hero';
-import LogoCollection from './components/LogoCollection';
-import Highlights from './components/Highlights';
-import Pricing from './components/Pricing';
-import Features from './components/Features';
-import Testimonials from './components/Testimonials';
-import FAQ from './components/FAQ';
-import Footer from './components/Footer';
+import React from "react";
+import Cursor from "@/components/ui/inverted-cursor";
+import { CinematicHero } from "@/components/ui/cinematic-landing-hero";
+import Pricing18 from "@/components/ui/block-pricing-18";
 
-export default function MarketingPage(props) {
+export default function MarketingPage() {
   return (
-    <AppTheme {...props}>
-      <CssBaseline enableColorScheme />
-      <div className="bg-[#0B0F17] min-h-screen text-slate-100 font-sans antialiased">
-        <AppAppBar />
-        <main>
-          <Hero />
-          <LogoCollection />
-          <Features />
-          <Highlights />
-          <Testimonials />
-          <Pricing />
-          <FAQ />
-        </main>
-        <Footer />
-      </div>
-    </AppTheme>
+    <div className="relative min-h-screen bg-slate-950 text-white overflow-x-hidden">
+      {/* Cursor personalizado funcional em toda a landing page */}
+      <Cursor size={60} />
+
+      {/* Hero Section Cinematográfica */}
+      <CinematicHero />
+
+      {/* Seção de Tabela de Preços */}
+      <Pricing18 />
+    </div>
   );
 }

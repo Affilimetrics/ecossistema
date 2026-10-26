@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 
-export const Cursor = ({ size = 70, className = "" }) => {
+export const Cursor = ({ size = 60 }) => {
   const cursorRef = useRef(null);
   const animFrameRef = useRef(null);
 
@@ -13,7 +13,6 @@ export const Cursor = ({ size = 70, className = "" }) => {
     const parent = cursorElement.parentElement;
     if (!parent) return;
 
-    // Desativa em dispositivos de toque ou com preferência de movimento reduzido
     const isTouchDevice =
       window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
     const prefersReducedMotion = window.matchMedia(
@@ -31,10 +30,9 @@ export const Cursor = ({ size = 70, className = "" }) => {
     let currentY = -size;
     let isVisible = false;
 
-    // Loop de animação contínua com suavização (0.15 lerp)
     const animate = () => {
-      currentX += (targetX - currentX) * 0.15;
-      currentY += (targetY - currentY) * 0.15;
+      currentX += (targetX - currentX) * 0.18;
+      currentY += (targetY - currentY) * 0.18;
 
       if (cursorElement) {
         cursorElement.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
@@ -84,7 +82,7 @@ export const Cursor = ({ size = 70, className = "" }) => {
     <div
       ref={cursorRef}
       aria-hidden="true"
-      className={`pointer-events-none absolute left-0 top-0 z-30 rounded-full bg-white mix-blend-difference opacity-0 transition-opacity duration-300 ${className}`}
+      className="pointer-events-none absolute left-0 top-0 z-20 rounded-full bg-white mix-blend-difference opacity-0 transition-opacity duration-200"
       style={{
         width: size,
         height: size,
