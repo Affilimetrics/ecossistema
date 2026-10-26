@@ -16,12 +16,12 @@ import {
   Eye,
   Save,
   Sparkles,
-  Bell,
   Moon,
   Sun,
   User,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { NotificationPopover } from "../../components/ui/notification-popover";
 
 /* ============================================================
    TIPOS E CONFIGURAÇÕES DE MODERAÇÃO
@@ -166,11 +166,11 @@ async function runLocalModeration(
    ============================================================ */
 
 interface DisclosurePageProps {
-  isDark: boolean;
-  setIsDark: React.Dispatch<React.SetStateAction<boolean>>;
+  isDark?: boolean;
+  setIsDark?: (value: boolean) => void;
 }
 
-export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProps) {
+export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
@@ -238,24 +238,6 @@ export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProp
     setIsAnalyzing(true);
 
     try {
-      /* 
-        [PONTO DE INTEGRAÇÃO COM BACKEND DJANGO]
-        Descomente para realizar requisição real no futuro:
-
-        const formData = new FormData();
-        formData.append("titulo", title);
-        formData.append("legenda", caption);
-        formData.append("link_afiliado", affiliateUrl);
-        if (imageFile) formData.append("imagem", imageFile);
-
-        const response = await fetch("/api/divulgacao/analisar/", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await response.json();
-        setModeration(data.moderacao);
-      */
-
       const result = await runLocalModeration(title, caption, imageFile);
       setModeration(result);
 
@@ -272,14 +254,6 @@ export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProp
   };
 
   const handleSaveDraft = async () => {
-    /* 
-      [PONTO DE INTEGRAÇÃO COM BACKEND DJANGO]
-      await fetch("/api/divulgacao/rascunho/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ titulo: title, legenda: caption, link_afiliado: affiliateUrl }),
-      });
-    */
     showToast("Rascunho salvo com sucesso.");
   };
 
@@ -293,23 +267,32 @@ export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProp
 
   return (
     <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto">
-      {/* CABEÇALHO DA TELA */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+      {/* CABEÇALHO PADRONIZADO */}
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-            <span>Painel</span>
-            <span className="text-slate-300 dark:text-slate-700">/</span>
-            <span className="text-slate-700 dark:text-slate-300">Central de Divulgação</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Central de Divulgação
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
-            Crie materiais promocionais, execute verificações de conformidade textual e visual e prepare publicações.
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Crie materiais promocionais, execute verificações de conformidade e prepare publicações.
           </p>
         </div>
 
-        <TopActions isDark={isDark} setIsDark={setIsDark} />
+        <div className="flex items-center gap-3">
+          <NotificationPopover isDark={isDark} />
+
+          <button
+            onClick={() => setIsDark && setIsDark(!isDark)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
+            title="Alternar tema"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
+          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
+            <User className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -456,7 +439,6 @@ export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProp
 
         {/* PAINEL DE MODERAÇÃO E PRÉ-VISUALIZAÇÃO */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Painel de Moderação em 3 Camadas */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -467,25 +449,12 @@ export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProp
             </div>
 
             <div className="space-y-3">
-              <LayerCard
-                title="1. Texto Digitado"
-                icon={FileText}
-                result={moderation.textLayer}
-              />
-              <LayerCard
-                title="2. OCR (Texto na Imagem)"
-                icon={ScanText}
-                result={moderation.ocrLayer}
-              />
-              <LayerCard
-                title="3. Conteúdo Visual"
-                icon={Eye}
-                result={moderation.visualLayer}
-              />
+              <LayerCard title="1. Texto Digitado" icon={FileText} result={moderation.textLayer} />
+              <LayerCard title="2. OCR (Texto na Imagem)" icon={ScanText} result={moderation.ocrLayer} />
+              <LayerCard title="3. Conteúdo Visual" icon={Eye} result={moderation.visualLayer} />
             </div>
           </div>
 
-          {/* Pré-visualização do Anúncio */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -533,7 +502,6 @@ export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProp
         </div>
       </div>
 
-      {/* TOAST NOTIFICATION */}
       <AnimatePresence>
         {toast && (
           <motion.div
@@ -549,8 +517,6 @@ export default function DisclosurePage({ isDark, setIsDark }: DisclosurePageProp
     </div>
   );
 }
-
-/* SUBCOMPONENTES UTILITÁRIOS */
 
 function ConsolidatedBadge({ status }: { status: ModerationStatus }) {
   const conf = STATUS_CONFIG[status];
@@ -594,35 +560,4 @@ function LayerCard({
   );
 }
 
-function TopActions({
-  isDark,
-  setIsDark,
-}: {
-  isDark: boolean;
-  setIsDark: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-  return (
-    <div className="flex items-center gap-2 self-start">
-      <button
-        className="relative p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-        aria-label="Notificações"
-      >
-        <Bell className="h-5 w-5" />
-        <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
-      </button>
-      <button
-        onClick={() => setIsDark(!isDark)}
-        className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-        aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-      >
-        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
-      <button
-        className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-        aria-label="Perfil"
-      >
-        <User className="h-5 w-5" />
-      </button>
-    </div>
-  );
-}
+export default CentralDivulgacao;

@@ -1,3 +1,4 @@
+import FinancialThermometer from "../../pages/dashboard/financial-thermometer";
 import {
   useState,
   createContext,
@@ -9,7 +10,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   DollarSign,
-  Monitor,
   ShoppingCart,
   Tag,
   BarChart3,
@@ -26,9 +26,6 @@ import {
   HelpCircle,
   User,
   LucideIcon,
-  Thermometer,
-  AlertTriangle,
-  CheckCircle2,
   Flame,
   Radar,
   Target,
@@ -43,7 +40,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { motion } from "framer-motion";
+import { NotificationPopover } from "../ui/notification-popover";
 
 /* ============================================================
    TIPOS
@@ -109,7 +106,7 @@ const categoryMultiplier: Record<Category, number> = {
    DASHBOARD SHELL
    ============================================================ */
 
-export const DashboardShell = ({ children, isDark, setIsDark }: DashboardShellProps) => {
+export const DashboardShell = ({ children, isDark }: DashboardShellProps) => {
   return (
     <div className={`flex min-h-screen w-full ${isDark ? "dark" : ""}`}>
       <div className="flex w-full bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
@@ -449,7 +446,6 @@ const ROIChart = () => {
                 tickFormatter={(value) => `${value}%`}
               />
 
-              {/* Linha do zero — fina e discreta, sem aparentar borda */}
               <ReferenceLine
                 y={0}
                 stroke="#9ca3af"
@@ -517,393 +513,6 @@ const ROIChart = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
-};
-
-/* ============================================================
-   SAÚDE FINANCEIRA
-   ============================================================ */
-
-type HealthLevelKey =
-  | "critical"
-  | "warning"
-  | "healthy"
-  | "excellent"
-  | "insufficient";
-
-interface HealthFactor {
-  key: string;
-  label: string;
-  value: number | null;
-  hint?: string;
-}
-
-interface HealthInsight {
-  strongest: { key: string; label: string; value: number } | null;
-  weakest: { key: string; label: string; value: number } | null;
-  trendPercent: number | null;
-  goalProgressPercent: number | null;
-  recommendation: string | null;
-}
-
-interface FinancialHealthData {
-  score: number | null;
-  level: HealthLevelKey;
-  factors: HealthFactor[];
-  insight: HealthInsight;
-}
-
-interface FinancialThermometerProps {
-  data: FinancialHealthData;
-}
-
-interface HealthLevelStyle {
-  label: string;
-  color: string;
-  badgeBg: string;
-  badgeText: string;
-  description: string;
-}
-
-const HEALTH_LEVEL_STYLES: Record<HealthLevelKey, HealthLevelStyle> = {
-  critical: {
-    label: "Crítico",
-    color: "#ef4444",
-    badgeBg: "bg-red-500/10",
-    badgeText: "text-red-600 dark:text-red-400",
-    description: "Sua operação precisa de ajustes urgentes para gerar receita consistente.",
-  },
-  warning: {
-    label: "Atenção",
-    color: "#eab308",
-    badgeBg: "bg-yellow-500/10",
-    badgeText: "text-yellow-600 dark:text-yellow-400",
-    description: "Há progresso, mas ainda há gargalos que limitam seu resultado.",
-  },
-  healthy: {
-    label: "Saudável",
-    color: "#3b82f6",
-    badgeBg: "bg-blue-500/10",
-    badgeText: "text-blue-600 dark:text-blue-400",
-    description: "Sua operação está consistente e próxima do desempenho esperado.",
-  },
-  excellent: {
-    label: "Excelente",
-    color: "#22c55e",
-    badgeBg: "bg-green-500/10",
-    badgeText: "text-green-600 dark:text-green-400",
-    description: "Desempenho acima do esperado. Mantenha o ritmo e diversifique.",
-  },
-  insufficient: {
-    label: "Dados insuficientes",
-    color: "#64748b",
-    badgeBg: "bg-slate-500/10",
-    badgeText: "text-slate-600 dark:text-slate-400",
-    description:
-      "Cadastre metas e colete dados por pelo menos 14 dias para calcular a pontuação.",
-  },
-};
-
-interface HealthGaugeProps {
-  score: number | null;
-  levelColor: string;
-  size?: number;
-}
-
-const HealthGauge = ({ score, levelColor, size = 220 }: HealthGaugeProps) => {
-  const stroke = 16;
-  const radius = (size - stroke) / 2;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circumference = Math.PI * radius;
-  const progress = score == null ? 0 : (score / 100) * circumference;
-
-  return (
-    <svg
-      width={size}
-      height={size / 1.7}
-      viewBox={`0 0 ${size} ${size / 1.7}`}
-      className="overflow-visible"
-      role="img"
-      aria-label={
-        score == null
-          ? "Saúde financeira: dados insuficientes"
-          : `Saúde financeira: ${score} de 100`
-      }
-    >
-      <defs>
-        <linearGradient id="gaugeTrack" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.35" />
-          <stop offset="25%" stopColor="#eab308" stopOpacity="0.35" />
-          <stop offset="55%" stopColor="#3b82f6" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#22c55e" stopOpacity="0.35" />
-        </linearGradient>
-        <linearGradient id="gaugeProgress" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={levelColor} stopOpacity="0.85" />
-          <stop offset="100%" stopColor={levelColor} stopOpacity="1" />
-        </linearGradient>
-        <filter id="gaugeGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      <path
-        d={`M ${stroke / 2} ${cy} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${cy}`}
-        fill="none"
-        stroke="url(#gaugeTrack)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-      />
-
-      <motion.path
-        d={`M ${stroke / 2} ${cy} A ${radius} ${radius} 0 0 1 ${size - stroke / 2} ${cy}`}
-        fill="none"
-        stroke="url(#gaugeProgress)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        filter={score != null ? "url(#gaugeGlow)" : undefined}
-        initial={{ strokeDasharray: `0 ${circumference}` }}
-        animate={{ strokeDasharray: `${progress} ${circumference}` }}
-        transition={{ duration: 1.2, ease: "easeOut" }}
-      />
-
-      {score != null && (
-        <motion.circle
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.3 }}
-          r={stroke / 2 - 2}
-          className="fill-white dark:fill-slate-950"
-          stroke={levelColor}
-          strokeWidth={3}
-          style={{ filter: "drop-shadow(0 0 6px rgba(0,0,0,0.25))" }}
-          cx={cx + radius * Math.cos(Math.PI - Math.PI * (score / 100))}
-          cy={cy - radius * Math.sin(Math.PI - Math.PI * (score / 100))}
-        />
-      )}
-    </svg>
-  );
-};
-
-const FactorBar = ({ factor }: { factor: HealthFactor }) => {
-  const hasData = factor.value != null;
-  const value = factor.value ?? 0;
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-gray-700 dark:text-slate-300">
-            {factor.label}
-          </span>
-          {factor.hint && (
-            <span
-              className="text-[10px] text-gray-400 dark:text-slate-500 cursor-help"
-              title={factor.hint}
-            >
-              ⓘ
-            </span>
-          )}
-        </div>
-        <span className="text-xs font-semibold text-gray-900 dark:text-slate-100">
-          {hasData ? `${Math.round(value)}%` : "—"}
-        </span>
-      </div>
-      <div className="w-full bg-gray-200 dark:bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
-        {hasData ? (
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${value}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="h-full rounded-full"
-            style={{
-              background:
-                value >= 80
-                  ? "linear-gradient(90deg,#16a34a,#22c55e)"
-                  : value >= 55
-                  ? "linear-gradient(90deg,#1d4ed8,#3b82f6)"
-                  : value >= 25
-                  ? "linear-gradient(90deg,#b45309,#eab308)"
-                  : "linear-gradient(90deg,#991b1b,#ef4444)",
-            }}
-          />
-        ) : (
-          <div className="h-full w-full bg-gray-300/60 dark:bg-slate-700/40" />
-        )}
-      </div>
-    </div>
-  );
-};
-
-const FinancialThermometer = ({ data }: FinancialThermometerProps) => {
-  const { score, level, factors, insight } = data;
-  const style = HEALTH_LEVEL_STYLES[level];
-
-  const LevelIcon =
-    level === "excellent"
-      ? Flame
-      : level === "healthy"
-      ? CheckCircle2
-      : level === "insufficient"
-      ? Activity
-      : AlertTriangle;
-
-  const trendLabel =
-    insight.trendPercent == null
-      ? "Sem histórico"
-      : `${insight.trendPercent >= 0 ? "+" : ""}${(
-          insight.trendPercent * 100
-        ).toFixed(1)}%`;
-
-  const trendColor =
-    insight.trendPercent == null
-      ? "text-gray-500 dark:text-slate-400"
-      : insight.trendPercent >= 0
-      ? "text-green-600 dark:text-green-400"
-      : "text-red-600 dark:text-red-400";
-
-  return (
-    <div className="relative rounded-2xl border border-gray-200 dark:border-slate-800 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-950 shadow-xl overflow-hidden h-full flex flex-col">
-      <div
-        className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full opacity-20 blur-3xl"
-        style={{ background: style.color }}
-      />
-
-      <div className="relative px-6 pt-6 flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">
-            Saúde Financeira
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-            Indicador composto do seu desempenho
-          </p>
-        </div>
-        <div
-          className="p-2 rounded-lg"
-          style={{ backgroundColor: `${style.color}20` }}
-          title="Como a pontuação é calculada"
-        >
-          <Thermometer className="h-5 w-5" style={{ color: style.color }} />
-        </div>
-      </div>
-
-      <div className="relative px-6 pt-2 flex flex-col items-center">
-        <div className="relative">
-          <HealthGauge score={score} levelColor={style.color} size={220} />
-          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center pointer-events-none">
-            {score == null ? (
-              <>
-                <p className="text-2xl font-bold text-gray-700 dark:text-slate-300">—</p>
-                <p className="text-xs text-gray-500 dark:text-slate-500 mt-0.5">
-                  Dados insuficientes
-                </p>
-              </>
-            ) : (
-              <>
-                <motion.p
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6, duration: 0.4 }}
-                  className="text-4xl font-bold text-gray-900 dark:text-slate-50 tabular-nums"
-                >
-                  {score}
-                  <span className="text-base font-medium text-gray-400 dark:text-slate-500">
-                    /100
-                  </span>
-                </motion.p>
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.75, duration: 0.4 }}
-                  className={`mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${style.badgeBg}`}
-                >
-                  <LevelIcon className={`h-3.5 w-3.5 ${style.badgeText}`} />
-                  <span className={`text-xs font-semibold ${style.badgeText}`}>
-                    {style.label}
-                  </span>
-                </motion.div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <p className="text-xs text-gray-500 dark:text-slate-400 text-center mt-3 max-w-[260px]">
-          {style.description}
-        </p>
-      </div>
-
-      {factors.length > 0 && (
-        <div className="relative px-6 pt-5 space-y-3">
-          {factors.map((f) => (
-            <FactorBar key={f.key} factor={f} />
-          ))}
-        </div>
-      )}
-
-      {(insight.strongest ||
-        insight.weakest ||
-        insight.recommendation ||
-        insight.goalProgressPercent != null) && (
-        <div className="relative mt-5 px-6 pb-6 pt-4 border-t border-gray-200 dark:border-slate-800 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            {insight.goalProgressPercent != null && (
-              <div className="rounded-lg bg-gray-100 dark:bg-slate-800/50 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-slate-500">
-                  Meta do período
-                </p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
-                  {insight.goalProgressPercent.toFixed(0)}%
-                </p>
-              </div>
-            )}
-            <div className="rounded-lg bg-gray-100 dark:bg-slate-800/50 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-slate-500">
-                Tendência
-              </p>
-              <p className={`text-sm font-semibold ${trendColor}`}>
-                {trendLabel}
-              </p>
-            </div>
-          </div>
-
-          {insight.strongest && (
-            <div className="flex items-start gap-2 text-xs">
-              <TrendingUp className="h-3.5 w-3.5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-              <p className="text-gray-600 dark:text-slate-400">
-                Ponto forte:{" "}
-                <span className="text-gray-900 dark:text-slate-200 font-medium">
-                  {insight.strongest.label}
-                </span>
-              </p>
-            </div>
-          )}
-
-          {insight.weakest && insight.weakest.key !== insight.strongest?.key && (
-            <div className="flex items-start gap-2 text-xs">
-              <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-              <p className="text-gray-600 dark:text-slate-400">
-                Atenção em:{" "}
-                <span className="text-gray-900 dark:text-slate-200 font-medium">
-                  {insight.weakest.label}
-                </span>
-              </p>
-            </div>
-          )}
-
-          {insight.recommendation && (
-            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
-              <p className="text-[11px] leading-relaxed text-blue-700 dark:text-blue-200/90">
-                💡 {insight.recommendation}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };
@@ -1273,68 +882,30 @@ const topProducts = [
   { name: "iPad Air", price: 599 },
 ];
 
-const MOCK_HEALTH: FinancialHealthData = {
-  score: 72,
-  level: "healthy",
-  factors: [
-    {
-      key: "revenue",
-      label: "Receita vs. meta",
-      value: 74,
-      hint: "Quanto da sua meta de receita foi atingido.",
-    },
-    {
-      key: "conversion",
-      label: "Taxa de conversão",
-      value: 62,
-      hint: "Conversões sobre cliques nos links.",
-    },
-    {
-      key: "commission",
-      label: "Comissões recebidas",
-      value: 64,
-      hint: "Proporção da comissão já paga.",
-    },
-    {
-      key: "trend",
-      label: "Tendência",
-      value: 78,
-      hint: "Variação vs. período anterior.",
-    },
-  ],
-  insight: {
-    strongest: { key: "trend", label: "Tendência", value: 78 },
-    weakest: { key: "conversion", label: "Taxa de conversão", value: 62 },
-    trendPercent: 0.21,
-    goalProgressPercent: 73.6,
-    recommendation:
-      "Sua taxa de conversão está abaixo do esperado. Revise os produtos e links com mais cliques e menos vendas.",
-  },
-};
-
 export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
   const [selectedCard, setSelectedCard] = useState<ChartType | null>(null);
 
   return (
     <div className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-auto">
-      {/* Header */}
+      {/* Header Padronizado */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Bem-vindo de volta</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Bem-vindo de volta</p>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="relative p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-          </button>
+
+        <div className="flex items-center gap-3">
+          <NotificationPopover isDark={isDark} />
+
           <button
             onClick={() => setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
+            title="Alternar tema"
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <button className="p-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none">
+
+          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
             <User className="h-5 w-5" />
           </button>
         </div>
@@ -1373,13 +944,13 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
 
       {selectedCard && <DynamicChart type={selectedCard} onClose={() => setSelectedCard(null)} />}
 
-      {/* ROI + Saúde Financeira */}
+      {/* ROI + Termômetro Financeiro */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="lg:col-span-2">
           <ROIChart />
         </div>
         <div className="lg:col-span-1">
-          <FinancialThermometer data={MOCK_HEALTH} />
+          <FinancialThermometer isDark={isDark} setIsDark={setIsDark} />
         </div>
       </div>
 

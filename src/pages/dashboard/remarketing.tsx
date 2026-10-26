@@ -16,7 +16,6 @@ import {
   ShoppingCart,
   Percent,
   AlertTriangle,
-  Bell,
   Moon,
   Sun,
   User,
@@ -39,6 +38,7 @@ import {
   formatDateTime,
   formatBRL,
 } from "../../mocks/mockRemarketing";
+import { NotificationPopover } from "../../components/ui/notification-popover";
 
 /* ============================================================
    PÁGINA
@@ -47,14 +47,11 @@ import {
 const PAGE_SIZE = 8;
 
 interface RemarketingPageProps {
-  isDark: boolean;
-  setIsDark: React.Dispatch<React.SetStateAction<boolean>>;
+  isDark?: boolean;
+  setIsDark?: (value: boolean) => void;
 }
 
-export default function RemarketingPage({
-  isDark,
-  setIsDark,
-}: RemarketingPageProps) {
+export function RemarketingPage({ isDark, setIsDark }: RemarketingPageProps) {
   const [records, setRecords] = useState<RemarketingRecord[]>(MOCK_REMARKETING);
   const [filters, setFilters] = useState<RemarketingFilters>(emptyFilters);
   const [page, setPage] = useState(1);
@@ -163,33 +160,44 @@ export default function RemarketingPage({
 
   return (
     <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto">
-      {/* ---------- Cabeçalho ---------- */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
+      {/* CABEÇALHO PADRONIZADO */}
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             Remarketing
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
-            Acompanhe oportunidades de conversão após cliques em links de
-            afiliado sem compra registrada.
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Acompanhe oportunidades de conversão após cliques em links de afiliado sem compra registrada.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start">
+        <div className="flex items-center gap-3">
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors shadow-xs"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Atualizar
           </button>
 
-          <TopActions isDark={isDark} setIsDark={setIsDark} />
+          <NotificationPopover isDark={isDark} />
+
+          <button
+            onClick={() => setIsDark && setIsDark(!isDark)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
+            title="Alternar tema"
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
+          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
+            <User className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
-      {/* ---------- KPIs ---------- */}
+      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         <KpiCard icon={MousePointerClick} iconBg="bg-blue-50 dark:bg-blue-900/20" iconColor="text-blue-600 dark:text-blue-400" label="Cliques no período" value={kpis.totalClicks.toString()} hint="Total de cliques registrados nos links" />
         <KpiCard icon={ShoppingCart} iconBg="bg-orange-50 dark:bg-orange-900/20" iconColor="text-orange-600 dark:text-orange-400" label="Cliques sem compra" value={kpis.clicksWithoutConversion.toString()} hint="Cliques sem conversão confirmada" />
@@ -197,7 +205,7 @@ export default function RemarketingPage({
         <KpiCard icon={Percent} iconBg="bg-purple-50 dark:bg-purple-900/20" iconColor="text-purple-600 dark:text-purple-400" label="Taxa de recuperação" value={kpis.recoveryRate == null ? "—" : `${kpis.recoveryRate.toFixed(1)}%`} hint={kpis.recoveryRate == null ? "Sem dados suficientes para calcular" : "Conversões sobre cliques no período"} />
       </div>
 
-      {/* ---------- Filtros ---------- */}
+      {/* FILTROS */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-6 shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <Filter className="h-4 w-4 text-slate-400" />
@@ -244,7 +252,7 @@ export default function RemarketingPage({
         </div>
       </div>
 
-      {/* ---------- Tabela ---------- */}
+      {/* TABELA */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
         {filtered.length === 0 ? (
           <EmptyState hasRecords={records.length > 0} onClear={clearFilters} />
@@ -343,8 +351,6 @@ export default function RemarketingPage({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium shadow-lg"
-            role="status"
-            aria-live="polite"
           >
             {toast}
           </motion.div>
@@ -354,57 +360,7 @@ export default function RemarketingPage({
   );
 }
 
-/* ============================================================
-   AÇÕES DO TOPO (Bell / Tema / User)
-   ============================================================ */
-
-interface TopActionsProps {
-  isDark: boolean;
-  setIsDark: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-function TopActions({ isDark, setIsDark }: TopActionsProps) {
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        className="relative p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-        aria-label="Notificações"
-      >
-        <Bell className="h-5 w-5" />
-        <span className="absolute top-2 right-2 h-2.5 w-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
-      </button>
-      <button
-        onClick={() => setIsDark(!isDark)}
-        className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-        aria-label={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-      >
-        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </button>
-      <button
-        className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-        aria-label="Perfil"
-      >
-        <User className="h-5 w-5" />
-      </button>
-    </div>
-  );
-}
-
-/* ============================================================
-   SUB-COMPONENTES
-   ============================================================ */
-
-interface KpiCardProps {
-  icon: React.ComponentType<{ className?: string }>;
-  iconBg: string;
-  iconColor: string;
-  label: string;
-  value: string;
-  hint?: string;
-  extra?: string;
-}
-
-function KpiCard({ icon: Icon, iconBg, iconColor, label, value, hint, extra }: KpiCardProps) {
+function KpiCard({ icon: Icon, iconBg, iconColor, label, value, hint, extra }: { icon: React.ComponentType<{ className?: string }>; iconBg: string; iconColor: string; label: string; value: string; hint?: string; extra?: string }) {
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
@@ -420,13 +376,7 @@ function KpiCard({ icon: Icon, iconBg, iconColor, label, value, hint, extra }: K
   );
 }
 
-interface FilterSelectProps {
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}
-
-function FilterSelect({ value, onChange, options }: FilterSelectProps) {
+function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
     <select
       value={value}
@@ -448,12 +398,7 @@ function StatusBadge({ label, className }: { label: string; className: string })
   );
 }
 
-interface EmptyStateProps {
-  hasRecords: boolean;
-  onClear: () => void;
-}
-
-function EmptyState({ hasRecords, onClear }: EmptyStateProps) {
+function EmptyState({ hasRecords, onClear }: { hasRecords: boolean; onClear: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
       <div className="p-3 rounded-full bg-slate-100 dark:bg-slate-800 mb-4">
@@ -480,18 +425,7 @@ function EmptyState({ hasRecords, onClear }: EmptyStateProps) {
   );
 }
 
-/* ============================================================
-   PAINEL LATERAL DE DETALHES
-   ============================================================ */
-
-interface DetailPanelProps {
-  record: RemarketingRecord;
-  onClose: () => void;
-  onChangeStatus: (s: RemarketingStatus) => void;
-  onSaveNote: (n: string) => void;
-}
-
-function DetailPanel({ record, onClose, onChangeStatus, onSaveNote }: DetailPanelProps) {
+function DetailPanel({ record, onClose, onChangeStatus, onSaveNote }: { record: RemarketingRecord; onClose: () => void; onChangeStatus: (s: RemarketingStatus) => void; onSaveNote: (n: string) => void }) {
   const [note, setNote] = useState(record.note ?? "");
   const [confirmClose, setConfirmClose] = useState(false);
 
@@ -512,9 +446,6 @@ function DetailPanel({ record, onClose, onChangeStatus, onSaveNote }: DetailPane
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex justify-end"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Detalhes do registro ${record.id}`}
     >
       <motion.aside
         initial={{ x: "100%" }}
@@ -532,7 +463,6 @@ function DetailPanel({ record, onClose, onChangeStatus, onSaveNote }: DetailPane
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="Fechar"
           >
             <X className="h-4 w-4" />
           </button>
@@ -655,17 +585,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-interface ActionButtonProps {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-  hint?: string;
-}
-
-function ActionButton({ icon: Icon, label, active, onClick, disabled, danger, hint }: ActionButtonProps) {
+function ActionButton({ icon: Icon, label, active, onClick, disabled, danger, hint }: { icon: React.ComponentType<{ className?: string }>; label: string; active: boolean; onClick: () => void; disabled?: boolean; danger?: boolean; hint?: string }) {
   const base = "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-colors text-left";
   const variant = active
     ? danger
@@ -685,3 +605,5 @@ function ActionButton({ icon: Icon, label, active, onClick, disabled, danger, hi
     </button>
   );
 }
+
+export default RemarketingPage;

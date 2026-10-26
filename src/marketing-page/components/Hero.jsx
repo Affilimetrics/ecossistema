@@ -1,3 +1,4 @@
+import React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -6,103 +7,127 @@ import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
 import visuallyHidden from '@mui/utils/visuallyHidden';
 import { styled } from '@mui/material/styles';
+import Cursor from '@/components/ui/inverted-cursor';
 
-const StyledBox = styled('div')(({ theme }) => ({
+const TEMPLATE_IMAGE_URL =
+  import.meta.env.VITE_TEMPLATE_IMAGE_URL || 'https://mui.com';
+
+const PreviewCard = styled('div')(({ theme }) => ({
   alignSelf: 'center',
   width: '100%',
-  height: 400,
-  marginTop: theme.spacing(8),
-  borderRadius: (theme.vars || theme).shape.borderRadius,
-  outline: '6px solid',
-  outlineColor: 'hsla(220, 25%, 80%, 0.2)',
-  border: '1px solid',
-  borderColor: (theme.vars || theme).palette.grey[200],
-  boxShadow: '0 0 12px 8px hsla(220, 25%, 80%, 0.2)',
-  backgroundImage: `url(${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/screenshots/material-ui/getting-started/templates/dashboard.jpg)`,
+  height: 420,
+  marginTop: theme.spacing(6),
+  borderRadius: theme.shape.borderRadius * 2,
+  border: '1px solid rgba(255, 255, 255, 0.12)',
+  boxShadow: '0 20px 80px rgba(0, 0, 0, 0.6)',
+  backgroundImage: `url(${TEMPLATE_IMAGE_URL}/static/screenshots/material-ui/getting-started/templates/dashboard-dark.jpg)`,
   backgroundSize: 'cover',
+  backgroundPosition: 'top center',
   [theme.breakpoints.up('sm')]: {
-    marginTop: theme.spacing(10),
-    height: 700,
+    marginTop: theme.spacing(8),
+    height: 650,
   },
-  ...theme.applyStyles('dark', {
-    boxShadow: '0 0 24px 12px hsla(210, 100%, 25%, 0.2)',
-    backgroundImage: `url(${process.env.TEMPLATE_IMAGE_URL || 'https://mui.com'}/static/screenshots/material-ui/getting-started/templates/dashboard-dark.jpg)`,
-    outlineColor: 'hsla(220, 20%, 42%, 0.1)',
-    borderColor: (theme.vars || theme).palette.grey[700],
-  }),
 }));
 
 export default function Hero() {
   return (
     <Box
       id="hero"
-      sx={(theme) => ({
+      sx={{
+        position: 'relative',
+        isolation: 'isolate',
+        overflow: 'hidden',
         width: '100%',
-        backgroundRepeat: 'no-repeat',
-        backgroundImage:
-          'radial-gradient(ellipse 80% 50% at 50% -20%, hsl(210, 100%, 90%), transparent)',
-        ...theme.applyStyles('dark', {
-          backgroundImage:
-            'radial-gradient(ellipse 80% 50% at 50% -20%, hsl(210, 100%, 16%), transparent)',
-        }),
-      })}
+        bgcolor: '#0B0F17',
+        color: '#FFFFFF',
+        pt: { xs: 12, sm: 18 },
+        pb: { xs: 8, sm: 12 },
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+      }}
     >
-      <Container
+      {/* Elemento interativo: Cursor Invertido ativado exclusivamente dentro do Hero */}
+      <Cursor size={80} />
+
+      {/* Gradientes decorativos sutis */}
+      <Box
         sx={{
+          pointerEvents: 'none',
+          position: 'absolute',
+          top: '-20%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '80%',
+          height: '600px',
+          background: 'radial-gradient(ellipse at center, rgba(59, 130, 246, 0.15), transparent 70%)',
+          filter: 'blur(60px)',
+          zIndex: 1,
+        }}
+      />
+
+      <Container
+        maxWidth="lg"
+        sx={{
+          position: 'relative',
+          zIndex: 10,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          pt: { xs: 14, sm: 20 },
-          pb: { xs: 8, sm: 12 },
         }}
       >
-        <Stack
-          spacing={2}
-          useFlexGap
-          sx={{ alignItems: 'center', width: { xs: '100%', sm: '70%' } }}
-        >
+        <Stack spacing={3} sx={{ alignItems: 'center', textAlign: 'center', maxWidth: '850px' }}>
+          <Chip
+            label="Módulo de Inteligência de Vendas"
+            size="small"
+            sx={{
+              bgcolor: 'rgba(59, 130, 246, 0.1)',
+              color: '#60A5FA',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              px: 1,
+            }}
+          />
+
           <Typography
             variant="h1"
             sx={{
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: 'center',
-              fontSize: 'clamp(3rem, 10vw, 3.5rem)',
+              fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+              fontWeight: 800,
+              lineHeight: 1.15,
+              letterSpacing: '-0.02em',
             }}
           >
-            Our&nbsp;latest&nbsp;
-            <Typography
+            Escalabilidade e controle total para suas campanhas no{' '}
+            <Box
               component="span"
-              variant="h1"
-              sx={(theme) => ({
-                fontSize: 'inherit',
-                color: 'primary.main',
-                ...theme.applyStyles('dark', {
-                  color: 'primary.light',
-                }),
-              })}
+              sx={{
+                background: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
             >
-              products
-            </Typography>
+              Scallora
+            </Box>
           </Typography>
+
           <Typography
             sx={{
-              textAlign: 'center',
-              color: 'text.secondary',
-              width: { sm: '100%', md: '80%' },
+              color: '#94A3B8',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+              lineHeight: 1.6,
+              maxWidth: '680px',
             }}
           >
-            Explore our cutting-edge dashboard, delivering high-quality solutions
-            tailored to your needs. Elevate your experience with top-tier features
-            and services.
+            Gerencie ofertas, monitore conversões em tempo real e otimize o desempenho da sua operação com infraestrutura de alta performance.
           </Typography>
+
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-            useFlexGap
-            sx={{ pt: 2, width: { xs: '100%', sm: '350px' } }}
+            spacing={1.5}
+            sx={{ pt: 1, width: { xs: '100%', sm: '420px' } }}
           >
             <InputLabel htmlFor="email-hero" sx={visuallyHidden}>
               Email
@@ -112,37 +137,42 @@ export default function Hero() {
               hiddenLabel
               size="small"
               variant="outlined"
-              aria-label="Enter your email address"
-              placeholder="Your email address"
+              placeholder="Seu e-mail corporativo"
               fullWidth
-              slotProps={{
-                htmlInput: {
-                  autoComplete: 'off',
-                  'aria-label': 'Enter your email address',
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  color: '#FFF',
+                  borderRadius: '8px',
+                  '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.15)' },
+                  '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
                 },
               }}
             />
             <Button
               variant="contained"
-              color="primary"
-              size="small"
-              sx={{ minWidth: 'fit-content' }}
+              size="large"
+              sx={{
+                bgcolor: '#3B82F6',
+                color: '#FFF',
+                fontWeight: 600,
+                px: 3,
+                borderRadius: '8px',
+                textTransform: 'none',
+                minWidth: 'fit-content',
+                '&:hover': { bgcolor: '#2563EB' },
+              }}
             >
-              Start now
+              Começar Agora
             </Button>
           </Stack>
-          <Typography
-            variant="caption"
-            sx={{ color: 'text.secondary', textAlign: 'center' }}
-          >
-            By clicking &quot;Start now&quot; you agree to our&nbsp;
-            <Link href="#" color="primary">
-              Terms & Conditions
-            </Link>
-            .
+
+          <Typography variant="caption" sx={{ color: '#64748B' }}>
+            Sem necessidade de cartão de crédito no teste grátis.
           </Typography>
         </Stack>
-        <StyledBox id="image" />
+
+        <PreviewCard id="image" />
       </Container>
     </Box>
   );

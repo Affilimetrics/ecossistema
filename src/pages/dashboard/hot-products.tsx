@@ -2,20 +2,17 @@ import { useMemo, useState, useEffect } from "react";
 import {
   RefreshCw,
   Search,
-  ArrowUpDown,
   ExternalLink,
   Copy,
   CheckCircle2,
   Image as ImageIcon,
-  Bell,
   Moon,
   Sun,
   User,
   X,
   TrendingDown,
-  Loader2,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { NotificationPopover } from "../../components/ui/notification-popover";
 
 /* ============================================================
    TIPOS E DADOS
@@ -40,7 +37,6 @@ type SortKey = "score" | "discount" | "priceAsc" | "priceDesc" | "recent";
 const CATEGORIES = ["Todas", "Eletrônicos", "Casa e Cozinha", "Moda", "Esportes", "Livros", "Brinquedos"] as const;
 type Category = (typeof CATEGORIES)[number];
 
-/* ⚠️ DADOS DE DEMONSTRAÇÃO — substituir por GET /api/hot-products/ */
 const MOCK_PRODUCTS: Product[] = [
   { id: "p-001", name: "iPhone 15 Pro 256GB Titanium", category: "Eletrônicos", marketplaceName: "Amazon", score: 151.0, discountPercent: 22, currentPrice: 7349.0, previousPrice: 9499.0, affiliateUrl: "https://example.com/aff/iphone15pro", updatedAt: "2024-04-18T14:32:00-03:00" },
   { id: "p-002", name: "MacBook Air M2 13\" 256GB SSD", category: "Eletrônicos", marketplaceName: "Magazine Luiza", score: 138.99, discountPercent: 18, currentPrice: 8199.0, previousPrice: 9999.0, affiliateUrl: "https://example.com/aff/macbookair", updatedAt: "2024-04-18T14:32:00-03:00" },
@@ -80,11 +76,11 @@ const formatRelative = (iso: string) => {
    ============================================================ */
 
 interface HotProductsContentProps {
-  isDark: boolean;
-  setIsDark: React.Dispatch<React.SetStateAction<boolean>>;
+  isDark?: boolean;
+  setIsDark?: (value: boolean) => void;
 }
 
-export default function HotProductsContent({ isDark, setIsDark }: HotProductsContentProps) {
+export function HotProductsContent({ isDark, setIsDark }: HotProductsContentProps) {
   const [products] = useState<Product[]>(MOCK_PRODUCTS);
   const [category, setCategory] = useState<Category>("Todas");
   const [search, setSearch] = useState("");
@@ -140,137 +136,118 @@ export default function HotProductsContent({ isDark, setIsDark }: HotProductsCon
   };
 
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-950 overflow-auto">
-      <div className="max-w-[1400px] mx-auto px-6 py-6">
-        {/* CABEÇALHO */}
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-              Produtos em Alta
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Ranking por desconto, variação de preço e recência. Última atualização {formatRelative(lastUpdate)}.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              Recalcular
-            </button>
-            <TopActions isDark={isDark} setIsDark={setIsDark} />
-          </div>
+    <div className="flex-1 bg-slate-50 dark:bg-slate-950 overflow-auto p-6">
+      {/* CABEÇALHO PADRONIZADO */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            Produtos em Alta
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Ranking por desconto, variação de preço e recência. Última atualização {formatRelative(lastUpdate)}.
+          </p>
         </div>
 
-        {/* FILTROS — barra única */}
-        <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produto"
-              className="w-full pl-8 pr-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
-            />
-          </div>
-
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as Category)}
-            className="px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/40 cursor-pointer"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors shadow-xs"
           >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c === "Todas" ? "Categoria" : c}</option>
-            ))}
-          </select>
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            Recalcular
+          </button>
 
-          <select
-            value={minDiscount}
-            onChange={(e) => setMinDiscount(Number(e.target.value))}
-            className="px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/40 cursor-pointer"
+          <NotificationPopover isDark={isDark} />
+
+          <button
+            onClick={() => setIsDark && setIsDark(!isDark)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
+            title="Alternar tema"
           >
-            <option value={0}>Desconto</option>
-            <option value={10}>≥ 10%</option>
-            <option value={20}>≥ 20%</option>
-            <option value={30}>≥ 30%</option>
-            <option value={40}>≥ 40%</option>
-          </select>
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
 
-          <select
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
-            className="px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/40 cursor-pointer"
-          >
-            <option value="score">Ordenar por pontuação</option>
-            <option value="discount">Maior desconto</option>
-            <option value="priceAsc">Menor preço</option>
-            <option value="priceDesc">Maior preço</option>
-            <option value="recent">Atualizados recentemente</option>
-          </select>
-
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors px-1"
-            >
-              <X className="h-3 w-3" />
-              Limpar
-            </button>
-          )}
-
-          <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
-            {filtered.length} produtos
-          </span>
+          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
+            <User className="h-5 w-5" />
+          </button>
         </div>
-
-        {/* LISTA DE OPORTUNIDADES */}
-        {loading ? (
-          <ListSkeleton />
-        ) : filtered.length === 0 ? (
-          <EmptyState hasFilters={hasActiveFilters} onClear={clearFilters} />
-        ) : (
-          <ul className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
-            {filtered.map((p, idx) => (
-              <ProductRow key={p.id} product={p} rank={idx + 1} />
-            ))}
-          </ul>
-        )}
       </div>
-    </div>
-  );
-}
 
-/* ============================================================
-   SUB-COMPONENTES
-   ============================================================ */
+      {/* FILTROS */}
+      <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar produto"
+            className="w-full pl-8 pr-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+          />
+        </div>
 
-function TopActions({ isDark, setIsDark }: { isDark: boolean; setIsDark: React.Dispatch<React.SetStateAction<boolean>> }) {
-  return (
-    <div className="flex items-center gap-1">
-      <button
-        className="relative p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        aria-label="Notificações"
-      >
-        <Bell className="h-4 w-4" />
-        <span className="absolute top-1 right-1 h-1.5 w-1.5 bg-red-500 rounded-full" />
-      </button>
-      <button
-        onClick={() => setIsDark(!isDark)}
-        className="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        aria-label="Alternar tema"
-      >
-        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      </button>
-      <button
-        className="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        aria-label="Perfil"
-      >
-        <User className="h-4 w-4" />
-      </button>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as Category)}
+          className="px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/40 cursor-pointer"
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>{c === "Todas" ? "Categoria" : c}</option>
+          ))}
+        </select>
+
+        <select
+          value={minDiscount}
+          onChange={(e) => setMinDiscount(Number(e.target.value))}
+          className="px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/40 cursor-pointer"
+        >
+          <option value={0}>Desconto</option>
+          <option value={10}>≥ 10%</option>
+          <option value={20}>≥ 20%</option>
+          <option value={30}>≥ 30%</option>
+          <option value={40}>≥ 40%</option>
+        </select>
+
+        <select
+          value={sortKey}
+          onChange={(e) => setSortKey(e.target.value as SortKey)}
+          className="px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/40 cursor-pointer"
+        >
+          <option value="score">Ordenar por pontuação</option>
+          <option value="discount">Maior desconto</option>
+          <option value="priceAsc">Menor preço</option>
+          <option value="priceDesc">Maior preço</option>
+          <option value="recent">Atualizados recentemente</option>
+        </select>
+
+        {hasActiveFilters && (
+          <button
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors px-1"
+          >
+            <X className="h-3 w-3" />
+            Limpar
+          </button>
+        )}
+
+        <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
+          {filtered.length} produtos
+        </span>
+      </div>
+
+      {/* LISTA DE OPORTUNIDADES */}
+      {loading ? (
+        <ListSkeleton />
+      ) : filtered.length === 0 ? (
+        <EmptyState hasFilters={hasActiveFilters} onClear={clearFilters} />
+      ) : (
+        <ul className="rounded-md border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+          {filtered.map((p, idx) => (
+            <ProductRow key={p.id} product={p} rank={idx + 1} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -288,12 +265,10 @@ function ProductRow({ product, rank }: { product: Product; rank: number }) {
 
   return (
     <li className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
-      {/* Rank — discreto */}
       <span className="w-6 text-xs text-slate-400 dark:text-slate-500 tabular-nums text-right shrink-0">
         {rank}
       </span>
 
-      {/* Miniatura */}
       <div className="h-10 w-10 shrink-0 rounded border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
         {product.imageUrl && !imgError ? (
           <img
@@ -308,7 +283,6 @@ function ProductRow({ product, rank }: { product: Product; rank: number }) {
         )}
       </div>
 
-      {/* Nome + marketplace */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
           {product.name}
@@ -318,13 +292,11 @@ function ProductRow({ product, rank }: { product: Product; rank: number }) {
         </p>
       </div>
 
-      {/* Desconto */}
       <div className="hidden sm:flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 shrink-0">
         <TrendingDown className="h-3 w-3" />
         {product.discountPercent}%
       </div>
 
-      {/* Preços */}
       <div className="text-right shrink-0 min-w-[110px]">
         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 tabular-nums">
           {formatBRL(product.currentPrice)}
@@ -336,7 +308,6 @@ function ProductRow({ product, rank }: { product: Product; rank: number }) {
         )}
       </div>
 
-      {/* Ações */}
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
         <button
           onClick={copyAffiliate}
@@ -398,3 +369,5 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
     </div>
   );
 }
+
+export default HotProductsContent;

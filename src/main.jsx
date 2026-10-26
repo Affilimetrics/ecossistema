@@ -6,7 +6,7 @@ import './styles.css';
 // Autenticação e Páginas Públicas
 import SignInSide from './pages/auth/sign-in-side/SignInSide';
 import SignUp from './pages/auth/sign-up/SignUp';
-import MarketingPage from './pages/marketing-page/MarketingPage';
+import MarketingPage from './marketing-page/MarketingPage';
 
 // Componentes de Layout do Dashboard
 import {
