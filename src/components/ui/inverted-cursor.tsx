@@ -2,9 +2,13 @@
 
 import React, { useEffect, useRef } from "react";
 
-export const Cursor = ({ size = 60 }) => {
-  const cursorRef = useRef(null);
-  const animFrameRef = useRef(null);
+interface CursorProps {
+  size?: number;
+}
+
+export const Cursor: React.FC<CursorProps> = ({ size = 70 }) => {
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const cursorElement = cursorRef.current;
@@ -13,6 +17,7 @@ export const Cursor = ({ size = 60 }) => {
     const parent = cursorElement.parentElement;
     if (!parent) return;
 
+    // Desativa em dispositivos de toque ou com redução de movimento
     const isTouchDevice =
       window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
     const prefersReducedMotion = window.matchMedia(
@@ -41,7 +46,7 @@ export const Cursor = ({ size = 60 }) => {
       animFrameRef.current = requestAnimationFrame(animate);
     };
 
-    const handleMouseMove = (event) => {
+    const handleMouseMove = (event: MouseEvent) => {
       const rect = parent.getBoundingClientRect();
       targetX = event.clientX - rect.left - size / 2;
       targetY = event.clientY - rect.top - size / 2;
@@ -82,7 +87,7 @@ export const Cursor = ({ size = 60 }) => {
     <div
       ref={cursorRef}
       aria-hidden="true"
-      className="pointer-events-none absolute left-0 top-0 z-20 rounded-full bg-white mix-blend-difference opacity-0 transition-opacity duration-200"
+      className="pointer-events-none absolute left-0 top-0 z-30 rounded-full bg-white mix-blend-difference opacity-0 transition-opacity duration-200"
       style={{
         width: size,
         height: size,
