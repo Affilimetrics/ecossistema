@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   DollarSign,
+  Monitor,
   ShoppingCart,
   Tag,
   BarChart3,
@@ -160,13 +161,14 @@ export const Sidebar = () => {
 
   return (
     <nav
-      className={`sticky top-0 h-screen shrink-0 border-r transition-all duration-300 ease-in-out ${
+      className={`sticky top-0 h-screen shrink-0 flex flex-col border-r transition-all duration-300 ease-in-out ${
         open ? "w-64" : "w-16"
       } border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm`}
     >
       <TitleSection open={open} />
 
-      <div className="space-y-1 mb-8">
+      {/* Menu Principal (Topo) */}
+      <div className="space-y-1 mb-8 flex-1 overflow-y-auto">
         <Option Icon={Home} title="Dashboard" selected={selected} setSelected={setSelected} open={open} path="/dashboardv2" />
         <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={open} path="/divulgacao" />
         <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />  
@@ -176,7 +178,8 @@ export const Sidebar = () => {
         <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={open} path="/remarketing" />
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1">
+      {/* Conta e Suporte (Rodapé, empurrado para baixo com mt-auto) */}
+      <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1 pb-14">
         {open && (
           <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
             Conta
@@ -186,6 +189,7 @@ export const Sidebar = () => {
         <Option Icon={HelpCircle} title="Ajuda e suporte" selected={selected} setSelected={setSelected} open={open} />
       </div>
 
+      {/* Botão de Ocultar */}
       <ToggleClose open={open} setOpen={setOpen} />
     </nav>
   );
@@ -271,7 +275,7 @@ const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
   return (
     <button
       onClick={() => setOpen(!open)}
-      className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none"
+      className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none z-10"
     >
       <div className="flex items-center p-3">
         <div className="grid size-10 place-content-center">

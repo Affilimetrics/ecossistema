@@ -1,100 +1,59 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-interface CursorProps {
-  size?: number;
-}
-
-export const Cursor: React.FC<CursorProps> = ({ size = 70 }) => {
+export const Cursor = ({ size = 60 }) => {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const animFrameRef = useRef<number | null>(null);
+  const requestRef = useRef<number | null>(null);
+  const previousPos = useRef({ x: -size, y: -size });
+  
+  const [visible, setVisible] = useState(false);
+  const [position, setPosition] = useState({ x: -size, y: -size });
 
   useEffect(() => {
-    const cursorElement = cursorRef.current;
-    if (!cursorElement) return;
-
-    const parent = cursorElement.parentElement;
-    if (!parent) return;
-
-    // Desativa em dispositivos de toque ou com redução de movimento
-    const isTouchDevice =
-      window.matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-
-    if (isTouchDevice || prefersReducedMotion) {
-      cursorElement.style.display = "none";
-      return;
-    }
-
-    let targetX = -size;
-    let targetY = -size;
-    let currentX = -size;
-    let currentY = -size;
-    let isVisible = false;
+    // Desativa em mobile/touch
+    if (window.matchMedia("(pointer: coarse)").matches) return;
 
     const animate = () => {
-      currentX += (targetX - currentX) * 0.18;
-      currentY += (targetY - currentY) * 0.18;
+      if (!cursorRef.current) return;
+      const currentX = previousPos.current.x;
+      const currentY = previousPos.current.y;
+      const targetX = position.x - size / 2;
+      const targetY = position.y - size / 2;
+      
+      const newX = currentX + (targetX - currentX) * 0.2;
+      const newY = currentY + (targetY - currentY) * 0.2;
 
-      if (cursorElement) {
-        cursorElement.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-      }
-
-      animFrameRef.current = requestAnimationFrame(animate);
+      previousPos.current = { x: newX, y: newY };
+      cursorRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0)`;
+      requestRef.current = requestAnimationFrame(animate);
     };
 
-    const handleMouseMove = (event: MouseEvent) => {
-      const rect = parent.getBoundingClientRect();
-      targetX = event.clientX - rect.left - size / 2;
-      targetY = event.clientY - rect.top - size / 2;
-
-      if (!isVisible) {
-        isVisible = true;
-        cursorElement.style.opacity = "1";
-      }
+    const handleMouseMove = (e: MouseEvent) => {
+      setVisible(true);
+      setPosition({ x: e.clientX, y: e.clientY });
     };
+    const handleMouseLeave = () => setVisible(false);
 
-    const handleMouseEnter = () => {
-      isVisible = true;
-      cursorElement.style.opacity = "1";
-    };
-
-    const handleMouseLeave = () => {
-      isVisible = false;
-      cursorElement.style.opacity = "0";
-    };
-
-    parent.addEventListener("mousemove", handleMouseMove);
-    parent.addEventListener("mouseenter", handleMouseEnter);
-    parent.addEventListener("mouseleave", handleMouseLeave);
-
-    animFrameRef.current = requestAnimationFrame(animate);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.documentElement.addEventListener("mouseleave", handleMouseLeave);
+    document.body.style.cursor = "none";
+    requestRef.current = requestAnimationFrame(animate);
 
     return () => {
-      parent.removeEventListener("mousemove", handleMouseMove);
-      parent.removeEventListener("mouseenter", handleMouseEnter);
-      parent.removeEventListener("mouseleave", handleMouseLeave);
-      if (animFrameRef.current !== null) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      document.body.style.cursor = "auto";
     };
-  }, [size]);
+  }, [position.x, position.y, size]);
 
   return (
     <div
       ref={cursorRef}
+      className="fixed pointer-events-none rounded-full bg-white mix-blend-difference z-[100] transition-opacity duration-300"
+      style={{ width: size, height: size, opacity: visible ? 1 : 0 }}
       aria-hidden="true"
-      className="pointer-events-none absolute left-0 top-0 z-30 rounded-full bg-white mix-blend-difference opacity-0 transition-opacity duration-200"
-      style={{
-        width: size,
-        height: size,
-        willChange: "transform",
-      }}
     />
   );
 };
-
-export default Cursor;
