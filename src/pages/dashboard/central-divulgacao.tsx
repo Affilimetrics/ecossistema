@@ -16,12 +16,11 @@ import {
   Eye,
   Save,
   Sparkles,
-  Moon,
-  Sun,
-  User,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NotificationPopover } from "../../components/ui/notification-popover";
+import { UserNav } from "../../components/ui/user-nav";
+import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 
 /* ============================================================
    TIPOS E CONFIGURAÇÕES DE MODERAÇÃO
@@ -58,7 +57,6 @@ export interface ConsolidatedModeration {
   visualLayer: ModerationLayerResult;
 }
 
-/* Mock de produtos para catálogo local */
 const MOCK_PRODUCTS = [
   { id: "p-001", name: "iPhone 15 Pro 256GB Titanium", marketplaceName: "Amazon", affiliateUrl: "https://example.com/aff/iphone15" },
   { id: "p-002", name: "MacBook Air M2 13\" 256GB SSD", marketplaceName: "Magazine Luiza", affiliateUrl: "https://example.com/aff/macbook" },
@@ -102,7 +100,6 @@ async function runLocalModeration(
   const hasProfanity = /(palavrao|merda|foda|puta|porra|arrombado)/i.test(fullText);
   const hasSpam = /(pix em dobro|ganhe dinheiro facil|urubu do pix|retorno garantido)/i.test(fullText);
 
-  // 1. Moderação do Texto Digitado
   let textLayer: ModerationLayerResult = {
     status: "approved",
     categories: [],
@@ -119,7 +116,6 @@ async function runLocalModeration(
     };
   }
 
-  // 2. Moderação de OCR
   const ocrLayer: ModerationLayerResult = imageFile
     ? {
         status: "approved",
@@ -134,7 +130,6 @@ async function runLocalModeration(
         analyzedAt: null,
       };
 
-  // 3. Moderação Visual
   const visualLayer: ModerationLayerResult = imageFile
     ? {
         status: "approved",
@@ -280,18 +275,8 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
 
         <div className="flex items-center gap-3">
           <NotificationPopover isDark={isDark} />
-
-          <button
-            onClick={() => setIsDark && setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
-            title="Alternar tema"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
-            <User className="h-5 w-5" />
-          </button>
+          <AnimatedThemeToggler />
+          <UserNav />
         </div>
       </div>
 

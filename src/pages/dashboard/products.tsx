@@ -16,9 +16,6 @@ import {
   ChevronRight,
   Layers,
   Link2,
-  Sun,
-  Moon,
-  User,
 } from "lucide-react";
 import {
   productsApi,
@@ -29,6 +26,8 @@ import {
 } from "../../services/productApi";
 import { ProductFormModal } from "../../components/layout/products/ProductFormModal";
 import { NotificationPopover } from "../../components/ui/notification-popover";
+import { UserNav } from "../../components/ui/user-nav";
+import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 
 interface ProductsPageProps {
   isDark?: boolean;
@@ -44,14 +43,12 @@ const PLATFORM_BADGES: Record<string, { label: string; bg: string; text: string 
 };
 
 export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark }) => {
-  // Estados da lista e estatísticas
   const [products, setProducts] = useState<Product[]>([]);
   const [stats, setStats] = useState<ProductStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros e paginação
   const [filters, setFilters] = useState<ProductFilters>({
     search: "",
     platform: "all",
@@ -62,13 +59,10 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
   });
 
   const [totalCount, setTotalCount] = useState<number>(0);
-
-  // Modal e Ações
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Carrega produtos da API
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -92,7 +86,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
     loadProducts();
   }, [loadProducts]);
 
-  // Sincronização externa
   const handleSync = async () => {
     try {
       setSyncing(true);
@@ -105,7 +98,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
     }
   };
 
-  // Copiar link de afiliado
   const handleCopyLink = (id: string, link?: string) => {
     if (!link) return;
     navigator.clipboard.writeText(link);
@@ -113,7 +105,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Remoção de produto
   const handleDelete = async (product: Product) => {
     if (
       window.confirm(
@@ -129,7 +120,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
     }
   };
 
-  // Cadastro e Edição
   const handleFormSubmit = async (data: CreateProductInput) => {
     if (editingProduct) {
       await productsApi.updateProduct(editingProduct.id, data);
@@ -168,22 +158,9 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Popover de Notificações Padronizado */}
           <NotificationPopover isDark={isDark} />
-
-          {/* Botão de Alternância de Tema Escuro */}
-          <button
-            onClick={() => setIsDark && setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
-            title="Alternar tema"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          {/* Ícone do Usuário */}
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
-            <User className="h-5 w-5" />
-          </button>
+          <AnimatedThemeToggler />
+          <UserNav />
         </div>
       </div>
 
@@ -396,7 +373,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
                       key={product.id}
                       className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
                     >
-                      {/* Produto */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {product.image_url ? (
@@ -426,7 +402,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
                         </div>
                       </td>
 
-                      {/* Plataforma */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${badge.bg} ${badge.text}`}
@@ -435,26 +410,22 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
                         </span>
                       </td>
 
-                      {/* Categoria */}
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
                         {product.category || "Não informado"}
                       </td>
 
-                      {/* Preço */}
                       <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-gray-100">
                         {product.price !== undefined
                           ? `R$ ${product.price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                           : "Não informado"}
                       </td>
 
-                      {/* Comissão */}
                       <td className="px-4 py-3 whitespace-nowrap text-emerald-600 dark:text-emerald-400 font-medium">
                         {product.commission_percentage !== undefined
                           ? `${product.commission_percentage}%`
                           : "Não informado"}
                       </td>
 
-                      {/* Link de Afiliado */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         {product.affiliate_link ? (
                           <button
@@ -480,7 +451,6 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
                         )}
                       </td>
 
-                      {/* Ações */}
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1">
                           {product.original_url && (

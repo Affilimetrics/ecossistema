@@ -6,13 +6,12 @@ import {
   Copy,
   CheckCircle2,
   Image as ImageIcon,
-  Moon,
-  Sun,
-  User,
   X,
   TrendingDown,
 } from "lucide-react";
 import { NotificationPopover } from "../../components/ui/notification-popover";
+import { UserNav } from "../../components/ui/user-nav";
+import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 
 /* ============================================================
    TIPOS E DADOS
@@ -159,18 +158,8 @@ export function HotProductsContent({ isDark, setIsDark }: HotProductsContentProp
           </button>
 
           <NotificationPopover isDark={isDark} />
-
-          <button
-            onClick={() => setIsDark && setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
-            title="Alternar tema"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
-            <User className="h-5 w-5" />
-          </button>
+          <AnimatedThemeToggler />
+          <UserNav />
         </div>
       </div>
 

@@ -1,47 +1,17 @@
 import FinancialThermometer from "../../pages/dashboard/financial-thermometer";
-import {
-  useState,
-  createContext,
-  useContext,
-  Dispatch,
-  SetStateAction,
-} from "react";
+import { useState, createContext, useContext, Dispatch, SetStateAction } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Home,
-  DollarSign,
-  Monitor,
-  ShoppingCart,
-  Tag,
-  BarChart3,
-  Users,
-  ChevronDown,
-  ChevronsRight,
-  Moon,
-  Sun,
-  TrendingUp,
-  Activity,
-  Package,
-  Bell,
-  Settings,
-  HelpCircle,
-  User,
-  LucideIcon,
-  Flame,
-  Radar,
-  Target,
-  Megaphone,
+  Home, DollarSign, ShoppingCart, Tag, BarChart3, Users, ChevronDown, ChevronsRight,
+  TrendingUp, Activity, Package, Bell, Settings, HelpCircle, LucideIcon, Flame, Radar, Target, Megaphone
 } from "lucide-react";
 import {
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  ReferenceLine,
+  Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine
 } from "recharts";
+import { motion, AnimatePresence } from "framer-motion";
 import { NotificationPopover } from "../ui/notification-popover";
+import { UserNav } from "../ui/user-nav";
+import { AnimatedThemeToggler } from "../ui/animated-theme-toggler";
 
 /* ============================================================
    TIPOS
@@ -57,51 +27,10 @@ interface OptionProps {
   path?: string;
 }
 
-interface TitleSectionProps {
-  open: boolean;
-}
-
-interface ToggleCloseProps {
-  open: boolean;
-  setOpen: Dispatch<SetStateAction<boolean>>;
-}
-
-interface ExampleContentProps {
-  isDark: boolean;
-  setIsDark: Dispatch<SetStateAction<boolean>>;
-}
-
-interface DashboardShellProps {
-  children: React.ReactNode;
-  isDark: boolean;
-  setIsDark: Dispatch<SetStateAction<boolean>>;
-}
-
-/* ============================================================
-   CATEGORIAS (filtro global)
-   ============================================================ */
-
-const CATEGORIES = [
-  "Todas",
-  "Eletrônicos",
-  "Casa e Cozinha",
-  "Moda",
-  "Esportes",
-  "Livros",
-  "Brinquedos",
-] as const;
-
-type Category = (typeof CATEGORIES)[number];
-
-const categoryMultiplier: Record<Category, number> = {
-  Todas: 1,
-  Eletrônicos: 1.15,
-  "Casa e Cozinha": 0.85,
-  Moda: 0.72,
-  Esportes: 0.6,
-  Livros: 0.4,
-  Brinquedos: 0.32,
-};
+interface TitleSectionProps { open: boolean; }
+interface ToggleCloseProps { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; }
+interface ExampleContentProps { isDark: boolean; setIsDark: Dispatch<SetStateAction<boolean>>; }
+interface DashboardShellProps { children: React.ReactNode; isDark: boolean; setIsDark: Dispatch<SetStateAction<boolean>>; }
 
 /* ============================================================
    DASHBOARD SHELL
@@ -152,12 +81,13 @@ export const useDarkMode = (): DarkModeContextValue => {
 };
 
 /* ============================================================
-   SIDEBAR
+   SIDEBAR COM MENU AVANÇADO
    ============================================================ */
 
 export const Sidebar = () => {
   const [open, setOpen] = useState(true);
   const [selected, setSelected] = useState("Painel");
+  const [advancedOpen, setAdvancedOpen] = useState(false); // Controla a expansão do menu avançado
 
   return (
     <nav
@@ -167,18 +97,47 @@ export const Sidebar = () => {
     >
       <TitleSection open={open} />
 
-      {/* Menu Principal (Topo) */}
-      <div className="space-y-1 mb-8 flex-1 overflow-y-auto">
+      <div className="space-y-1 mb-8 flex-1 overflow-y-auto overflow-x-hidden">
+        {/* Dashboard sempre visível */}
         <Option Icon={Home} title="Dashboard" selected={selected} setSelected={setSelected} open={open} path="/dashboardv2" />
-        <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={open} path="/divulgacao" />
-        <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />  
-        <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={open} path="/hot-products" />
-        <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
-        <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} />
-        <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={open} path="/remarketing" />
+
+        {/* Botão Avançado */}
+        <button
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          className={`relative flex h-11 w-full items-center rounded-md transition-colors duration-200 focus:outline-none text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200`}
+        >
+          <div className="grid h-full w-12 place-content-center">
+            <ChevronsRight className={`h-4 w-4 transition-transform duration-300 ${advancedOpen ? "rotate-90" : ""}`} />
+          </div>
+          {open && (
+            <span className="text-sm font-medium transition-opacity duration-200">
+              Avançado
+            </span>
+          )}
+        </button>
+
+        {/* Opções Avançadas (Expansíveis) */}
+        <AnimatePresence initial={false}>
+          {advancedOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden space-y-1 pl-2 border-l border-gray-200 dark:border-gray-800 ml-6"
+            >
+              <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={open} path="/divulgacao" />
+              <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />  
+              <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={open} path="/hot-products" />
+              <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
+              <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} />
+              <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={open} path="/remarketing" />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Conta e Suporte (Rodapé, empurrado para baixo com mt-auto) */}
+      {/* Conta e Suporte */}
       <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1 pb-14">
         {open && (
           <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -189,7 +148,6 @@ export const Sidebar = () => {
         <Option Icon={HelpCircle} title="Ajuda e suporte" selected={selected} setSelected={setSelected} open={open} />
       </div>
 
-      {/* Botão de Ocultar */}
       <ToggleClose open={open} setOpen={setOpen} />
     </nav>
   );
@@ -208,24 +166,33 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: Opti
   return (
     <button
       onClick={handleClick}
-      className={`relative flex h-11 w-full items-center rounded-md transition-all duration-200 focus:outline-none ${
+      className={`relative flex h-11 w-full items-center rounded-md transition-colors duration-200 focus:outline-none ${
         isSelected
-          ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 shadow-sm border-l-2 border-blue-500"
-          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
+          ? "text-blue-700 dark:text-blue-300"
+          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200"
       }`}
     >
-      <div className="grid h-full w-12 place-content-center">
+      {isSelected && (
+        <motion.div
+          layoutId="sidebar-active-bg"
+          className="absolute inset-0 bg-blue-50 dark:bg-blue-900/40 rounded-md shadow-sm border-l-2 border-blue-500"
+          initial={false}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        />
+      )}
+
+      <div className="relative z-10 grid h-full w-12 place-content-center">
         <Icon className="h-4 w-4" />
       </div>
 
       {open && (
-        <span className="text-sm font-medium transition-opacity duration-200">
+        <span className="relative z-10 text-sm font-medium transition-opacity duration-200">
           {title}
         </span>
       )}
 
       {notifs && open && (
-        <span className="absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 dark:bg-blue-600 text-xs text-white font-medium">
+        <span className="relative z-10 absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 dark:bg-blue-600 text-xs text-white font-medium">
           {notifs}
         </span>
       )}
@@ -298,6 +265,28 @@ const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
 /* ============================================================
    COMPONENTE DE FILTRO POR CATEGORIA
    ============================================================ */
+
+const CATEGORIES = [
+  "Todas",
+  "Eletrônicos",
+  "Casa e Cozinha",
+  "Moda",
+  "Esportes",
+  "Livros",
+  "Brinquedos",
+] as const;
+
+type Category = (typeof CATEGORIES)[number];
+
+const categoryMultiplier: Record<Category, number> = {
+  Todas: 1,
+  Eletrônicos: 1.15,
+  "Casa e Cozinha": 0.85,
+  Moda: 0.72,
+  Esportes: 0.6,
+  Livros: 0.4,
+  Brinquedos: 0.32,
+};
 
 interface CategoryFilterProps {
   value: Category;
@@ -889,10 +878,24 @@ const topProducts = [
 export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
   const [selectedCard, setSelectedCard] = useState<ChartType | null>(null);
 
+  const containerVars = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const itemVars = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
+  };
+
   return (
     <div className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-auto">
       {/* Header Padronizado */}
-      <div className="flex items-center justify-between mb-8">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.4 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Bem-vindo de volta</p>
@@ -900,28 +903,20 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
 
         <div className="flex items-center gap-3">
           <NotificationPopover isDark={isDark} />
-
-          <button
-            onClick={() => setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
-            title="Alternar tema"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
-            <User className="h-5 w-5" />
-          </button>
+          <AnimatedThemeToggler />
+          <UserNav />
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <motion.div variants={containerVars} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {statsCards.map((card) => {
           const isActive = selectedCard === card.key;
           return (
-            <button
+            <motion.button
               key={card.key}
+              variants={itemVars}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
               onClick={() => setSelectedCard(isActive ? null : card.key)}
               className={`text-left p-6 rounded-xl border bg-white dark:bg-gray-900 shadow-sm transition-all duration-200 cursor-pointer focus:outline-none ${
                 isActive
@@ -941,22 +936,27 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
               <p className={`text-xs mt-3 font-medium transition-opacity ${isActive ? "opacity-100" : "opacity-0"}`}>
                 {isActive ? "✓ Gráfico aberto abaixo" : ""}
               </p>
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
 
       {selectedCard && <DynamicChart type={selectedCard} onClose={() => setSelectedCard(null)} />}
 
       {/* ROI + Termômetro Financeiro */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+      >
         <div className="lg:col-span-2">
           <ROIChart />
         </div>
         <div className="lg:col-span-1">
           <FinancialThermometer isDark={isDark} setIsDark={setIsDark} />
         </div>
-      </div>
+      </motion.div>
 
       {/* Links por categoria */}
       <div className="mb-8">

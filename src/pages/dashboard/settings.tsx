@@ -6,7 +6,6 @@ import {
   X,
   Moon,
   Sun,
-  User,
   Link2,
   CheckCircle2,
   Clock,
@@ -47,10 +46,7 @@ import {
   type SettingsTab,
 } from "../../types/settingsTypes";
 import { NotificationPopover } from "../../components/ui/notification-popover";
-
-/* ============================================================
-   PÁGINA
-   ============================================================ */
+import { UserNav } from "../../components/ui/user-nav";
 
 interface SettingsPageProps {
   isDark?: boolean;
@@ -87,9 +83,7 @@ export function SettingsPage({
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
 
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
-            <User className="h-5 w-5" />
-          </button>
+          <UserNav />
         </div>
       </div>
 

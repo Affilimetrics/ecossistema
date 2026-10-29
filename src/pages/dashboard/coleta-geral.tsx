@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Package,
   Store,
-  HelpCircle,
   Check,
   X,
   Play,
@@ -22,7 +20,6 @@ import {
   Layers,
   Moon,
   Sun,
-  User,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type {
@@ -46,6 +43,7 @@ import {
   stopCollection,
 } from "@/services/collectionApi";
 import { NotificationPopover } from "../../components/ui/notification-popover";
+import { UserNav } from "../../components/ui/user-nav";
 
 /* ============================================================
    CATÁLOGO PADRÃO DE MARKETPLACES
@@ -303,9 +301,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
 
-          <button className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs">
-            <User className="h-5 w-5" />
-          </button>
+          <UserNav />
         </div>
       </div>
 
