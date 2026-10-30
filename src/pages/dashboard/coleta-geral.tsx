@@ -18,8 +18,6 @@ import {
   Clock,
   Zap,
   Layers,
-  Moon,
-  Sun,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type {
@@ -41,9 +39,10 @@ import {
   resumeCollection,
   startCollection,
   stopCollection,
-} from "@/services/collectionApi";
+} from "../../services/collectionApi";
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
+import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 
 /* ============================================================
    CATÁLOGO PADRÃO DE MARKETPLACES
@@ -95,14 +94,10 @@ const MARKETPLACE_STATUS_LABEL: Record<MarketplaceStatus, string> = {
 };
 
 const MARKETPLACE_STATUS_STYLE: Record<MarketplaceStatus, string> = {
-  connected:
-    "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
-  available:
-    "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  developing:
-    "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  unavailable:
-    "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20",
+  connected: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
+  available: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  developing: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  unavailable: "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20",
 };
 
 const FALLBACK_CATEGORIES: Category[] = [
@@ -215,8 +210,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
       setState((prev) => ({
         ...prev,
         status: "idle",
-        error:
-          "Não foi possível iniciar a coleta. Verifique a integração com o backend.",
+        error: "Não foi possível iniciar a coleta. Verifique a integração com o backend.",
       }));
     }
   };
@@ -259,8 +253,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
     setCategories((prev) => [...prev, local]);
     return {
       ok: true as const,
-      warning:
-        "Backend indisponível — categoria criada apenas nesta sessão.",
+      warning: "Backend indisponível — categoria criada apenas nesta sessão.",
     };
   };
 
@@ -292,15 +285,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
         <div className="flex items-center gap-3">
           <StatusPill status={state.status} />
           <NotificationPopover isDark={isDark} />
-
-          <button
-            onClick={() => setIsDark && setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
-            title="Alternar tema"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
+          <AnimatedThemeToggler />
           <UserNav />
         </div>
       </div>
@@ -316,8 +301,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
           {marketplaces.map((m) => {
             const isSelected = state.marketplaceId === m.id;
-            const isDisabled =
-              m.status === "unavailable" || m.status === "developing";
+            const isDisabled = m.status === "unavailable" || m.status === "developing";
             return (
               <button
                 key={m.id}
@@ -356,9 +340,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${MARKETPLACE_STATUS_STYLE[m.status]}`}
-                  >
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${MARKETPLACE_STATUS_STYLE[m.status]}`}>
                     {MARKETPLACE_STATUS_LABEL[m.status]}
                   </span>
                   {isSelected && (
@@ -374,8 +356,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
 
         {selectedMarketplace && selectedMarketplace.status === "available" && (
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-            Marketplace selecionado. A coleta será iniciada somente após a
-            configuração das categorias abaixo.
+            Marketplace selecionado. A coleta será iniciada somente após a configuração das categorias abaixo.
           </p>
         )}
       </section>
@@ -418,9 +399,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
                   <div className="flex items-start gap-2">
                     <span
                       className={`mt-0.5 h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
-                        selected
-                          ? "bg-blue-500 border-blue-500"
-                          : "border-slate-300 dark:border-slate-600"
+                        selected ? "bg-blue-500 border-blue-500" : "border-slate-300 dark:border-slate-600"
                       }`}
                     >
                       {selected && <Check className="h-3 w-3 text-white" />}
@@ -468,31 +447,17 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
               label="Status"
               value={statusLabel(state.status)}
               tone={
-                state.status === "running"
-                  ? "green"
-                  : state.status === "error"
-                  ? "red"
-                  : state.status === "paused"
-                  ? "amber"
-                  : "slate"
+                state.status === "running" ? "green"
+                  : state.status === "error" ? "red"
+                  : state.status === "paused" ? "amber" : "slate"
               }
             />
-            <InfoTile
-              label="Marketplace"
-              value={selectedMarketplace?.name ?? "Nenhum"}
-            />
+            <InfoTile label="Marketplace" value={selectedMarketplace?.name ?? "Nenhum"} />
             <InfoTile
               label="Categorias"
-              value={
-                state.categoryIds.length > 0
-                  ? `${state.categoryIds.length} selecionadas`
-                  : "Nenhuma"
-              }
+              value={state.categoryIds.length > 0 ? `${state.categoryIds.length} selecionadas` : "Nenhuma"}
             />
-            <InfoTile
-              label="Última execução"
-              value={formatDateTime(state.lastRunAt)}
-            />
+            <InfoTile label="Última execução" value={formatDateTime(state.lastRunAt)} />
           </div>
 
           {state.processedProducts != null && (
@@ -607,10 +572,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
           {loading ? (
             <div className="p-6 space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse"
-                />
+                <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
               ))}
             </div>
           ) : logs.length === 0 ? (
@@ -626,9 +588,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
                       <Icon className={`h-3.5 w-3.5 ${style.text}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-800 dark:text-slate-200">
-                        {l.message}
-                      </p>
+                      <p className="text-sm text-slate-800 dark:text-slate-200">{l.message}</p>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                         {formatDateTime(l.at)}
                       </p>
@@ -694,10 +654,7 @@ function SectionTitle({
 }
 
 function StatusPill({ status }: { status: CollectionState["status"] }) {
-  const map: Record<
-    CollectionState["status"],
-    { bg: string; text: string; dot: string; label: string }
-  > = {
+  const map: Record<CollectionState["status"], { bg: string; text: string; dot: string; label: string }> = {
     idle: { bg: "bg-slate-500/10", text: "text-slate-600 dark:text-slate-400", dot: "bg-slate-500", label: "Parada" },
     starting: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", dot: "bg-blue-500 animate-pulse", label: "Iniciando" },
     running: { bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", dot: "bg-green-500 animate-pulse", label: "Executando" },

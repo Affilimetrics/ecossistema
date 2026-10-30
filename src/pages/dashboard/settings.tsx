@@ -47,6 +47,11 @@ import {
 } from "../../types/settingsTypes";
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
+import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
+
+/* ============================================================
+   PÁGINA PRINCIPAL
+   ============================================================ */
 
 interface SettingsPageProps {
   isDark?: boolean;
@@ -74,15 +79,7 @@ export function SettingsPage({
 
         <div className="flex items-center gap-3">
           <NotificationPopover isDark={isDark} />
-
-          <button
-            onClick={() => setIsDark && setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
-            title="Alternar tema"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
+          <AnimatedThemeToggler />
           <UserNav />
         </div>
       </div>
@@ -128,6 +125,10 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean; on
   );
 }
 
+/* ============================================================
+   ABA: INTEGRAÇÕES
+   ============================================================ */
+
 function IntegrationsTab() {
   const [platforms, setPlatforms] = useState<Platform[]>(MOCK_PLATFORMS);
   const [filters, setFilters] = useState<PlatformFilters>(emptyPlatformFilters);
@@ -149,35 +150,17 @@ function IntegrationsTab() {
     setPlatforms((prev) =>
       prev.map((p) =>
         p.id === id
-          ? {
-              ...p,
-              status: "connected",
-              connectedAt: new Date().toISOString(),
-              lastSyncAt: new Date().toISOString(),
-            }
+          ? { ...p, status: "connected", connectedAt: new Date().toISOString(), lastSyncAt: new Date().toISOString() }
           : p
       )
     );
-    setModalPlatform((prev) =>
-      prev && prev.id === id
-        ? {
-            ...prev,
-            status: "connected",
-            connectedAt: new Date().toISOString(),
-            lastSyncAt: new Date().toISOString(),
-          }
-        : prev
-    );
+    setModalPlatform((prev) => prev && prev.id === id ? { ...prev, status: "connected", connectedAt: new Date().toISOString(), lastSyncAt: new Date().toISOString() } : prev);
     showToast("Conexão simulada com sucesso.");
   };
 
   const disconnectPlatform = (id: string) => {
     setPlatforms((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, status: "disconnected", connectedAt: undefined, lastSyncAt: undefined }
-          : p
-      )
+      prev.map((p) => p.id === id ? { ...p, status: "disconnected", connectedAt: undefined, lastSyncAt: undefined } : p)
     );
     setModalPlatform(null);
     showToast("Integração desconectada.");
@@ -185,13 +168,9 @@ function IntegrationsTab() {
 
   const syncPlatform = (id: string) => {
     setPlatforms((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, lastSyncAt: new Date().toISOString() } : p
-      )
+      prev.map((p) => p.id === id ? { ...p, lastSyncAt: new Date().toISOString() } : p)
     );
-    setModalPlatform((prev) =>
-      prev && prev.id === id ? { ...prev, lastSyncAt: new Date().toISOString() } : prev
-    );
+    setModalPlatform((prev) => prev && prev.id === id ? { ...prev, lastSyncAt: new Date().toISOString() } : prev);
     showToast("Sincronização simulada.");
   };
 
@@ -217,8 +196,7 @@ function IntegrationsTab() {
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Filtros</h2>
           {hasActiveFilters && (
             <button onClick={clearFilters} className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
-              <X className="h-3.5 w-3.5" />
-              Limpar
+              <X className="h-3.5 w-3.5" /> Limpar
             </button>
           )}
         </div>
@@ -294,6 +272,10 @@ function IntegrationsTab() {
     </>
   );
 }
+
+/* ============================================================
+   SUB-COMPONENTES DE INTEGRAÇÃO
+   ============================================================ */
 
 function IntegrationCard({ platform, onOpen }: { platform: Platform; onOpen: () => void }) {
   const Icon = platform.icon;
@@ -470,6 +452,10 @@ function EmptyState({ hasRecords, onClear }: { hasRecords: boolean; onClear: () 
   );
 }
 
+/* ============================================================
+   SUB-COMPONENTES GERAIS (KpiCard, Fields, Switches)
+   ============================================================ */
+
 function KpiCard({ icon: Icon, tone, label, value, hint }: { icon: React.ComponentType<{ className?: string }>; tone: "blue" | "green" | "amber" | "slate"; label: string; value: string; hint?: string }) {
   const styles = {
     blue: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
@@ -488,6 +474,10 @@ function KpiCard({ icon: Icon, tone, label, value, hint }: { icon: React.Compone
     </div>
   );
 }
+
+/* ============================================================
+   ABA: CONTA E PERFIL
+   ============================================================ */
 
 function AccountTab() {
   const [prefs, setPrefs] = useState<AccountPreferences>({ displayName: "Afiliado Demo", email: "demo@scallora.app" });
@@ -536,6 +526,10 @@ function AccountTab() {
     </div>
   );
 }
+
+/* ============================================================
+   ABA: PREFERÊNCIAS
+   ============================================================ */
 
 function PreferencesTab({ isDark, setIsDark }: { isDark: boolean; setIsDark: (v: boolean) => void }) {
   const [prefs, setPrefs] = useState<GeneralPreferences>({ currency: "BRL", dateFormat: "DD/MM/YYYY", compactDashboard: false });
@@ -590,6 +584,10 @@ function PreferencesTab({ isDark, setIsDark }: { isDark: boolean; setIsDark: (v:
     </div>
   );
 }
+
+/* ============================================================
+   ABA: NOTIFICAÇÕES
+   ============================================================ */
 
 function NotificationsTab() {
   const [prefs, setPrefs] = useState<NotificationPreferences>({ newConversions: true, syncFailures: true, financialGoals: false, productUpdates: true });
@@ -658,6 +656,10 @@ function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
+/* ============================================================
+   ABA: SEGURANÇA
+   ============================================================ */
+
 function SecurityTab() {
   return (
     <div className="max-w-2xl space-y-6">
@@ -680,6 +682,10 @@ function SecurityTab() {
     </div>
   );
 }
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

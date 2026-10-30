@@ -90,10 +90,12 @@ export const Sidebar = () => {
   const [advancedOpen, setAdvancedOpen] = useState(false); // Controla a expansão do menu avançado
 
   return (
-    <nav
-      className={`sticky top-0 h-screen shrink-0 flex flex-col border-r transition-all duration-300 ease-in-out ${
-        open ? "w-64" : "w-16"
-      } border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm`}
+    <motion.nav
+      initial={false}
+      animate={{ width: open ? 256 : 64 }}
+      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+      style={{ willChange: "width" }}
+      className="sticky top-0 h-screen shrink-0 flex flex-col border-r whitespace-nowrap overflow-hidden border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2 shadow-sm"
     >
       <TitleSection open={open} />
 
@@ -109,11 +111,9 @@ export const Sidebar = () => {
           <div className="grid h-full w-12 place-content-center">
             <ChevronsRight className={`h-4 w-4 transition-transform duration-300 ${advancedOpen ? "rotate-90" : ""}`} />
           </div>
-          {open && (
-            <span className="text-sm font-medium transition-opacity duration-200">
+          <span className={`text-sm font-medium transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
               Avançado
             </span>
-          )}
         </button>
 
         {/* Opções Avançadas (Expansíveis) */}
@@ -124,7 +124,7 @@ export const Sidebar = () => {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden space-y-1 pl-2 border-l border-gray-200 dark:border-gray-800 ml-6"
+              className="overflow-hidden space-y-1"
             >
               <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={open} path="/divulgacao" />
               <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />  
@@ -139,17 +139,15 @@ export const Sidebar = () => {
 
       {/* Conta e Suporte */}
       <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1 pb-14">
-        {open && (
-          <div className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+        <div className={`px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
             Conta
           </div>
-        )}
         <Option Icon={Settings} title="Configurações" selected={selected} setSelected={setSelected} open={open} path="/settings" />
         <Option Icon={HelpCircle} title="Ajuda e suporte" selected={selected} setSelected={setSelected} open={open} />
       </div>
 
       <ToggleClose open={open} setOpen={setOpen} />
-    </nav>
+    </motion.nav>
   );
 };
 
@@ -185,11 +183,9 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: Opti
         <Icon className="h-4 w-4" />
       </div>
 
-      {open && (
-        <span className="relative z-10 text-sm font-medium transition-opacity duration-200">
+      <span className={`relative z-10 text-sm font-medium transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
           {title}
         </span>
-      )}
 
       {notifs && open && (
         <span className="relative z-10 absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 dark:bg-blue-600 text-xs text-white font-medium">
@@ -206,8 +202,7 @@ const TitleSection = ({ open }: TitleSectionProps) => {
       <div className="flex cursor-pointer items-center justify-between rounded-md p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
         <div className="flex items-center gap-3">
           <Logo />
-          {open && (
-            <div className="transition-opacity duration-200">
+          <div className={`transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
               <div className="flex items-center gap-2">
                 <div>
                   <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -219,9 +214,8 @@ const TitleSection = ({ open }: TitleSectionProps) => {
                 </div>
               </div>
             </div>
-          )}
         </div>
-        {open && <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />}
+        <ChevronDown className={`h-4 w-4 text-gray-400 dark:text-gray-500 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} />
       </div>
     </div>
   );
@@ -252,11 +246,9 @@ const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
             }`}
           />
         </div>
-        {open && (
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200">
+        <span className={`text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
             Ocultar
           </span>
-        )}
       </div>
     </button>
   );
@@ -402,7 +394,7 @@ const ROIChart = () => {
 
       <div className="px-2.5 py-6 flex-1 min-h-0">
         <div className="h-full w-full min-h-[288px]" tabIndex={-1} style={{ outline: "none" }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={300}>
             <LineChart
               data={filteredData}
               margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
@@ -638,7 +630,7 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
 
       <div className="px-2.5 py-6">
         <div className="h-80 w-full" tabIndex={-1} style={{ outline: "none" }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={300}>
             <LineChart
               data={data}
               margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
@@ -750,7 +742,7 @@ const MetricCard = () => {
 
       <div className="px-2.5 py-6 flex-1">
         <div className="h-72 w-full" tabIndex={-1} style={{ outline: "none" }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={300}>
             <LineChart
               data={data}
               margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
@@ -903,7 +895,7 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
 
         <div className="flex items-center gap-3">
           <NotificationPopover isDark={isDark} />
-          <AnimatedThemeToggler />
+          <AnimatedThemeToggler isDark={isDark} onToggle={setIsDark} />
           <UserNav />
         </div>
       </motion.div>

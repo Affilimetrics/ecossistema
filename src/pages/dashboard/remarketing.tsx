@@ -16,8 +16,6 @@ import {
   ShoppingCart,
   Percent,
   AlertTriangle,
-  Moon,
-  Sun,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -39,6 +37,11 @@ import {
 } from "../../mocks/mockRemarketing";
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
+import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
+
+/* ============================================================
+   PÁGINA
+   ============================================================ */
 
 const PAGE_SIZE = 8;
 
@@ -178,15 +181,7 @@ export function RemarketingPage({ isDark, setIsDark }: RemarketingPageProps) {
           </button>
 
           <NotificationPopover isDark={isDark} />
-
-          <button
-            onClick={() => setIsDark && setIsDark(!isDark)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors focus:outline-none shadow-xs"
-            title="Alternar tema"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-
+          <AnimatedThemeToggler />
           <UserNav />
         </div>
       </div>
