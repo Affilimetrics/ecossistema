@@ -8,7 +8,7 @@ import {
 import {
   Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine
 } from "recharts";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { NotificationPopover } from "../ui/notification-popover";
 import { UserNav } from "../ui/user-nav";
 import { AnimatedThemeToggler } from "../ui/animated-theme-toggler";
@@ -130,7 +130,7 @@ export const Sidebar = () => {
               <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />  
               <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={open} path="/hot-products" />
               <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
-              <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} />
+              <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} path="/analytics" />
               <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={open} path="/remarketing" />
             </motion.div>
           )}
@@ -870,11 +870,11 @@ const topProducts = [
 export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
   const [selectedCard, setSelectedCard] = useState<ChartType | null>(null);
 
-  const containerVars = {
+  const containerVars: Variants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
-  const itemVars = {
+  const itemVars: Variants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
   };
@@ -895,7 +895,7 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
 
         <div className="flex items-center gap-3">
           <NotificationPopover isDark={isDark} />
-          <AnimatedThemeToggler isDark={isDark} onToggle={setIsDark} />
+          <AnimatedThemeToggler />
           <UserNav />
         </div>
       </motion.div>

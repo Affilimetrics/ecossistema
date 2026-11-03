@@ -23,6 +23,7 @@ import RemarketingPage from './pages/dashboard/remarketing';
 import SettingsPage from './pages/dashboard/settings';
 import CentralDivulgacao from './pages/dashboard/central-divulgacao';
 import ProductsPage from './pages/dashboard/products';
+import AnalyticsPage from './pages/dashboard/analytics'; // Adicionado
 
 // Layout único: a sidebar e o tema permanecem ao trocar de rota.
 const DashboardLayout = () => {
@@ -69,6 +70,12 @@ const ProductsPageWrapper = () => {
   return <ProductsPage isDark={isDark} setIsDark={setIsDark} />;
 };
 
+// Wrapper para a nova página de Análises
+const AnalyticsPageWrapper = () => {
+  const { isDark, setIsDark } = useDarkMode();
+  return <AnalyticsPage isDark={isDark} setIsDark={setIsDark} />;
+};
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <DarkModeProvider>
@@ -83,6 +90,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/remarketing" element={<RemarketingPageWrapper />} />
             <Route path="/settings" element={<SettingsPageWrapper />} />
             <Route path="/divulgacao" element={<CentralDivulgacaoWrapper />} />
+            <Route path="/analytics" element={<AnalyticsPageWrapper />} /> {/* Adicionado */}
           </Route>
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/marketing" element={<MarketingPage />} />
