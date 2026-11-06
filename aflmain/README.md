@@ -476,6 +476,12 @@ Adiciona a associação dos dados ao usuário autenticado e garante isolamento e
 
 Adiciona o campo `marketplace` em `Produto`, permitindo que o mesmo banco armazene produtos de Magalu, Mercado Livre, Amazon e futuros marketplaces.
 
+### `0004_execucao_keywords_loop.py` até `0009_produto_indicadores_e_progresso_coleta.py`
+
+Completam a evolução do modelo: configurações de loop da coleta, histórico de preços, canais e templates, alertas, produtos quentes, localização/timezone do perfil, snapshots das mensagens, indicadores de comissão/vendas/lucro e cursor persistente de coleta. A migration `0007_loop_categorias_e_perfil_timezone.py` cria `PerfilUsuario`; por isso ela é necessária para o cadastro atual.
+
+Em instalações novas e existentes, aplique a sequência com `python manage.py migrate` após fazer backup do banco. Não use `--run-syncdb` como substituto das migrations do app `core`.
+
 ---
 
 # 10. Comando de canais
@@ -1001,3 +1007,12 @@ Como o projeto ainda não possui métricas reais de clique/conversão por produt
 - O restante dos produtos coletados fica em buffer e é retomado na próxima passagem, sem descartar itens da página.
 - O loop não possui encerramento automático; a parada continua sob controle do usuário.
 - Paginação permanece independente por alvo e volta à página 1 quando os resultados se esgotam.
+
+
+## Aplicativo desktop Skallora (integração)
+
+O projeto agora inclui o cliente Windows em `desktop_app/` e uma API autenticada em `/api/desktop/`. A documentação detalhada de arquitetura, integração Mercado Livre, uso da Central Magalu, build e limitações está em `docs/IMPLEMENTACAO_DESKTOP.md`.
+
+A pasta `desktop_app/integrations/mercado_livre/mercado_livre_busca.py` mantém o script Mercado Livre recebido como anexo, sem alterações. Para compilar no Windows, execute `desktop_app/build_windows.bat` e distribua a pasta `desktop_app/dist/Skallora/` completa.
+
+**Nota sobre banco:** esta versão inclui as migrations versionadas `core/migrations/0001` até `0009`, incluindo a tabela `PerfilUsuario` e o modelo `ProgressoColeta`. Em instalações existentes, faça backup do banco e execute `python manage.py migrate`. Não use `flush` nem apague `db.sqlite3` para resolver falhas de migration.

@@ -15,3 +15,11 @@ iniciar.bat
 *.sqlite3-shm
 .pytest_cache/
 .coverage
+
+# Aplicativo desktop / PyInstaller
+desktop_app/.venv/
+desktop_app/build/
+desktop_app/dist/
+desktop_app/*.spec.bak
+**/.venv/
+desktop_app/integrations/mercado_livre/ml_session_cache/

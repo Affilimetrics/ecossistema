@@ -35,6 +35,8 @@ ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='127.0
 
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in config('CSRF_TRUSTED_ORIGINS', default='').split(',') if origin.strip()]
 CREDENTIAL_ENCRYPTION_KEY = config('CREDENTIAL_ENCRYPTION_KEY', default='')
+DESKTOP_API_SIGNING_KEY = config('DESKTOP_API_SIGNING_KEY', default='')
+DESKTOP_API_TOKEN_MAX_AGE = config('DESKTOP_API_TOKEN_MAX_AGE', default=2592000, cast=int)
 
 
 # Application definition

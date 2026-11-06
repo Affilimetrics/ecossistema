@@ -1,0 +1,6 @@
+# Dependências exclusivas do aplicativo desktop Windows.
+PySide6>=6.7,<7
+requests>=2.31
+keyring>=25
+playwright>=1.45
+pyinstaller>=6.10

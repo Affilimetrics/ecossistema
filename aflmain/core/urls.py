@@ -1,9 +1,26 @@
 from django.urls import path
 
 from . import views
+from . import desktop_api
 
 
 urlpatterns = [
+    # API autenticada para o aplicativo desktop Skallora.
+    path("api/desktop/login/", desktop_api.desktop_login, name="desktop_api_login"),
+    path("api/desktop/me/", desktop_api.desktop_me, name="desktop_api_me"),
+    path("api/desktop/dashboard/", desktop_api.desktop_dashboard, name="desktop_api_dashboard"),
+    path("api/desktop/products/", desktop_api.desktop_products, name="desktop_api_products"),
+    path("api/desktop/executions/", desktop_api.desktop_executions, name="desktop_api_executions"),
+    path("api/desktop/executions/create/", desktop_api.desktop_create_execution, name="desktop_api_create_execution"),
+    path("api/desktop/executions/<int:execution_id>/finish/", desktop_api.desktop_execution_finish, name="desktop_api_finish_execution"),
+    path("api/desktop/logs/", desktop_api.desktop_logs, name="desktop_api_logs"),
+    path("api/desktop/products/ingest/", desktop_api.desktop_ingest_product, name="desktop_api_ingest_product"),
+    path("api/desktop/magalu/status/", desktop_api.desktop_magalu_status, name="desktop_api_magalu_status"),
+    path("api/desktop/magalu/start/", desktop_api.desktop_magalu_start, name="desktop_api_magalu_start"),
+    path("api/desktop/magalu/pause/", desktop_api.desktop_magalu_pause, name="desktop_api_magalu_pause"),
+    path("api/desktop/magalu/resume/", desktop_api.desktop_magalu_resume, name="desktop_api_magalu_resume"),
+    path("api/desktop/magalu/stop/", desktop_api.desktop_magalu_stop, name="desktop_api_magalu_stop"),
+    path("api/desktop/magalu/logs/", desktop_api.desktop_magalu_logs, name="desktop_api_magalu_logs"),
 
     # =====================================================
     # PÁGINAS
