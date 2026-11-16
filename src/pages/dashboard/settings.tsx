@@ -20,7 +20,7 @@ import {
   Lock,
   RefreshCw,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
   MOCK_PLATFORMS,
   emptyPlatformFilters,
@@ -50,6 +50,23 @@ import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 
 /* ============================================================
+   VARIANTS DE ANIMAÇÃO DE ENTRADA
+   ============================================================ */
+
+const containerVars: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, ease: "easeOut" },
+  },
+};
+
+const itemVars: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+};
+
+/* ============================================================
    PÁGINA PRINCIPAL
    ============================================================ */
 
@@ -65,9 +82,19 @@ export function SettingsPage({
   const [tab, setTab] = useState<SettingsTab>("integrations");
 
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto"
+    >
       {/* CABEÇALHO PADRONIZADO */}
-      <div className="flex items-center justify-between mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             Configurações
@@ -82,23 +109,38 @@ export function SettingsPage({
           <AnimatedThemeToggler />
           <UserNav />
         </div>
-      </div>
+      </motion.div>
 
       {/* Navegação interna */}
-      <div className="flex gap-1 mb-6 overflow-x-auto border-b border-slate-200 dark:border-slate-800">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+        className="flex gap-1 mb-6 overflow-x-auto border-b border-slate-200 dark:border-slate-800"
+      >
         <TabButton active={tab === "integrations"} onClick={() => setTab("integrations")} icon={Plug} label="Integrações" />
         <TabButton active={tab === "account"} onClick={() => setTab("account")} icon={UserCog} label="Conta e perfil" />
         <TabButton active={tab === "preferences"} onClick={() => setTab("preferences")} icon={Palette} label="Preferências" />
         <TabButton active={tab === "notifications"} onClick={() => setTab("notifications")} icon={BellRing} label="Notificações" />
         <TabButton active={tab === "security"} onClick={() => setTab("security")} icon={Lock} label="Segurança" />
-      </div>
+      </motion.div>
 
-      {tab === "integrations" && <IntegrationsTab />}
-      {tab === "account" && <AccountTab />}
-      {tab === "preferences" && <PreferencesTab isDark={!!isDark} setIsDark={setIsDark || (() => {})} />}
-      {tab === "notifications" && <NotificationsTab />}
-      {tab === "security" && <SecurityTab />}
-    </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+        >
+          {tab === "integrations" && <IntegrationsTab />}
+          {tab === "account" && <AccountTab />}
+          {tab === "preferences" && <PreferencesTab isDark={!!isDark} setIsDark={setIsDark || (() => {})} />}
+          {tab === "notifications" && <NotificationsTab />}
+          {tab === "security" && <SecurityTab />}
+        </motion.div>
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -176,12 +218,17 @@ function IntegrationsTab() {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <motion.div
+        variants={containerVars}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6"
+      >
         <KpiCard icon={Plug} tone="blue" label="Plataformas no catálogo" value={kpis.total.toString()} hint="Total de plataformas disponíveis" />
         <KpiCard icon={CheckCircle2} tone="green" label="Integrações conectadas" value={kpis.connected.toString()} hint="Conexões simuladas ativas" />
         <KpiCard icon={Clock} tone="amber" label="Aguardando configuração" value={kpis.pending.toString()} hint="Pendentes ou em desenvolvimento" />
         <KpiCard icon={RefreshCw} tone="slate" label="Última sincronização" value={kpis.lastSync ? formatRelative(kpis.lastSync) : "—"} hint={kpis.lastSync ? formatDateTime(kpis.lastSync) : "Sem dados"} />
-      </div>
+      </motion.div>
 
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-4 shadow-sm flex items-start gap-3">
         <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
@@ -464,14 +511,17 @@ function KpiCard({ icon: Icon, tone, label, value, hint }: { icon: React.Compone
     slate: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
   };
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+    <motion.div
+      variants={itemVars}
+      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm"
+    >
       <div className={`inline-flex p-2 rounded-lg mb-3 ${styles[tone]}`}>
         <Icon className="h-4 w-4" />
       </div>
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1 tabular-nums">{value}</p>
       {hint && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">{hint}</p>}
-    </div>
+    </motion.div>
   );
 }
 

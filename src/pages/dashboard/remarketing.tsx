@@ -17,7 +17,7 @@ import {
   Percent,
   AlertTriangle,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
   MOCK_REMARKETING,
   type RemarketingRecord,
@@ -38,6 +38,23 @@ import {
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
+
+/* ============================================================
+   VARIANTS DE ANIMAÇÃO DE ENTRADA
+   ============================================================ */
+
+const containerVars: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, ease: "easeOut" },
+  },
+};
+
+const itemVars: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+};
 
 /* ============================================================
    PÁGINA
@@ -158,9 +175,19 @@ export function RemarketingPage({ isDark, setIsDark }: RemarketingPageProps) {
   };
 
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto"
+    >
       {/* CABEÇALHO PADRONIZADO */}
-      <div className="flex items-center justify-between mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             Remarketing
@@ -184,18 +211,28 @@ export function RemarketingPage({ isDark, setIsDark }: RemarketingPageProps) {
           <AnimatedThemeToggler />
           <UserNav />
         </div>
-      </div>
+      </motion.div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+      <motion.div
+        variants={containerVars}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8"
+      >
         <KpiCard icon={MousePointerClick} iconBg="bg-blue-50 dark:bg-blue-900/20" iconColor="text-blue-600 dark:text-blue-400" label="Cliques no período" value={kpis.totalClicks.toString()} hint="Total de cliques registrados nos links" />
         <KpiCard icon={ShoppingCart} iconBg="bg-orange-50 dark:bg-orange-900/20" iconColor="text-orange-600 dark:text-orange-400" label="Cliques sem compra" value={kpis.clicksWithoutConversion.toString()} hint="Cliques sem conversão confirmada" />
         <KpiCard icon={CheckCircle2} iconBg="bg-green-50 dark:bg-green-900/20" iconColor="text-green-600 dark:text-green-400" label="Conversões recuperadas" value={kpis.recoveredConversions.toString()} hint="Oportunidades com conversão confirmada" extra={kpis.recoveredRevenue > 0 ? `Receita: ${formatBRL(kpis.recoveredRevenue)}` : undefined} />
         <KpiCard icon={Percent} iconBg="bg-purple-50 dark:bg-purple-900/20" iconColor="text-purple-600 dark:text-purple-400" label="Taxa de recuperação" value={kpis.recoveryRate == null ? "—" : `${kpis.recoveryRate.toFixed(1)}%`} hint={kpis.recoveryRate == null ? "Sem dados suficientes para calcular" : "Conversões sobre cliques no período"} />
-      </div>
+      </motion.div>
 
       {/* FILTROS */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-6 shadow-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1 }}
+        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 mb-6 shadow-sm"
+      >
         <div className="flex items-center gap-2 mb-4">
           <Filter className="h-4 w-4 text-slate-400" />
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -239,10 +276,15 @@ export function RemarketingPage({ isDark, setIsDark }: RemarketingPageProps) {
             <input type="date" value={filters.to} onChange={(e) => { setFilters({ ...filters, to: e.target.value }); setPage(1); }} className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40" aria-label="Data final" />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* TABELA */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.15 }}
+        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden"
+      >
         {filtered.length === 0 ? (
           <EmptyState hasRecords={records.length > 0} onClear={clearFilters} />
         ) : (
@@ -320,7 +362,7 @@ export function RemarketingPage({ isDark, setIsDark }: RemarketingPageProps) {
             </div>
           </>
         )}
-      </div>
+      </motion.div>
 
       <AnimatePresence>
         {selected && (
@@ -345,13 +387,16 @@ export function RemarketingPage({ isDark, setIsDark }: RemarketingPageProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
 function KpiCard({ icon: Icon, iconBg, iconColor, label, value, hint, extra }: { icon: React.ComponentType<{ className?: string }>; iconBg: string; iconColor: string; label: string; value: string; hint?: string; extra?: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+    <motion.div
+      variants={itemVars}
+      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm"
+    >
       <div className="flex items-center justify-between mb-4">
         <div className={`p-2 rounded-lg ${iconBg}`}>
           <Icon className={`h-5 w-5 ${iconColor}`} />
@@ -361,7 +406,7 @@ function KpiCard({ icon: Icon, iconBg, iconColor, label, value, hint, extra }: {
       <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
       {extra && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{extra}</p>}
       {hint && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2">{hint}</p>}
-    </div>
+    </motion.div>
   );
 }
 

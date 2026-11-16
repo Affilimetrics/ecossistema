@@ -17,10 +17,26 @@ import {
   Save,
   Sparkles,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
+
+/* ============================================================
+   VARIANTS DE ANIMAÇÃO DE ENTRADA
+   ============================================================ */
+const containerVars: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, ease: "easeOut" },
+  },
+};
+
+const itemVars: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+};
 
 /* ============================================================
    TIPOS E CONFIGURAÇÕES DE MODERAÇÃO
@@ -261,9 +277,19 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
   };
 
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto"
+    >
       {/* CABEÇALHO PADRONIZADO */}
-      <div className="flex items-center justify-between mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Central de Divulgação
@@ -278,11 +304,16 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
           <AnimatedThemeToggler />
           <UserNav />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <motion.div
+        variants={containerVars}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+      >
         {/* FORMULÁRIO DE CRIAÇÃO */}
-        <div className="lg:col-span-7 space-y-6">
+        <motion.div variants={itemVars} className="lg:col-span-7 space-y-6">
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <Megaphone className="h-4 w-4 text-blue-500" />
@@ -420,10 +451,10 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* PAINEL DE MODERAÇÃO E PRÉ-VISUALIZAÇÃO */}
-        <div className="lg:col-span-5 space-y-6">
+        <motion.div variants={itemVars} className="lg:col-span-5 space-y-6">
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -484,8 +515,8 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <AnimatePresence>
         {toast && (
@@ -499,7 +530,7 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 

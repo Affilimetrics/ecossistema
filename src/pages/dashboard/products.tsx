@@ -17,6 +17,7 @@ import {
   Layers,
   Link2,
 } from "lucide-react";
+import { motion, Variants } from "framer-motion";
 import {
   productsApi,
   Product,
@@ -40,6 +41,22 @@ const PLATFORM_BADGES: Record<string, { label: string; bg: string; text: string 
   amazon: { label: "Amazon", bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-700 dark:text-amber-400" },
   magalu: { label: "Magalu", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700 dark:text-blue-400" },
   outros: { label: "Outros", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-700 dark:text-gray-300" },
+};
+
+/* ============================================================
+   VARIANTS DE ANIMAÇÃO DE ENTRADA
+   ============================================================ */
+const containerVars: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, ease: "easeOut" },
+  },
+};
+
+const itemVars: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
 };
 
 export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark }) => {
@@ -147,9 +164,19 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
     filters.status !== "all";
 
   return (
-    <div className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-auto"
+    >
       {/* Cabeçalho Padronizado do Dashboard */}
-      <div className="flex items-center justify-between mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Produtos</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -162,10 +189,15 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
           <AnimatedThemeToggler />
           <UserNav />
         </div>
-      </div>
+      </motion.div>
 
       {/* Ações Específicas de Produtos */}
-      <div className="flex items-center justify-between mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.05 }}
+        className="flex items-center justify-between mb-6"
+      >
         <div className="flex items-center gap-2">
           <button
             onClick={() => loadProducts()}
@@ -196,12 +228,20 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
           <Plus className="h-4 w-4" />
           <span>Cadastrar produto</span>
         </button>
-      </div>
+      </motion.div>
 
-      {/* Indicadores Resumidos */}
+      {/* Indicadores Resumidos com Animação Stagger */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs">
+        <motion.div
+          variants={containerVars}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+        >
+          <motion.div
+            variants={itemVars}
+            className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs"
+          >
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs font-medium">
               <Package className="h-4 w-4 text-blue-500" />
               <span>Total de Produtos</span>
@@ -209,9 +249,12 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
             <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-2">
               {stats.total_products}
             </p>
-          </div>
+          </motion.div>
 
-          <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs">
+          <motion.div
+            variants={itemVars}
+            className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs"
+          >
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs font-medium">
               <Layers className="h-4 w-4 text-emerald-500" />
               <span>Plataformas Integradas</span>
@@ -219,9 +262,12 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
             <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-2">
               {stats.total_platforms}
             </p>
-          </div>
+          </motion.div>
 
-          <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs">
+          <motion.div
+            variants={itemVars}
+            className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs"
+          >
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs font-medium">
               <Check className="h-4 w-4 text-green-500" />
               <span>Produtos Ativos</span>
@@ -229,9 +275,12 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
             <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-2">
               {stats.active_products}
             </p>
-          </div>
+          </motion.div>
 
-          <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs">
+          <motion.div
+            variants={itemVars}
+            className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs"
+          >
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs font-medium">
               <Link2 className="h-4 w-4 text-amber-500" />
               <span>Sem Link de Afiliado</span>
@@ -239,12 +288,17 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
             <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-2">
               {stats.missing_affiliate_links}
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Área de Busca e Filtros */}
-      <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mb-6 space-y-3 shadow-xs">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1 }}
+        className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mb-6 space-y-3 shadow-xs"
+      >
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -301,10 +355,15 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Tabela de Produtos */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.15 }}
+        className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs overflow-hidden"
+      >
         {loading ? (
           <div className="p-12 text-center text-gray-500 dark:text-gray-400 space-y-3">
             <RefreshCw className="h-6 w-6 animate-spin mx-auto text-blue-500" />
@@ -516,7 +575,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Modal de Cadastro / Edição */}
       <ProductFormModal
@@ -525,7 +584,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark, setIsDark })
         onSubmit={handleFormSubmit}
         initialData={editingProduct}
       />
-    </div>
+    </motion.div>
   );
 };
 

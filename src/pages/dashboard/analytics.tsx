@@ -12,29 +12,30 @@ import {
   Activity,
   X,
   FileSpreadsheet,
-  PieChart as PieChartIcon,
+  BarChart3,
   Search,
 } from "lucide-react";
 import {
   LineChart,
   Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import * as XLSX from "xlsx";
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
-import { DonutChart, DonutChartSegment } from "../../components/ui/donut-chart";
-import { Card, CardContent } from "../../components/ui/card";
+import { ChartConfig, ChartContainer } from "../../components/ui/line-charts-4";
 
 /* ============================================================
    MOCKS ISOLADOS DE DESENVOLVIMENTO
    ============================================================ */
 const MOCK_PLATFORMS = ["Shopee", "Mercado Livre", "Amazon", "Magalu"];
+
 const MOCK_SALES_DATA = Array.from({ length: 30 }).map((_, i) => ({
   date: new Date(2024, 3, i + 1).toISOString().split("T")[0],
   faturamento: Math.floor(Math.random() * 5000) + 1000,
@@ -42,6 +43,7 @@ const MOCK_SALES_DATA = Array.from({ length: 30 }).map((_, i) => ({
   cliques: Math.floor(Math.random() * 1000) + 200,
   conversoes: Math.floor(Math.random() * 50) + 10,
 }));
+
 const MOCK_PRODUCTS = [
   { id: "1", name: "iPhone 15 Pro", platform: "Amazon", cliques: 1200, vendas: 45, comissao: 4500 },
   { id: "2", name: "MacBook Air M2", platform: "Mercado Livre", cliques: 850, vendas: 20, comissao: 3200 },
@@ -49,12 +51,34 @@ const MOCK_PRODUCTS = [
   { id: "4", name: "Fone QCY T13", platform: "Shopee", cliques: 3400, vendas: 250, comissao: 1250 },
 ];
 
-const MOCK_PLATFORM_PERFORMANCE: DonutChartSegment[] = [
-  { label: "Amazon", value: 12500, color: "hsl(38 92% 50%)" },
-  { label: "Mercado Livre", value: 9800, color: "hsl(48 96% 53%)" },
-  { label: "Shopee", value: 6400, color: "hsl(25 95% 53%)" },
-  { label: "Magalu", value: 4200, color: "hsl(217 91% 60%)" },
+const MOCK_PLATFORM_TREND_DATA = [
+  { date: "01 Abr", amazon: 2200, mercadoLivre: 1800, shopee: 1200, magalu: 800 },
+  { date: "05 Abr", amazon: 3800, mercadoLivre: 2600, shopee: 1900, magalu: 1200 },
+  { date: "10 Abr", amazon: 5400, mercadoLivre: 4100, shopee: 2800, magalu: 1900 },
+  { date: "15 Abr", amazon: 7900, mercadoLivre: 5800, shopee: 3900, magalu: 2600 },
+  { date: "20 Abr", amazon: 9600, mercadoLivre: 7300, shopee: 4900, magalu: 3200 },
+  { date: "25 Abr", amazon: 11200, mercadoLivre: 8700, shopee: 5800, magalu: 3800 },
+  { date: "30 Abr", amazon: 12500, mercadoLivre: 9800, shopee: 6400, magalu: 4200 },
 ];
+
+const platformChartConfig = {
+  amazon: {
+    label: "Amazon",
+    color: "#3b82f6",
+  },
+  mercadoLivre: {
+    label: "Mercado Livre",
+    color: "#eab308",
+  },
+  shopee: {
+    label: "Shopee",
+    color: "#f97316",
+  },
+  magalu: {
+    label: "Magalu",
+    color: "#06b6d4",
+  },
+} satisfies ChartConfig;
 
 /* ============================================================
    TIPOS E FORMATADORES
@@ -66,6 +90,30 @@ const formatBRL = (val: number) =>
   val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const formatNum = (val: number) => val.toLocaleString("pt-BR");
 const formatPercent = (val: number) => `${val.toFixed(1)}%`;
+
+/* ============================================================
+   VARIANTS DE ANIMAÇÃO DO DASHBOARD
+   ============================================================ */
+const containerVars: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const itemVars: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
+
+/* ============================================================
+   MAPA DE CORES ESTÁTICAS PARA O TAILWIND CSS
+   ============================================================ */
+const colorStyles: Record<string, string> = {
+  blue: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
+  green: "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400",
+  purple: "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400",
+  orange: "bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400",
+  slate: "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300",
+};
 
 /* ============================================================
    COMPONENTE PRINCIPAL: AnalyticsPage
@@ -81,19 +129,6 @@ export function AnalyticsPage({ isDark, setIsDark }: AnalyticsPageProps) {
   const [activeMetric, setActiveMetric] = useState<MetricType>("faturamento");
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [searchProduct, setSearchProduct] = useState("");
-
-  const [hoveredSegment, setHoveredSegment] = useState<DonutChartSegment | null>(null);
-
-  const totalPlatformValue = useMemo(
-    () => MOCK_PLATFORM_PERFORMANCE.reduce((sum, d) => sum + d.value, 0),
-    []
-  );
-
-  const displayValue = hoveredSegment?.value ?? totalPlatformValue;
-  const displayLabel = hoveredSegment?.label ?? "Faturamento Total";
-  const displayPercentage = hoveredSegment
-    ? (hoveredSegment.value / totalPlatformValue) * 100
-    : 100;
 
   const kpis = useMemo(() => {
     return {
@@ -115,8 +150,13 @@ export function AnalyticsPage({ isDark, setIsDark }: AnalyticsPageProps) {
 
   return (
     <div className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-auto">
-      {/* CABEÇALHO */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+      {/* CABEÇALHO PADRONIZADO COM O DASHBOARD */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Análises</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -124,15 +164,20 @@ export function AnalyticsPage({ isDark, setIsDark }: AnalyticsPageProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3">
           <NotificationPopover isDark={isDark} />
           <AnimatedThemeToggler />
           <UserNav />
         </div>
-      </div>
+      </motion.div>
 
       {/* FILTROS GERAIS */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm"
+      >
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-400" />
@@ -169,19 +214,29 @@ export function AnalyticsPage({ isDark, setIsDark }: AnalyticsPageProps) {
           <Download className="h-4 w-4" />
           Exportar relatório
         </button>
-      </div>
+      </motion.div>
 
-      {/* KPIS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      {/* KPIS COM STAGGER ANIMATION */}
+      <motion.div
+        variants={containerVars}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6"
+      >
         <KpiCard title="Faturamento" value={formatBRL(kpis.faturamento.current)} prevValue={formatBRL(kpis.faturamento.previous)} trend={kpis.faturamento.trend} icon={DollarSign} color="blue" />
         <KpiCard title="Comissões" value={formatBRL(kpis.comissoes.current)} prevValue={formatBRL(kpis.comissoes.previous)} trend={kpis.comissoes.trend} icon={Activity} color="green" />
         <KpiCard title="Cliques" value={formatNum(kpis.cliques.current)} prevValue={formatNum(kpis.cliques.previous)} trend={kpis.cliques.trend} icon={MousePointerClick} color="purple" />
         <KpiCard title="Taxa de Conversão" value={formatPercent(kpis.conversao.current)} prevValue={formatPercent(kpis.conversao.previous)} trend={kpis.conversao.trend} icon={Percent} color="orange" />
         <KpiCard title="Ticket Médio" value={formatBRL(kpis.ticketMedio.current)} prevValue={formatBRL(kpis.ticketMedio.previous)} trend={kpis.ticketMedio.trend} icon={ShoppingCart} color="slate" />
-      </div>
+      </motion.div>
 
       {/* GRÁFICO PRINCIPAL */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25, duration: 0.4 }}
+        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm mb-6"
+      >
         <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Desempenho Geral</h2>
@@ -203,163 +258,235 @@ export function AnalyticsPage({ isDark, setIsDark }: AnalyticsPageProps) {
             ))}
           </div>
         </div>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={MOCK_SALES_DATA} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={(val) => new Date(val).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} />
-              <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} tickFormatter={(val) => activeMetric === "faturamento" || activeMetric === "comissoes" ? `R$ ${val / 1000}k` : val} />
-              <RechartsTooltip content={<CustomTooltip activeMetric={activeMetric} />} cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }} />
-              <Line type="monotone" dataKey={activeMetric} stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 6, fill: "#3b82f6", stroke: "#fff", strokeWidth: 2 }} />
+        <div
+          className="h-[300px] w-full focus:outline-none [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none"
+          tabIndex={-1}
+          style={{ outline: "none" }}
+        >
+          <ResponsiveContainer width="100%" height="100%" debounce={300}>
+            <LineChart
+              data={MOCK_SALES_DATA}
+              margin={{ top: 20, right: 20, left: 20, bottom: 0 }}
+              style={{ outline: "none" }}
+            >
+              <defs>
+                <filter id="lineShadow-analytics" x="-100%" y="-100%" width="300%" height="300%">
+                  <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor="#3b82f660" />
+                </filter>
+                <filter id="dotShadow-analytics" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="2" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
+                </filter>
+              </defs>
+
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "currentColor" }}
+                tickMargin={10}
+                tickFormatter={(val) => new Date(val).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: "currentColor" }}
+                tickMargin={8}
+                width={65}
+                tickCount={6}
+                tickFormatter={(val) =>
+                  activeMetric === "faturamento" || activeMetric === "comissoes"
+                    ? `R$ ${val / 1000}k`
+                    : val
+                }
+              />
+              <RechartsTooltip
+                content={<CustomTooltip activeMetric={activeMetric} />}
+                cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
+              />
+              <Line
+                type="monotone"
+                dataKey={activeMetric}
+                stroke="#3b82f6"
+                strokeWidth={2}
+                filter="url(#lineShadow-analytics)"
+                dot={false}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationEasing="ease-out"
+                activeDot={{
+                  r: 6,
+                  fill: "#3b82f6",
+                  stroke: "white",
+                  strokeWidth: 2,
+                  filter: "url(#dotShadow-analytics)",
+                }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
 
-      {/* SEÇÕES INFERIORES */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        
-        {/* PLATAFORMAS (DonutChart) */}
-        <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-          <CardContent className="p-6 flex flex-col items-center justify-center space-y-5">
-            <div className="w-full flex items-start justify-between">
+      {/* SEÇÕES INFERIORES: DIVIDIDAS EM 50% / 50% COM ESPAÇAMENTO REFORÇADO */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.4 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
+      >
+        {/* PLATAFORMAS (GRÁFICO MULTI-LINHAS) */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex flex-col h-full justify-between">
+            <div className="flex items-center gap-2.5 pt-2 mb-2">
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                <BarChart3 className="h-4 w-4" />
+              </div>
               <div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <PieChartIcon className="h-4 w-4 text-blue-500" />
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   Distribuição por Plataforma
                 </h2>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                  Faturamento acumulado no período
+                  Evolução do faturamento por plataforma no período
                 </p>
               </div>
             </div>
 
-            {/* DONUT CHART */}
-            <div className="relative flex items-center justify-center">
-              <DonutChart
-                data={MOCK_PLATFORM_PERFORMANCE}
-                size={230}
-                strokeWidth={28}
-                animationDuration={1.2}
-                animationDelayPerSegment={0.05}
-                highlightOnHover={true}
-                activeLabel={hoveredSegment?.label}
-                onSegmentHover={(s) => setHoveredSegment(s)}
-                centerContent={
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={displayLabel}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.2, ease: "circOut" }}
-                      className="flex flex-col items-center justify-center text-center"
-                    >
-                      <p className="text-gray-500 dark:text-gray-400 text-xs font-medium truncate max-w-[150px]">
-                        {displayLabel}
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {formatBRL(displayValue)}
-                      </p>
-                      {hoveredSegment && (
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          [{displayPercentage.toFixed(0)}%]
-                        </p>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                }
-              />
-            </div>
+            {/* CONTAINER DO GRÁFICO */}
+            <ChartContainer
+              config={platformChartConfig}
+              className="h-[250px] w-full mt-4 mb-4 focus:outline-none [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_.recharts-curve.recharts-tooltip-cursor]:stroke-gray-300 dark:[&_.recharts-curve.recharts-tooltip-cursor]:stroke-gray-700"
+              style={{ outline: "none" }}
+            >
+              <LineChart
+                data={MOCK_PLATFORM_TREND_DATA}
+                margin={{ top: 25, right: 20, left: 20, bottom: 0 }}
+                style={{ outline: "none" }}
+              >
+                <CartesianGrid
+                  strokeDasharray="4 8"
+                  stroke="currentColor"
+                  className="text-gray-200 dark:text-gray-800 opacity-60"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "currentColor" }}
+                  className="text-gray-500 dark:text-gray-400"
+                  tickMargin={8}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "currentColor" }}
+                  className="text-gray-500 dark:text-gray-400"
+                  tickFormatter={(val) => `R$ ${(val / 1000).toFixed(1)}k`}
+                  tickMargin={8}
+                  width={65}
+                  domain={[0, "dataMax + 2500"]}
+                />
+                <RechartsTooltip
+                  content={<PlatformTrendTooltip />}
+                  cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="amazon"
+                  stroke="var(--color-amazon)"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={true}
+                  animationDuration={900}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="mercadoLivre"
+                  stroke="var(--color-mercadoLivre)"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={true}
+                  animationDuration={900}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="shopee"
+                  stroke="var(--color-shopee)"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={true}
+                  animationDuration={900}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="magalu"
+                  stroke="var(--color-magalu)"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={true}
+                  animationDuration={900}
+                />
+              </LineChart>
+            </ChartContainer>
 
-            {/* LEGENDA */}
-            <div className="flex flex-col space-y-1 w-full pt-3 border-t border-gray-100 dark:border-gray-800">
-              {MOCK_PLATFORM_PERFORMANCE.map((segment, index) => {
-                const isActive = hoveredSegment?.label === segment.label;
-                return (
-                  <motion.div
-                    key={segment.label}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + index * 0.08, duration: 0.4 }}
-                    className={`flex items-center justify-between p-2 rounded-md transition-all duration-200 cursor-pointer ${
-                      isActive
-                        ? "bg-gray-100 dark:bg-gray-800/80"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800/40"
-                    }`}
-                    onMouseEnter={() => setHoveredSegment(segment)}
-                    onMouseLeave={() => setHoveredSegment(null)}
-                  >
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <span
-                        className="h-3 w-3 rounded-full shrink-0"
-                        style={{ backgroundColor: segment.color }}
-                      />
-                      <span className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
-                        {segment.label}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
-                        {formatBRL(segment.value)}
-                      </span>
-                      <span className="text-[10px] font-medium text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded tabular-nums">
-                        {((segment.value / totalPlatformValue) * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
+            {/* LEGENDA PADRONIZADA */}
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+              <PlatformLegendItem label="Amazon" color={platformChartConfig.amazon.color} />
+              <PlatformLegendItem label="Mercado Livre" color={platformChartConfig.mercadoLivre.color} />
+              <PlatformLegendItem label="Shopee" color={platformChartConfig.shopee.color} />
+              <PlatformLegendItem label="Magalu" color={platformChartConfig.magalu.color} />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* PRODUTOS TOP */}
-        <div className="xl:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm flex flex-col">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Produtos com Melhor Desempenho</h2>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar produto..."
-                value={searchProduct}
-                onChange={(e) => setSearchProduct(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 dark:border-gray-800 rounded-md bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
-              />
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
-                <tr>
-                  <th className="pb-3 font-medium">Produto</th>
-                  <th className="pb-3 font-medium">Plataforma</th>
-                  <th className="pb-3 font-medium text-right">Cliques</th>
-                  <th className="pb-3 font-medium text-right">Vendas</th>
-                  <th className="pb-3 font-medium text-right">Comissão</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                    <td className="py-3 font-medium text-gray-900 dark:text-gray-100">{p.name}</td>
-                    <td className="py-3 text-gray-500 dark:text-gray-400">{p.platform}</td>
-                    <td className="py-3 text-right text-gray-600 dark:text-gray-300">{formatNum(p.cliques)}</td>
-                    <td className="py-3 text-right text-gray-600 dark:text-gray-300">{formatNum(p.vendas)}</td>
-                    <td className="py-3 text-right font-medium text-green-600 dark:text-green-400">{formatBRL(p.comissao)}</td>
-                  </tr>
-                ))}
-                {filteredProducts.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-xs text-gray-500">Nenhum produto encontrado.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
           </div>
         </div>
-      </div>
+
+        {/* PRODUTOS TOP (OCUPA 50% DA LARGURA) */}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 mb-6">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Produtos com Melhor Desempenho</h2>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar produto..."
+                  value={searchProduct}
+                  onChange={(e) => setSearchProduct(e.target.value)}
+                  className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 dark:border-gray-800 rounded-md bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500/40"
+                />
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800">
+                  <tr>
+                    <th className="pb-3 font-medium">Produto</th>
+                    <th className="pb-3 font-medium">Plataforma</th>
+                    <th className="pb-3 font-medium text-right">Cliques</th>
+                    <th className="pb-3 font-medium text-right">Vendas</th>
+                    <th className="pb-3 font-medium text-right">Comissão</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {filteredProducts.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                      <td className="py-3 font-medium text-gray-900 dark:text-gray-100">{p.name}</td>
+                      <td className="py-3 text-gray-500 dark:text-gray-400">{p.platform}</td>
+                      <td className="py-3 text-right text-gray-600 dark:text-gray-300">{formatNum(p.cliques)}</td>
+                      <td className="py-3 text-right text-gray-600 dark:text-gray-300">{formatNum(p.vendas)}</td>
+                      <td className="py-3 text-right font-medium text-green-600 dark:text-green-400">{formatBRL(p.comissao)}</td>
+                    </tr>
+                  ))}
+                  {filteredProducts.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-xs text-gray-500">Nenhum produto encontrado.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       <AnimatePresence>
         {isExportModalOpen && (
@@ -371,27 +498,33 @@ export function AnalyticsPage({ isDark, setIsDark }: AnalyticsPageProps) {
 }
 
 /* ============================================================
-   SUB-COMPONENTES E MODAL
+   SUB-COMPONENTES E TOOLTIPS
    ============================================================ */
 
 function KpiCard({ title, value, prevValue, trend, icon: Icon, color }: any) {
   const isUp = trend === "up";
+  const badgeStyle = colorStyles[color] || "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400";
+
   return (
-    <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+    <motion.div
+      variants={itemVars}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm"
+    >
       <div className="flex items-start justify-between mb-3">
-        <div className={`p-2 rounded-lg bg-${color}-50 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400`}>
+        <div className={`p-2 rounded-lg ${badgeStyle}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{title}</p>
       <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
       <div className="flex items-center gap-1.5 mt-2">
-        <span className={`flex items-center text-[10px] font-medium ${isUp ? "text-green-600" : "text-red-600"}`}>
+        <span className={`flex items-center text-[10px] font-medium ${isUp ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
           {isUp ? <TrendingUp className="h-3 w-3 mr-0.5" /> : <TrendingDown className="h-3 w-3 mr-0.5" />}
         </span>
         <span className="text-[10px] text-gray-400 dark:text-gray-500">vs {prevValue} anterior</span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -400,15 +533,59 @@ const CustomTooltip = ({ active, payload, label, activeMetric }: any) => {
     const val = payload[0].value;
     const isMoney = activeMetric === "faturamento" || activeMetric === "comissoes";
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-3 rounded-lg shadow-lg">
-        <p className="text-xs text-gray-500 mb-1">{new Date(label).toLocaleDateString("pt-BR")}</p>
-        <p className="text-sm font-bold text-gray-900 dark:text-gray-100 capitalize">
-          {activeMetric}: <span className="text-blue-600">{isMoney ? formatBRL(val) : formatNum(val)}</span>
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[140px]">
+        <div className="flex items-center gap-2 text-sm">
+          <div className="size-1.5 rounded-full bg-blue-500" />
+          <span className="text-gray-500 dark:text-gray-400 capitalize">{activeMetric}:</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100">
+            {isMoney ? formatBRL(val) : formatNum(val)}
+          </span>
+        </div>
+        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+          {new Date(label).toLocaleDateString("pt-BR", { month: "short", day: "numeric" })}
         </p>
       </div>
     );
   }
   return null;
+};
+
+const PlatformTrendTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[170px]">
+        <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          {label}
+        </div>
+        <div className="space-y-1.5">
+          {payload.map((entry: any, index: number) => {
+            const config = platformChartConfig[entry.dataKey as keyof typeof platformChartConfig];
+            return (
+              <div key={index} className="flex items-center justify-between text-xs gap-3">
+                <div className="flex items-center gap-1.5">
+                  <div className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                  <span className="text-gray-500 dark:text-gray-400">{config?.label || entry.dataKey}</span>
+                </div>
+                <span className="font-semibold text-gray-900 dark:text-gray-100 tabular-nums">
+                  {formatBRL(entry.value)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const PlatformLegendItem = ({ label, color }: { label: string; color: string }) => {
+  return (
+    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+      <div className="size-2.5 rounded-full" style={{ backgroundColor: color }} />
+      <span>{label}</span>
+    </div>
+  );
 };
 
 function ExportModal({ onClose, dateRange }: { onClose: () => void; dateRange: string }) {
@@ -455,9 +632,12 @@ function ExportModal({ onClose, dateRange }: { onClose: () => void; dateRange: s
       const wsProdutos = XLSX.utils.json_to_sheet(produtosData);
       XLSX.utils.book_append_sheet(wb, wsProdutos, "Produtos");
 
-      const platformData = MOCK_PLATFORM_PERFORMANCE.map(p => ({
-        "Plataforma": p.label,
-        "Faturamento (R$)": p.value
+      const platformData = MOCK_PLATFORM_TREND_DATA.map(p => ({
+        "Data": p.date,
+        "Amazon (R$)": p.amazon,
+        "Mercado Livre (R$)": p.mercadoLivre,
+        "Shopee (R$)": p.shopee,
+        "Magalu (R$)": p.magalu
       }));
       const wsPlatform = XLSX.utils.json_to_sheet(platformData);
       XLSX.utils.book_append_sheet(wb, wsPlatform, "Plataformas");

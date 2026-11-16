@@ -1,20 +1,51 @@
-import FinancialThermometer from "../../pages/dashboard/financial-thermometer";
-import { useState, createContext, useContext, Dispatch, SetStateAction } from "react";
+import {
+  useState,
+  useEffect,
+  createContext,
+  useContext,
+  Dispatch,
+  SetStateAction,
+} from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  Home, DollarSign, ShoppingCart, Tag, BarChart3, Users, ChevronDown, ChevronsRight,
-  TrendingUp, Activity, Package, Bell, Settings, HelpCircle, LucideIcon, Flame, Radar, Target, Megaphone
+  Home,
+  DollarSign,
+  ShoppingCart,
+  Tag,
+  BarChart3,
+  Users,
+  ChevronDown,
+  ChevronsRight,
+  TrendingUp,
+  Activity,
+  Package,
+  Bell,
+  Settings,
+  HelpCircle,
+  LucideIcon,
+  Flame,
+  Radar,
+  Target,
+  Megaphone,
+  X,
 } from "lucide-react";
 import {
-  Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { NotificationPopover } from "../ui/notification-popover";
 import { UserNav } from "../ui/user-nav";
 import { AnimatedThemeToggler } from "../ui/animated-theme-toggler";
+import FinancialThermometer from "../../pages/dashboard/financial-thermometer";
 
 /* ============================================================
-   TIPOS
+   TIPOS E CONSTANTES
    ============================================================ */
 
 interface OptionProps {
@@ -27,10 +58,40 @@ interface OptionProps {
   path?: string;
 }
 
-interface TitleSectionProps { open: boolean; }
-interface ToggleCloseProps { open: boolean; setOpen: Dispatch<SetStateAction<boolean>>; }
-interface ExampleContentProps { isDark: boolean; setIsDark: Dispatch<SetStateAction<boolean>>; }
-interface DashboardShellProps { children: React.ReactNode; isDark: boolean; setIsDark: Dispatch<SetStateAction<boolean>>; }
+interface DashboardShellProps {
+  children: React.ReactNode;
+  isDark: boolean;
+  setIsDark?: Dispatch<SetStateAction<boolean>>;
+}
+
+interface ExampleContentProps {
+  isDark: boolean;
+  setIsDark: Dispatch<SetStateAction<boolean>>;
+}
+
+const ADVANCED_ROUTES = [
+  "/divulgacao",
+  "/products",
+  "/hot-products",
+  "/coleta-geral",
+  "/analytics",
+  "/remarketing",
+];
+
+const containerVars: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const itemVars: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
+
+const formatShortDate = (isoDate: string) => {
+  const date = new Date(`${isoDate}T12:00:00`);
+  return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
+};
 
 /* ============================================================
    DASHBOARD SHELL
@@ -61,9 +122,9 @@ const DarkModeContext = createContext<DarkModeContextValue | null>(null);
 export const DarkModeProvider = ({ children }: { children: React.ReactNode }) => {
   const [isDark, setIsDark] = useState(false);
 
-  if (typeof document !== "undefined") {
+  useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
-  }
+  }, [isDark]);
 
   return (
     <DarkModeContext.Provider value={{ isDark, setIsDark }}>
@@ -85,9 +146,12 @@ export const useDarkMode = (): DarkModeContextValue => {
    ============================================================ */
 
 export const Sidebar = () => {
+  const location = useLocation();
   const [open, setOpen] = useState(true);
-  const [selected, setSelected] = useState("Painel");
-  const [advancedOpen, setAdvancedOpen] = useState(false); // Controla a expansão do menu avançado
+  const [selected, setSelected] = useState("Dashboard");
+  const [advancedOpen, setAdvancedOpen] = useState(() =>
+    ADVANCED_ROUTES.includes(location.pathname)
+  );
 
   return (
     <motion.nav
@@ -100,23 +164,30 @@ export const Sidebar = () => {
       <TitleSection open={open} />
 
       <div className="space-y-1 mb-8 flex-1 overflow-y-auto overflow-x-hidden">
-        {/* Dashboard sempre visível */}
         <Option Icon={Home} title="Dashboard" selected={selected} setSelected={setSelected} open={open} path="/dashboardv2" />
 
-        {/* Botão Avançado */}
         <button
-          onClick={() => setAdvancedOpen(!advancedOpen)}
-          className={`relative flex h-11 w-full items-center rounded-md transition-colors duration-200 focus:outline-none text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200`}
+          type="button"
+          onClick={() => setAdvancedOpen((prev) => !prev)}
+          aria-expanded={advancedOpen}
+          className="relative flex h-11 w-full items-center rounded-md transition-colors duration-200 focus:outline-none text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200"
         >
           <div className="grid h-full w-12 place-content-center">
-            <ChevronsRight className={`h-4 w-4 transition-transform duration-300 ${advancedOpen ? "rotate-90" : ""}`} />
+            <ChevronsRight
+              className={`h-4 w-4 transition-transform duration-300 ${
+                advancedOpen ? "rotate-90" : ""
+              }`}
+            />
           </div>
-          <span className={`text-sm font-medium transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
-              Avançado
-            </span>
+          <span
+            className={`text-sm font-medium transition-opacity duration-200 ${
+              open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"
+            }`}
+          >
+            Avançado
+          </span>
         </button>
 
-        {/* Opções Avançadas (Expansíveis) */}
         <AnimatePresence initial={false}>
           {advancedOpen && (
             <motion.div
@@ -127,7 +198,7 @@ export const Sidebar = () => {
               className="overflow-hidden space-y-1"
             >
               <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={open} path="/divulgacao" />
-              <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />  
+              <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={open} path="/products" />
               <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={open} path="/hot-products" />
               <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={open} path="/coleta-geral" />
               <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={open} path="/analytics" />
@@ -137,11 +208,14 @@ export const Sidebar = () => {
         </AnimatePresence>
       </div>
 
-      {/* Conta e Suporte */}
       <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1 pb-14">
-        <div className={`px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
-            Conta
-          </div>
+        <div
+          className={`px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide transition-opacity duration-200 ${
+            open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          Conta
+        </div>
         <Option Icon={Settings} title="Configurações" selected={selected} setSelected={setSelected} open={open} path="/settings" />
         <Option Icon={HelpCircle} title="Ajuda e suporte" selected={selected} setSelected={setSelected} open={open} />
       </div>
@@ -163,6 +237,7 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: Opti
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       className={`relative flex h-11 w-full items-center rounded-md transition-colors duration-200 focus:outline-none ${
         isSelected
@@ -183,12 +258,16 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: Opti
         <Icon className="h-4 w-4" />
       </div>
 
-      <span className={`relative z-10 text-sm font-medium transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
-          {title}
-        </span>
+      <span
+        className={`relative z-10 text-sm font-medium transition-opacity duration-200 ${
+          open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {title}
+      </span>
 
-      {notifs && open && (
-        <span className="relative z-10 absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 dark:bg-blue-600 text-xs text-white font-medium">
+      {notifs != null && notifs > 0 && open && (
+        <span className="z-10 absolute right-3 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 dark:bg-blue-600 text-xs text-white font-medium">
           {notifs}
         </span>
       )}
@@ -196,63 +275,73 @@ const Option = ({ Icon, title, selected, setSelected, open, notifs, path }: Opti
   );
 };
 
-const TitleSection = ({ open }: TitleSectionProps) => {
-  return (
-    <div className="mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
-      <div className="flex cursor-pointer items-center justify-between rounded-md p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
-        <div className="flex items-center gap-3">
-          <Logo />
-          <div className={`transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
-              <div className="flex items-center gap-2">
-                <div>
-                  <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    Scallora
-                  </span>
-                  <span className="block text-xs text-gray-500 dark:text-gray-400">
-                    Plano Pro
-                  </span>
-                </div>
-              </div>
-            </div>
-        </div>
-        <ChevronDown className={`h-4 w-4 text-gray-400 dark:text-gray-500 transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"}`} />
-      </div>
-    </div>
-  );
-};
-
-const Logo = () => {
-  return (
-    <div className="grid size-10 shrink-0 place-content-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm">
-      <svg width="20" height="16" viewBox="0 0 50 39" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-white">
-        <path d="M16.4992 2H37.5808L22.0816 24.9729H1L16.4992 2Z" />
-        <path d="M17.4224 27.102L11.4192 36H33.5008L49 13.0271H32.7024L23.2064 27.102H17.4224Z" />
-      </svg>
-    </div>
-  );
-};
-
-const ToggleClose = ({ open, setOpen }: ToggleCloseProps) => {
-  return (
-    <button
-      onClick={() => setOpen(!open)}
-      className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none z-10"
-    >
-      <div className="flex items-center p-3">
-        <div className="grid size-10 place-content-center">
-          <ChevronsRight
-            className={`h-4 w-4 transition-transform duration-300 text-gray-500 dark:text-gray-400 ${
-              open ? "rotate-180" : ""
-            }`}
-          />
-        </div>
-        <span className={`text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200 ${open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>
-            Ocultar
+const TitleSection = ({ open }: { open: boolean }) => (
+  <div className="mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
+    <div className="flex cursor-pointer items-center justify-between rounded-md p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800">
+      <div className="flex items-center gap-3">
+        <Logo />
+        <div
+          className={`transition-opacity duration-200 ${
+            open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+            Scallora
           </span>
+          <span className="block text-xs text-gray-500 dark:text-gray-400">
+            Plano Pro
+          </span>
+        </div>
       </div>
-    </button>
-  );
-};
+      <ChevronDown
+        className={`h-4 w-4 text-gray-400 dark:text-gray-500 transition-opacity duration-200 ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </div>
+  </div>
+);
+
+const Logo = () => (
+  <div className="grid size-10 shrink-0 place-content-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm">
+    <svg width="20" height="16" viewBox="0 0 50 39" fill="none" xmlns="http://www.w3.org/2000/svg" className="fill-white">
+      <path d="M16.4992 2H37.5808L22.0816 24.9729H1L16.4992 2Z" />
+      <path d="M17.4224 27.102L11.4192 36H33.5008L49 13.0271H32.7024L23.2064 27.102H17.4224Z" />
+    </svg>
+  </div>
+);
+
+const ToggleClose = ({
+  open,
+  setOpen,
+}: {
+  open: boolean;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+}) => (
+  <button
+    type="button"
+    onClick={() => setOpen((prev) => !prev)}
+    aria-label={open ? "Recolher menu lateral" : "Expandir menu lateral"}
+    className="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none z-10"
+  >
+    <div className="flex items-center p-3">
+      <div className="grid size-10 place-content-center">
+        <ChevronsRight
+          className={`h-4 w-4 transition-transform duration-300 text-gray-500 dark:text-gray-400 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </div>
+      <span
+        className={`text-sm font-medium text-gray-600 dark:text-gray-300 transition-opacity duration-200 ${
+          open ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        Ocultar
+      </span>
+    </div>
+  </button>
+);
 
 /* ============================================================
    COMPONENTE DE FILTRO POR CATEGORIA
@@ -280,32 +369,32 @@ const categoryMultiplier: Record<Category, number> = {
   Brinquedos: 0.32,
 };
 
-interface CategoryFilterProps {
+const CategoryFilter = ({
+  value,
+  onChange,
+}: {
   value: Category;
   onChange: (c: Category) => void;
-}
-
-const CategoryFilter = ({ value, onChange }: CategoryFilterProps) => {
-  return (
-    <div className="flex items-center gap-2">
-      <Tag className="h-3.5 w-3.5 text-gray-400" />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as Category)}
-        className="text-xs font-medium bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors cursor-pointer"
-      >
-        {CATEGORIES.map((cat) => (
-          <option key={cat} value={cat}>
-            {cat}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-};
+}) => (
+  <div className="flex items-center gap-2">
+    <Tag className="h-3.5 w-3.5 text-gray-400" />
+    <select
+      aria-label="Filtrar por categoria"
+      value={value}
+      onChange={(e) => onChange(e.target.value as Category)}
+      className="text-xs font-medium bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md px-2 py-1 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors cursor-pointer"
+    >
+      {CATEGORIES.map((cat) => (
+        <option key={cat} value={cat}>
+          {cat}
+        </option>
+      ))}
+    </select>
+  </div>
+);
 
 /* ============================================================
-   DADOS DOS GRÁFICOS
+   DADOS E TOOLTIPS DOS GRÁFICOS
    ============================================================ */
 
 const roiData = [
@@ -337,32 +426,62 @@ interface TooltipProps {
 }
 
 const ROITooltip = ({ active, payload }: TooltipProps) => {
-  if (active && payload && payload.length) {
-    const entry = payload[0];
-    const positive = entry.value >= 0;
-    return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[140px]">
-        <div className="flex items-center gap-2 text-sm">
-          <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-gray-500 dark:text-gray-400">ROI:</span>
-          <span
-            className={`font-semibold ${
-              positive
-                ? "text-green-600 dark:text-green-400"
-                : "text-red-600 dark:text-red-400"
-            }`}
-          >
-            {positive ? "+" : ""}
-            {entry.value.toFixed(1)}%
-          </span>
-        </div>
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
-          (receita − investimento) ÷ investimento
-        </p>
+  if (!active || !payload?.length) return null;
+  const entry = payload[0];
+  const positive = entry.value >= 0;
+
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[140px]">
+      <div className="flex items-center gap-2 text-sm">
+        <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
+        <span className="text-gray-500 dark:text-gray-400">ROI:</span>
+        <span
+          className={`font-semibold ${
+            positive
+              ? "text-green-600 dark:text-green-400"
+              : "text-red-600 dark:text-red-400"
+          }`}
+        >
+          {positive ? "+" : ""}
+          {entry.value.toFixed(1)}%
+        </span>
       </div>
-    );
-  }
-  return null;
+      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+        (receita − investimento) ÷ investimento
+      </p>
+    </div>
+  );
+};
+
+interface GenericChartTooltipProps extends TooltipProps {
+  label: string;
+  prefix?: string;
+  suffix?: string;
+}
+
+const GenericChartTooltip = ({
+  active,
+  payload,
+  label,
+  prefix = "",
+  suffix = "",
+}: GenericChartTooltipProps) => {
+  if (!active || !payload?.length) return null;
+  const entry = payload[0];
+
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[120px]">
+      <div className="flex items-center gap-2 text-sm">
+        <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
+        <span className="text-gray-500 dark:text-gray-400">{label}:</span>
+        <span className="font-semibold text-gray-900 dark:text-gray-100">
+          {prefix}
+          {entry.value.toFixed(0)}
+          {suffix}
+        </span>
+      </div>
+    </div>
+  );
 };
 
 /* ============================================================
@@ -377,6 +496,10 @@ const ROIChart = () => {
     ...d,
     roi: +(d.roi * multiplier).toFixed(1),
   }));
+
+  const avgRoi = filteredData.reduce((s, d) => s + d.roi, 0) / filteredData.length;
+  const maxRoi = Math.max(...filteredData.map((d) => d.roi));
+  const minRoi = Math.min(...filteredData.map((d) => d.roi));
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden h-full flex flex-col">
@@ -393,14 +516,12 @@ const ROIChart = () => {
       </div>
 
       <div className="px-2.5 py-6 flex-1 min-h-0">
-        <div className="h-full w-full min-h-[288px]" tabIndex={-1} style={{ outline: "none" }}>
+        <div
+          className="h-full w-full min-h-[288px] outline-none [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_*]:outline-none"
+          tabIndex={-1}
+        >
           <ResponsiveContainer width="100%" height="100%" debounce={300}>
-            <LineChart
-              data={filteredData}
-              margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-              tabIndex={-1}
-              style={{ outline: "none" }}
-            >
+            <LineChart data={filteredData} margin={{ top: 20, right: 20, left: 5, bottom: 20 }}>
               <defs>
                 <filter id="roiLineShadow" x="-100%" y="-100%" width="300%" height="300%">
                   <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${roiColor}60`} />
@@ -416,10 +537,7 @@ const ROIChart = () => {
                 tickLine={false}
                 tick={{ fontSize: 10, fill: "currentColor" }}
                 tickMargin={10}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
-                }}
+                tickFormatter={formatShortDate}
               />
 
               <YAxis
@@ -451,14 +569,14 @@ const ROIChart = () => {
                 strokeWidth={2}
                 filter="url(#roiLineShadow)"
                 dot={false}
-                isAnimationActive={true}
+                isAnimationActive
                 animationDuration={1200}
                 animationEasing="ease-out"
                 activeDot={{
                   r: 6,
                   fill: roiColor,
-                  stroke: "white",
-                  strokeWidth: 2,
+                  stroke: "transparent",
+                  strokeWidth: 0,
                   filter: "url(#roiDotShadow)",
                 }}
               />
@@ -474,10 +592,7 @@ const ROIChart = () => {
               ROI médio
             </p>
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {(
-                filteredData.reduce((s, d) => s + d.roi, 0) / filteredData.length
-              ).toFixed(1)}
-              %
+              {avgRoi.toFixed(1)}%
             </p>
           </div>
           <div>
@@ -485,7 +600,7 @@ const ROIChart = () => {
               Melhor dia
             </p>
             <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-              +{Math.max(...filteredData.map((d) => d.roi)).toFixed(1)}%
+              +{maxRoi.toFixed(1)}%
             </p>
           </div>
           <div>
@@ -493,7 +608,7 @@ const ROIChart = () => {
               Pior dia
             </p>
             <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-              {Math.min(...filteredData.map((d) => d.roi)).toFixed(1)}%
+              {minRoi.toFixed(1)}%
             </p>
           </div>
         </div>
@@ -507,11 +622,6 @@ const ROIChart = () => {
    ============================================================ */
 
 type ChartType = "vendas" | "afiliados" | "pedidos" | "produtos" | "linksCategoria";
-
-interface DynamicChartProps {
-  type: ChartType;
-  onClose: () => void;
-}
 
 const chartConfig: Record<
   ChartType,
@@ -554,52 +664,38 @@ const chartConfig: Record<
   },
 };
 
-const generateData = (type: ChartType, multiplier: number) => {
-  const baseValues: Record<ChartType, number[]> = {
-    vendas: [820, 450, 680, 910, 1120, 280, 980, 1210, 380, 720, 850, 1380, 820, 310, 510, 750, 1720, 1290],
-    afiliados: [45, 32, 58, 71, 92, 18, 78, 101, 28, 62, 85, 118, 72, 21, 41, 65, 142, 99],
-    pedidos: [12, 8, 15, 22, 28, 5, 18, 31, 9, 16, 21, 35, 19, 7, 11, 17, 42, 29],
-    produtos: [3, 1, 5, 8, 12, 0, 6, 14, 2, 4, 7, 18, 9, 1, 3, 5, 22, 13],
-    linksCategoria: [50, 65, 45, 80, 95, 60, 75, 88, 55, 70, 82, 91, 68, 52, 73, 86, 99, 78],
-  };
-
-  return roiData.map((item, i) => ({
-    date: item.date,
-    valor: +((baseValues[type][i] ?? 0) * multiplier).toFixed(2),
-  }));
+const baseSeriesValues: Record<ChartType, number[]> = {
+  vendas: [820, 450, 680, 910, 1120, 280, 980, 1210, 380, 720, 850, 1380, 820, 310, 510, 750, 1720, 1290],
+  afiliados: [45, 32, 58, 71, 92, 18, 78, 101, 28, 62, 85, 118, 72, 21, 41, 65, 142, 99],
+  pedidos: [12, 8, 15, 22, 28, 5, 18, 31, 9, 16, 21, 35, 19, 7, 11, 17, 42, 29],
+  produtos: [3, 1, 5, 8, 12, 0, 6, 14, 2, 4, 7, 18, 9, 1, 3, 5, 22, 13],
+  linksCategoria: [50, 65, 45, 80, 95, 60, 75, 88, 55, 70, 82, 91, 68, 52, 73, 86, 99, 78],
 };
 
-const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
+const generateData = (type: ChartType, multiplier: number) =>
+  roiData.map((item, i) => ({
+    date: item.date,
+    valor: +((baseSeriesValues[type][i] ?? 0) * multiplier).toFixed(2),
+  }));
+
+const DynamicChart = ({
+  type,
+  onClose,
+}: {
+  type: ChartType;
+  onClose: () => void;
+}) => {
   const config = chartConfig[type];
   const [category, setCategory] = useState<Category>("Todas");
-  const multiplier = categoryMultiplier[category];
-  const data = generateData(type, multiplier);
-
-  const DynamicTooltip = ({ active, payload }: TooltipProps) => {
-    if (active && payload && payload.length) {
-      const entry = payload[0];
-      return (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[120px]">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="text-gray-500 dark:text-gray-400">{config.title}:</span>
-            <span className="font-semibold text-gray-900 dark:text-gray-100">
-              {config.prefix}
-              {entry.value.toFixed(0)}
-              {config.suffix}
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+  const data = generateData(type, categoryMultiplier[category]);
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm mb-8 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
       <div className="px-6 pt-6 flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{config.title}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {config.title}
+          </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {config.subtitle} · {category}
           </p>
@@ -607,36 +703,23 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
         <div className="flex items-center gap-2">
           <CategoryFilter value={category} onChange={setCategory} />
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none"
             aria-label="Fechar gráfico"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X className="h-5 w-5" />
           </button>
         </div>
       </div>
 
       <div className="px-2.5 py-6">
-        <div className="h-80 w-full" tabIndex={-1} style={{ outline: "none" }}>
+        <div
+          className="h-80 w-full outline-none [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_*]:outline-none"
+          tabIndex={-1}
+        >
           <ResponsiveContainer width="100%" height="100%" debounce={300}>
-            <LineChart
-              data={data}
-              margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-              tabIndex={-1}
-              style={{ outline: "none" }}
-            >
+            <LineChart data={data} margin={{ top: 20, right: 20, left: 5, bottom: 20 }}>
               <defs>
                 <filter id={`lineShadow-${type}`} x="-100%" y="-100%" width="300%" height="300%">
                   <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${config.color}60`} />
@@ -652,10 +735,7 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
                 tickLine={false}
                 tick={{ fontSize: 11, fill: "currentColor" }}
                 tickMargin={10}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
-                }}
+                tickFormatter={formatShortDate}
               />
 
               <YAxis
@@ -668,7 +748,13 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
               />
 
               <RechartsTooltip
-                content={<DynamicTooltip />}
+                content={
+                  <GenericChartTooltip
+                    label={config.title}
+                    prefix={config.prefix}
+                    suffix={config.suffix}
+                  />
+                }
                 cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
               />
 
@@ -679,14 +765,14 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
                 strokeWidth={2}
                 filter={`url(#lineShadow-${type})`}
                 dot={false}
-                isAnimationActive={true}
+                isAnimationActive
                 animationDuration={1200}
                 animationEasing="ease-out"
                 activeDot={{
                   r: 6,
                   fill: config.color,
-                  stroke: "white",
-                  strokeWidth: 2,
+                  stroke: "transparent",
+                  strokeWidth: 0,
                   filter: `url(#dotShadow-${type})`,
                 }}
               />
@@ -704,27 +790,8 @@ const DynamicChart = ({ type, onClose }: DynamicChartProps) => {
 
 const MetricCard = () => {
   const [category, setCategory] = useState<Category>("Todas");
-  const multiplier = categoryMultiplier[category];
-  const data = generateData("linksCategoria", multiplier);
+  const data = generateData("linksCategoria", categoryMultiplier[category]);
   const config = chartConfig.linksCategoria;
-
-  const MetricTooltip = ({ active, payload }: TooltipProps) => {
-    if (active && payload && payload.length) {
-      const entry = payload[0];
-      return (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 shadow-lg min-w-[120px]">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="size-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="text-gray-500 dark:text-gray-400">{config.title}:</span>
-            <span className="font-semibold text-gray-900 dark:text-gray-100">
-              {entry.value.toFixed(0)}
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden h-full flex flex-col">
@@ -741,14 +808,12 @@ const MetricCard = () => {
       </div>
 
       <div className="px-2.5 py-6 flex-1">
-        <div className="h-72 w-full" tabIndex={-1} style={{ outline: "none" }}>
+        <div
+          className="h-72 w-full outline-none [&_.recharts-surface]:outline-none [&_.recharts-wrapper]:outline-none [&_*]:outline-none"
+          tabIndex={-1}
+        >
           <ResponsiveContainer width="100%" height="100%" debounce={300}>
-            <LineChart
-              data={data}
-              margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-              tabIndex={-1}
-              style={{ outline: "none" }}
-            >
+            <LineChart data={data} margin={{ top: 20, right: 20, left: 5, bottom: 20 }}>
               <defs>
                 <filter id="lineShadow-metric-card" x="-100%" y="-100%" width="300%" height="300%">
                   <feDropShadow dx="4" dy="6" stdDeviation="25" floodColor={`${config.color}60`} />
@@ -764,10 +829,7 @@ const MetricCard = () => {
                 tickLine={false}
                 tick={{ fontSize: 10, fill: "currentColor" }}
                 tickMargin={10}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  return date.toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
-                }}
+                tickFormatter={formatShortDate}
               />
 
               <YAxis
@@ -779,7 +841,7 @@ const MetricCard = () => {
               />
 
               <RechartsTooltip
-                content={<MetricTooltip />}
+                content={<GenericChartTooltip label={config.title} />}
                 cursor={{ strokeDasharray: "3 3", stroke: "#9ca3af" }}
               />
 
@@ -790,14 +852,14 @@ const MetricCard = () => {
                 strokeWidth={2}
                 filter="url(#lineShadow-metric-card)"
                 dot={false}
-                isAnimationActive={true}
+                isAnimationActive
                 animationDuration={1200}
                 animationEasing="ease-out"
                 activeDot={{
                   r: 6,
                   fill: config.color,
-                  stroke: "white",
-                  strokeWidth: 2,
+                  stroke: "transparent",
+                  strokeWidth: 0,
                   filter: "url(#dotShadow-metric-card)",
                 }}
               />
@@ -860,6 +922,30 @@ const statsCards = [
   },
 ];
 
+type ActivityColor = "green" | "blue" | "purple" | "orange" | "red";
+
+const ACTIVITY_STYLES: Record<ActivityColor, { bg: string; text: string }> = {
+  green: { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-600 dark:text-green-400" },
+  blue: { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-600 dark:text-blue-400" },
+  purple: { bg: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-600 dark:text-purple-400" },
+  orange: { bg: "bg-orange-50 dark:bg-orange-900/20", text: "text-orange-600 dark:text-orange-400" },
+  red: { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-600 dark:text-red-400" },
+};
+
+const RECENT_ACTIVITIES: Array<{
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  time: string;
+  color: ActivityColor;
+}> = [
+  { icon: DollarSign, title: "Nova venda registrada", desc: "Pedido #1234 concluído", time: "há 2 min", color: "green" },
+  { icon: Users, title: "Novo usuário registrado", desc: "john.doe@example.com entrou", time: "há 5 min", color: "blue" },
+  { icon: Package, title: "Produto atualizado", desc: "Estoque do iPhone 15 Pro atualizado", time: "há 10 min", color: "purple" },
+  { icon: Activity, title: "Manutenção do sistema", desc: "Backup programado concluído", time: "há 1 hora", color: "orange" },
+  { icon: Bell, title: "Nova notificação", desc: "Resultados da campanha de marketing", time: "há 2 horas", color: "red" },
+];
+
 const topProducts = [
   { name: "iPhone 15 Pro", price: 1299 },
   { name: "MacBook Air M2", price: 1099 },
@@ -870,21 +956,12 @@ const topProducts = [
 export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
   const [selectedCard, setSelectedCard] = useState<ChartType | null>(null);
 
-  const containerVars: Variants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-  const itemVars: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
-  };
-
   return (
     <div className="flex-1 bg-gray-50 dark:bg-gray-950 p-6 overflow-auto">
       {/* Header Padronizado */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }} 
-        animate={{ opacity: 1, y: 0 }} 
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
         className="flex items-center justify-between mb-8"
       >
@@ -901,12 +978,18 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
       </motion.div>
 
       {/* Stats Grid */}
-      <motion.div variants={containerVars} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <motion.div
+        variants={containerVars}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+      >
         {statsCards.map((card) => {
           const isActive = selectedCard === card.key;
           return (
             <motion.button
               key={card.key}
+              type="button"
               variants={itemVars}
               whileHover={{ y: -4, transition: { duration: 0.2 } }}
               onClick={() => setSelectedCard(isActive ? null : card.key)}
@@ -936,7 +1019,7 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
       {selectedCard && <DynamicChart type={selectedCard} onClose={() => setSelectedCard(null)} />}
 
       {/* ROI + Termômetro Financeiro */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.5 }}
@@ -959,88 +1042,79 @@ export const ExampleContent = ({ isDark, setIsDark }: ExampleContentProps) => {
         <div className="lg:col-span-2">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Atividade recente</h3>
-              <button className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Atividade recente
+              </h3>
+              <button
+                type="button"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+              >
                 Ver tudo
               </button>
             </div>
             <div className="space-y-4">
-              {[
-                { icon: DollarSign, title: "Nova venda registrada", desc: "Pedido #1234 concluído", time: "há 2 min", color: "green" },
-                { icon: Users, title: "Novo usuário registrado", desc: "john.doe@example.com entrou", time: "há 5 min", color: "blue" },
-                { icon: Package, title: "Produto atualizado", desc: "Estoque do iPhone 15 Pro atualizado", time: "há 10 min", color: "purple" },
-                { icon: Activity, title: "Manutenção do sistema", desc: "Backup programado concluído", time: "há 1 hora", color: "orange" },
-                { icon: Bell, title: "Nova notificação", desc: "Resultados da campanha de marketing", time: "há 2 horas", color: "red" },
-              ].map((activity, i) => (
-                <div key={i} className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer">
+              {RECENT_ACTIVITIES.map((activity) => {
+                const style = ACTIVITY_STYLES[activity.color];
+                return (
                   <div
-                    className={`p-2 rounded-lg ${
-                      activity.color === "green"
-                        ? "bg-green-50 dark:bg-green-900/20"
-                        : activity.color === "blue"
-                        ? "bg-blue-50 dark:bg-blue-900/20"
-                        : activity.color === "purple"
-                        ? "bg-purple-50 dark:bg-purple-900/20"
-                        : activity.color === "orange"
-                        ? "bg-orange-50 dark:bg-orange-900/20"
-                        : "bg-red-50 dark:bg-red-900/20"
-                    }`}
+                    key={activity.title}
+                    className="flex items-center space-x-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                   >
-                    <activity.icon
-                      className={`h-4 w-4 ${
-                        activity.color === "green"
-                          ? "text-green-600 dark:text-green-400"
-                          : activity.color === "blue"
-                          ? "text-blue-600 dark:text-blue-400"
-                          : activity.color === "purple"
-                          ? "text-purple-600 dark:text-purple-400"
-                          : activity.color === "orange"
-                          ? "text-orange-600 dark:text-orange-400"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
-                    />
+                    <div className={`p-2 rounded-lg ${style.bg}`}>
+                      <activity.icon className={`h-4 w-4 ${style.text}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {activity.title}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {activity.desc}
+                      </p>
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{activity.time}</div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{activity.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{activity.desc}</p>
-                  </div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">{activity.time}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Estatísticas rápidas</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Estatísticas rápidas
+            </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Taxa de conversão</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">3.2%</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: "32%" }}></div>
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: "32%" }} />
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Taxa de rejeição</span>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">45%</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-orange-500 h-2 rounded-full" style={{ width: "45%" }}></div>
+                <div className="bg-orange-500 h-2 rounded-full" style={{ width: "45%" }} />
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Visualizações de página</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Visualizações de página
+                </span>
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">8.7k</span>
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: "87%" }}></div>
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: "87%" }} />
               </div>
             </div>
           </div>
 
           <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Principais produtos</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              Principais produtos
+            </h3>
             <div className="space-y-3">
               {topProducts.map((product) => (
                 <div key={product.name} className="flex items-center justify-between py-2">

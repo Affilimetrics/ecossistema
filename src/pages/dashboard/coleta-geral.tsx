@@ -19,7 +19,7 @@ import {
   Zap,
   Layers,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import type {
   Category,
   CollectionLog,
@@ -43,6 +43,23 @@ import {
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
+
+/* ============================================================
+   VARIANTS DE ANIMAÇÃO DE ENTRADA
+   ============================================================ */
+
+const containerVars: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, ease: "easeOut" },
+  },
+};
+
+const itemVars: Variants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } },
+};
 
 /* ============================================================
    CATÁLOGO PADRÃO DE MARKETPLACES
@@ -270,9 +287,19 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
   const isBusy = state.status === "starting" || state.status === "stopping";
 
   return (
-    <div className="flex-1 bg-gray-50 dark:bg-slate-950 p-6 overflow-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex-1 bg-gray-50 dark:bg-slate-950 p-6 overflow-auto"
+    >
       {/* CABEÇALHO PADRONIZADO */}
-      <div className="flex items-center justify-between mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="flex items-center justify-between mb-8"
+      >
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             Coleta Geral
@@ -288,318 +315,320 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
           <AnimatedThemeToggler />
           <UserNav />
         </div>
-      </div>
+      </motion.div>
 
-      {/* MARKETPLACES */}
-      <section className="mb-8">
-        <SectionTitle
-          icon={Store}
-          title="Marketplaces"
-          subtitle="Escolha a plataforma de origem dos produtos."
-        />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-          {marketplaces.map((m) => {
-            const isSelected = state.marketplaceId === m.id;
-            const isDisabled = m.status === "unavailable" || m.status === "developing";
-            return (
-              <button
-                key={m.id}
-                onClick={() => handleSelectMarketplace(m)}
-                disabled={isDisabled}
-                title={
-                  isDisabled
-                    ? m.status === "developing"
-                      ? "Integração ainda em desenvolvimento"
-                      : "Integração indisponível no momento"
-                    : m.name
-                }
-                className={`relative text-left p-4 rounded-xl border transition-all focus:outline-none ${
-                  isSelected
-                    ? "border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/30 shadow-sm"
-                    : isDisabled
-                    ? "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 opacity-60 cursor-not-allowed"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm cursor-pointer"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 text-white text-xs font-bold"
-                    style={{ backgroundColor: m.color }}
-                  >
-                    {m.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-                      {m.name}
-                    </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
-                      {m.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${MARKETPLACE_STATUS_STYLE[m.status]}`}>
-                    {MARKETPLACE_STATUS_LABEL[m.status]}
-                  </span>
-                  {isSelected && (
-                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-500 text-white">
-                      <Check className="h-3 w-3" />
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {selectedMarketplace && selectedMarketplace.status === "available" && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
-            Marketplace selecionado. A coleta será iniciada somente após a configuração das categorias abaixo.
-          </p>
-        )}
-      </section>
-
-      {/* CATEGORIAS */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-3">
+      <motion.div variants={containerVars} initial="hidden" animate="show">
+        {/* MARKETPLACES */}
+        <motion.section variants={itemVars} className="mb-8">
           <SectionTitle
-            icon={TagIcon}
-            title="Categorias"
-            subtitle="Selecione as categorias que deseja coletar."
-            noMargin
+            icon={Store}
+            title="Marketplaces"
+            subtitle="Escolha a plataforma de origem dos produtos."
           />
-          <button
-            onClick={() => setShowCategoryModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Nova categoria
-          </button>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-          {categories.map((c) => {
-            const selected = state.categoryIds.includes(c.id);
-            return (
-              <div
-                key={c.id}
-                className={`relative rounded-xl border p-3 transition-all ${
-                  selected
-                    ? "border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/20"
-                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
-              >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+            {marketplaces.map((m) => {
+              const isSelected = state.marketplaceId === m.id;
+              const isDisabled = m.status === "unavailable" || m.status === "developing";
+              return (
                 <button
-                  onClick={() => toggleCategory(c.id)}
-                  className="w-full text-left focus:outline-none"
-                  aria-pressed={selected}
-                >
-                  <div className="flex items-start gap-2">
-                    <span
-                      className={`mt-0.5 h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
-                        selected ? "bg-blue-500 border-blue-500" : "border-slate-300 dark:border-slate-600"
-                      }`}
-                    >
-                      {selected && <Check className="h-3 w-3 text-white" />}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                        {c.name}
-                      </p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {c.isNative ? "Nativa" : "Personalizada"}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => toggleLoop(c.id)}
-                  title={c.loop ? "Loop ativo" : "Ativar loop"}
-                  className={`mt-2 inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors focus:outline-none ${
-                    c.loop
-                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                  key={m.id}
+                  onClick={() => handleSelectMarketplace(m)}
+                  disabled={isDisabled}
+                  title={
+                    isDisabled
+                      ? m.status === "developing"
+                        ? "Integração ainda em desenvolvimento"
+                        : "Integração indisponível no momento"
+                      : m.name
+                  }
+                  className={`relative text-left p-4 rounded-xl border transition-all focus:outline-none ${
+                    isSelected
+                      ? "border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/30 shadow-sm"
+                      : isDisabled
+                      ? "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 opacity-60 cursor-not-allowed"
+                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm cursor-pointer"
                   }`}
                 >
-                  <Repeat className="h-3 w-3" />
-                  Loop {c.loop ? "on" : "off"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* CONTROLE DA COLETA */}
-      <section className="mb-8">
-        <SectionTitle
-          icon={Zap}
-          title="Controle da coleta"
-          subtitle="Inicie, pause ou acompanhe a execução."
-        />
-
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-5">
-            <InfoTile
-              label="Status"
-              value={statusLabel(state.status)}
-              tone={
-                state.status === "running" ? "green"
-                  : state.status === "error" ? "red"
-                  : state.status === "paused" ? "amber" : "slate"
-              }
-            />
-            <InfoTile label="Marketplace" value={selectedMarketplace?.name ?? "Nenhum"} />
-            <InfoTile
-              label="Categorias"
-              value={state.categoryIds.length > 0 ? `${state.categoryIds.length} selecionadas` : "Nenhuma"}
-            />
-            <InfoTile label="Última execução" value={formatDateTime(state.lastRunAt)} />
-          </div>
-
-          {state.processedProducts != null && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Produtos processados nesta execução:{" "}
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
-                {state.processedProducts.toLocaleString("pt-BR")}
-              </span>
-            </p>
-          )}
-
-          {state.error && (
-            <div className="flex items-start gap-2 text-xs rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 mb-4">
-              <AlertTriangle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
-              <p className="text-red-700 dark:text-red-300">{state.error}</p>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            {state.status === "idle" && (
-              <button
-                onClick={handleStart}
-                disabled={!canStart}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors focus:outline-none"
-              >
-                <Play className="h-4 w-4" />
-                Iniciar coleta
-              </button>
-            )}
-
-            {state.status === "running" && (
-              <>
-                <button
-                  onClick={handlePause}
-                  disabled={isBusy}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none"
-                >
-                  <Pause className="h-4 w-4" />
-                  Pausar coleta
-                </button>
-                <button
-                  onClick={() => setConfirmStop(true)}
-                  disabled={isBusy}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none"
-                >
-                  <Square className="h-4 w-4" />
-                  Parar coleta
-                </button>
-              </>
-            )}
-
-            {state.status === "paused" && (
-              <>
-                <button
-                  onClick={handleResume}
-                  disabled={isBusy}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Retomar coleta
-                </button>
-                <button
-                  onClick={() => setConfirmStop(true)}
-                  disabled={isBusy}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none"
-                >
-                  <Square className="h-4 w-4" />
-                  Parar coleta
-                </button>
-              </>
-            )}
-
-            {(state.status === "starting" || state.status === "stopping") && (
-              <button
-                disabled
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-semibold cursor-not-allowed"
-              >
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {state.status === "starting" ? "Iniciando..." : "Parando..."}
-              </button>
-            )}
-
-            {state.status === "error" && (
-              <button
-                onClick={handleStart}
-                disabled={!canStart}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors focus:outline-none"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Tentar novamente
-              </button>
-            )}
-          </div>
-
-          {!canStart && state.status === "idle" && (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3">
-              Selecione um marketplace e pelo menos uma categoria para iniciar a coleta.
-            </p>
-          )}
-        </div>
-      </section>
-
-      {/* HISTÓRICO */}
-      <section>
-        <SectionTitle
-          icon={Clock}
-          title="Atividade recente"
-          subtitle="Últimas execuções e eventos da coleta."
-        />
-
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-          {loading ? (
-            <div className="p-6 space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
-              ))}
-            </div>
-          ) : logs.length === 0 ? (
-            <EmptyLogs />
-          ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-              {logs.map((l) => {
-                const style = LOG_STYLES[l.level];
-                const Icon = style.icon;
-                return (
-                  <li key={l.id} className="flex items-start gap-3 px-5 py-3">
-                    <div className={`p-1.5 rounded-lg shrink-0 ${style.bg}`}>
-                      <Icon className={`h-3.5 w-3.5 ${style.text}`} />
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 text-white text-xs font-bold"
+                      style={{ backgroundColor: m.color }}
+                    >
+                      {m.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-slate-800 dark:text-slate-200">{l.message}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {formatDateTime(l.at)}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        {m.name}
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
+                        {m.description}
                       </p>
                     </div>
-                  </li>
-                );
-              })}
-            </ul>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${MARKETPLACE_STATUS_STYLE[m.status]}`}>
+                      {MARKETPLACE_STATUS_LABEL[m.status]}
+                    </span>
+                    {isSelected && (
+                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-500 text-white">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedMarketplace && selectedMarketplace.status === "available" && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+              Marketplace selecionado. A coleta será iniciada somente após a configuração das categorias abaixo.
+            </p>
           )}
-        </div>
-      </section>
+        </motion.section>
+
+        {/* CATEGORIAS */}
+        <motion.section variants={itemVars} className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <SectionTitle
+              icon={TagIcon}
+              title="Categorias"
+              subtitle="Selecione as categorias que deseja coletar."
+              noMargin
+            />
+            <button
+              onClick={() => setShowCategoryModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Nova categoria
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {categories.map((c) => {
+              const selected = state.categoryIds.includes(c.id);
+              return (
+                <div
+                  key={c.id}
+                  className={`relative rounded-xl border p-3 transition-all ${
+                    selected
+                      ? "border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/20"
+                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                  }`}
+                >
+                  <button
+                    onClick={() => toggleCategory(c.id)}
+                    className="w-full text-left focus:outline-none"
+                    aria-pressed={selected}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span
+                        className={`mt-0.5 h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
+                          selected ? "bg-blue-500 border-blue-500" : "border-slate-300 dark:border-slate-600"
+                        }`}
+                      >
+                        {selected && <Check className="h-3 w-3 text-white" />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                          {c.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {c.isNative ? "Nativa" : "Personalizada"}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => toggleLoop(c.id)}
+                    title={c.loop ? "Loop ativo" : "Ativar loop"}
+                    className={`mt-2 inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors focus:outline-none ${
+                      c.loop
+                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                    }`}
+                  >
+                    <Repeat className="h-3 w-3" />
+                    Loop {c.loop ? "on" : "off"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </motion.section>
+
+        {/* CONTROLE DA COLETA */}
+        <motion.section variants={itemVars} className="mb-8">
+          <SectionTitle
+            icon={Zap}
+            title="Controle da coleta"
+            subtitle="Inicie, pause ou acompanhe a execução."
+          />
+
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-5">
+              <InfoTile
+                label="Status"
+                value={statusLabel(state.status)}
+                tone={
+                  state.status === "running" ? "green"
+                    : state.status === "error" ? "red"
+                    : state.status === "paused" ? "amber" : "slate"
+                }
+              />
+              <InfoTile label="Marketplace" value={selectedMarketplace?.name ?? "Nenhum"} />
+              <InfoTile
+                label="Categorias"
+                value={state.categoryIds.length > 0 ? `${state.categoryIds.length} selecionadas` : "Nenhuma"}
+              />
+              <InfoTile label="Última execução" value={formatDateTime(state.lastRunAt)} />
+            </div>
+
+            {state.processedProducts != null && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Produtos processados nesta execução:{" "}
+                <span className="font-semibold text-slate-900 dark:text-slate-100">
+                  {state.processedProducts.toLocaleString("pt-BR")}
+                </span>
+              </p>
+            )}
+
+            {state.error && (
+              <div className="flex items-start gap-2 text-xs rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 mb-4">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-red-700 dark:text-red-300">{state.error}</p>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {state.status === "idle" && (
+                <button
+                  onClick={handleStart}
+                  disabled={!canStart}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors focus:outline-none"
+                >
+                  <Play className="h-4 w-4" />
+                  Iniciar coleta
+                </button>
+              )}
+
+              {state.status === "running" && (
+                <>
+                  <button
+                    onClick={handlePause}
+                    disabled={isBusy}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none"
+                  >
+                    <Pause className="h-4 w-4" />
+                    Pausar coleta
+                  </button>
+                  <button
+                    onClick={() => setConfirmStop(true)}
+                    disabled={isBusy}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none"
+                  >
+                    <Square className="h-4 w-4" />
+                    Parar coleta
+                  </button>
+                </>
+              )}
+
+              {state.status === "paused" && (
+                <>
+                  <button
+                    onClick={handleResume}
+                    disabled={isBusy}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Retomar coleta
+                  </button>
+                  <button
+                    onClick={() => setConfirmStop(true)}
+                    disabled={isBusy}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none"
+                  >
+                    <Square className="h-4 w-4" />
+                    Parar coleta
+                  </button>
+                </>
+              )}
+
+              {(state.status === "starting" || state.status === "stopping") && (
+                <button
+                  disabled
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-semibold cursor-not-allowed"
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {state.status === "starting" ? "Iniciando..." : "Parando..."}
+                </button>
+              )}
+
+              {state.status === "error" && (
+                <button
+                  onClick={handleStart}
+                  disabled={!canStart}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors focus:outline-none"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Tentar novamente
+                </button>
+              )}
+            </div>
+
+            {!canStart && state.status === "idle" && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3">
+                Selecione um marketplace e pelo menos uma categoria para iniciar a coleta.
+              </p>
+            )}
+          </div>
+        </motion.section>
+
+        {/* HISTÓRICO */}
+        <motion.section variants={itemVars}>
+          <SectionTitle
+            icon={Clock}
+            title="Atividade recente"
+            subtitle="Últimas execuções e eventos da coleta."
+          />
+
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+            {loading ? (
+              <div className="p-6 space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                ))}
+              </div>
+            ) : logs.length === 0 ? (
+              <EmptyLogs />
+            ) : (
+              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                {logs.map((l) => {
+                  const style = LOG_STYLES[l.level];
+                  const Icon = style.icon;
+                  return (
+                    <li key={l.id} className="flex items-start gap-3 px-5 py-3">
+                      <div className={`p-1.5 rounded-lg shrink-0 ${style.bg}`}>
+                        <Icon className={`h-3.5 w-3.5 ${style.text}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-800 dark:text-slate-200">{l.message}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          {formatDateTime(l.at)}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </motion.section>
+      </motion.div>
 
       <AnimatePresence>
         {showCategoryModal && (
@@ -621,7 +650,7 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
           />
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
