@@ -16,6 +16,7 @@ import {
   Eye,
   Save,
   Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { NotificationPopover } from "../../components/ui/notification-popover";
@@ -83,14 +84,14 @@ const STATUS_CONFIG: Record<
   ModerationStatus,
   { label: string; bg: string; text: string; icon: React.ComponentType<{ className?: string }> }
 > = {
-  idle: { label: "Pendente", bg: "bg-slate-500/10", text: "text-slate-600 dark:text-slate-400", icon: HelpCircle },
-  pending: { label: "Aguardando", bg: "bg-slate-500/10", text: "text-slate-600 dark:text-slate-400", icon: HelpCircle },
-  analyzing: { label: "Analisando...", bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", icon: Loader2 },
-  approved: { label: "Aprovado", bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", icon: CheckCircle2 },
-  rejected: { label: "Rejeitado", bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", icon: XCircle },
-  needs_review: { label: "Revisão Necessária", bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", icon: AlertTriangle },
-  not_verified: { label: "Não Verificado", bg: "bg-slate-500/10", text: "text-slate-500 dark:text-slate-400", icon: HelpCircle },
-  error: { label: "Erro Técnico", bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", icon: AlertTriangle },
+  idle: { label: "Pendente", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", icon: HelpCircle },
+  pending: { label: "Aguardando", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", icon: HelpCircle },
+  analyzing: { label: "Analisando...", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-600 dark:text-blue-400", icon: Loader2 },
+  approved: { label: "Aprovado", bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 },
+  rejected: { label: "Rejeitado", bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-600 dark:text-red-400", icon: XCircle },
+  needs_review: { label: "Revisão Necessária", bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", icon: AlertTriangle },
+  not_verified: { label: "Não Verificado", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-500 dark:text-gray-400", icon: HelpCircle },
+  error: { label: "Erro Técnico", bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-600 dark:text-red-400", icon: AlertTriangle },
 };
 
 /* ============================================================
@@ -181,7 +182,7 @@ interface DisclosurePageProps {
   setIsDark?: (value: boolean) => void;
 }
 
-export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
+export function CentralDivulgacao({ isDark }: DisclosurePageProps) {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
@@ -281,25 +282,25 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="flex-1 bg-slate-50 dark:bg-slate-950 p-6 overflow-auto"
+      className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 overflow-x-hidden overflow-y-auto"
     >
-      {/* CABEÇALHO PADRONIZADO */}
+      {/* CABEÇALHO PADRONIZADO (Notificação, Tema e Perfil fixos à direita) */}
       <motion.div
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="flex items-center justify-between mb-8"
+        className="flex items-start justify-between gap-3 sm:gap-4 mb-6 sm:mb-8"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
             Central de Divulgação
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
             Crie materiais promocionais, execute verificações de conformidade e prepare publicações.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 pt-0.5 [&_button]:rounded-none">
           <NotificationPopover isDark={isDark} />
           <AnimatedThemeToggler />
           <UserNav />
@@ -310,38 +311,41 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
         variants={containerVars}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-4"
       >
         {/* FORMULÁRIO DE CRIAÇÃO */}
-        <motion.div variants={itemVars} className="lg:col-span-7 space-y-6">
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Megaphone className="h-4 w-4 text-blue-500" />
-              Conteúdo da Divulgação
+        <motion.div variants={itemVars} className="lg:col-span-7 space-y-4">
+          <div className="rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-5 shadow-xs space-y-4">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Megaphone className="h-4 w-4 text-blue-500 shrink-0" />
+              <span>Conteúdo da Divulgação</span>
             </h2>
 
             {/* Produto Vinculado */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Produto do Catálogo (Opcional)
               </label>
-              <select
-                value={selectedProductId}
-                onChange={(e) => handleSelectProduct(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-              >
-                <option value="">Selecione um produto cadastrado...</option>
-                {MOCK_PRODUCTS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.marketplaceName})
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={selectedProductId}
+                  onChange={(e) => handleSelectProduct(e.target.value)}
+                  className="h-9 w-full appearance-none pl-3 pr-8 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors cursor-pointer"
+                >
+                  <option value="">Selecione um produto cadastrado...</option>
+                  {MOCK_PRODUCTS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.marketplaceName})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              </div>
             </div>
 
             {/* Título */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Título da Divulgação *
               </label>
               <input
@@ -352,13 +356,13 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
                   invalidateModeration();
                 }}
                 placeholder="Ex.: Oferta Imperdível! Desconto Exclusivo + Frete Grátis"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                className="h-9 w-full px-3 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
               />
             </div>
 
             {/* Legenda */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Legenda / Texto Promocional *
               </label>
               <textarea
@@ -369,13 +373,13 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
                   invalidateModeration();
                 }}
                 placeholder="Escreva os detalhes da promoção, ofertas e chamadas de ação..."
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 resize-none"
+                className="w-full p-3 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors resize-none"
               />
             </div>
 
             {/* Link de Afiliado */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Link do Produto ou Afiliado
               </label>
               <input
@@ -383,21 +387,22 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
                 value={affiliateUrl}
                 onChange={(e) => setAffiliateUrl(e.target.value)}
                 placeholder="https://"
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                className="h-9 w-full px-3 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
               />
             </div>
 
             {/* Upload de Imagem */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Imagem da Campanha
               </label>
               {imagePreview ? (
-                <div className="relative rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-950 h-48 flex items-center justify-center">
+                <div className="relative rounded-none border border-gray-200 dark:border-gray-800 overflow-hidden bg-gray-100 dark:bg-gray-950 h-48 flex items-center justify-center">
                   <img src={imagePreview} alt="Preview da imagem" className="h-full object-contain" />
                   <button
+                    type="button"
                     onClick={() => handleImageChange(null)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                    className="absolute top-2 right-2 p-1.5 rounded-none bg-black/70 text-white hover:bg-black/90 transition-colors"
                     title="Remover imagem"
                   >
                     <X className="h-4 w-4" />
@@ -407,7 +412,7 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
                 <div
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={handleDrop}
-                  className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-6 text-center hover:border-blue-500/50 transition-colors cursor-pointer bg-slate-50/50 dark:bg-slate-950/40"
+                  className="border border-dashed border-gray-300 dark:border-gray-700 rounded-none p-6 text-center hover:border-blue-500 transition-colors cursor-pointer bg-gray-50/60 dark:bg-gray-950/40"
                 >
                   <input
                     type="file"
@@ -420,85 +425,88 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
                       }
                     }}
                   />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                    <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  <label htmlFor="file-upload" className="cursor-pointer block">
+                    <Upload className="h-7 w-7 text-gray-400 mx-auto mb-2" />
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
                       Arraste uma imagem ou clique para selecionar
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-1">PNG, JPG ou WebP até 5MB</p>
+                    <p className="text-[11px] text-gray-400 mt-1">PNG, JPG ou WebP até 5MB</p>
                   </label>
                 </div>
               )}
             </div>
 
             {/* Ações */}
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-800">
               <button
+                type="button"
                 onClick={handleRunAnalysis}
                 disabled={isAnalyzing}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold transition-colors"
+                className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium transition-colors shadow-xs"
               >
-                {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                Analisar Moderação
+                {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                <span>Analisar Moderação</span>
               </button>
 
               <button
+                type="button"
                 onClick={handleSaveDraft}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="h-9 inline-flex items-center gap-1.5 px-3 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-2xs"
               >
                 <Save className="h-3.5 w-3.5" />
-                Salvar Rascunho
+                <span>Salvar Rascunho</span>
               </button>
             </div>
           </div>
         </motion.div>
 
         {/* PAINEL DE MODERAÇÃO E PRÉ-VISUALIZAÇÃO */}
-        <motion.div variants={itemVars} className="lg:col-span-5 space-y-6">
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-blue-500" />
-                Resultado da Moderação
+        <motion.div variants={itemVars} className="lg:col-span-5 space-y-4">
+          <div className="rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0" />
+                <span>Resultado da Moderação</span>
               </h3>
               <ConsolidatedBadge status={moderation.status} />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <LayerCard title="1. Texto Digitado" icon={FileText} result={moderation.textLayer} />
               <LayerCard title="2. OCR (Texto na Imagem)" icon={ScanText} result={moderation.ocrLayer} />
               <LayerCard title="3. Conteúdo Visual" icon={Eye} result={moderation.visualLayer} />
             </div>
           </div>
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                Pré-visualização
+          <div className="rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+                <span>Pré-visualização</span>
               </h3>
               {moderation.isApproved && (
                 <button
+                  type="button"
                   onClick={handleCopyMaterial}
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-none transition-colors"
                 >
                   <Copy className="h-3 w-3" />
-                  {isCopied ? "Copiado!" : "Copiar Material"}
+                  <span>{isCopied ? "Copiado!" : "Copiar Material"}</span>
                 </button>
               )}
             </div>
 
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 bg-slate-50 dark:bg-slate-950/60 space-y-3">
+            <div className="rounded-none border border-gray-200 dark:border-gray-800 p-4 bg-gray-50/70 dark:bg-gray-950/60 space-y-3">
               {imagePreview && (
-                <div className="rounded-md overflow-hidden max-h-48 flex items-center justify-center bg-slate-200 dark:bg-slate-900">
+                <div className="rounded-none overflow-hidden max-h-48 flex items-center justify-center bg-gray-200 dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
                   <img src={imagePreview} alt="Preview do post" className="max-h-48 object-contain" />
                 </div>
               )}
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {title || "Título da publicação"}
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap mt-1">
                   {caption || "Sua legenda aparecerá aqui..."}
                 </p>
                 {affiliateUrl && (
@@ -506,10 +514,10 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
                     href={affiliateUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium mt-2 break-all"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium mt-2 break-all hover:underline"
                   >
                     <ExternalLink className="h-3 w-3 shrink-0" />
-                    {affiliateUrl}
+                    <span>{affiliateUrl}</span>
                   </a>
                 )}
               </div>
@@ -524,7 +532,7 @@ export function CentralDivulgacao({ isDark, setIsDark }: DisclosurePageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-medium shadow-lg"
+            className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-none border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs font-medium shadow-lg whitespace-nowrap"
           >
             {toast}
           </motion.div>
@@ -538,9 +546,9 @@ function ConsolidatedBadge({ status }: { status: ModerationStatus }) {
   const conf = STATUS_CONFIG[status];
   const Icon = conf.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${conf.bg} ${conf.text}`}>
-      <Icon className="h-3.5 w-3.5" />
-      {conf.label}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none text-[11px] font-medium ${conf.bg} ${conf.text}`}>
+      <Icon className="h-3 w-3" />
+      <span>{conf.label}</span>
     </span>
   );
 }
@@ -558,18 +566,18 @@ function LayerCard({
   const StatusIcon = conf.icon;
 
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 bg-slate-50/50 dark:bg-slate-950/30">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-800 dark:text-slate-200">
-          <Icon className="h-3.5 w-3.5 text-slate-400" />
-          {title}
+    <div className="rounded-none border border-gray-200 dark:border-gray-800 p-3 bg-gray-50/50 dark:bg-gray-950/40">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-800 dark:text-gray-200">
+          <Icon className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+          <span>{title}</span>
         </div>
-        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full ${conf.bg} ${conf.text}`}>
+        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-none ${conf.bg} ${conf.text}`}>
           <StatusIcon className="h-3 w-3" />
-          {conf.label}
+          <span>{conf.label}</span>
         </span>
       </div>
-      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 pl-5">
+      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 pl-5">
         {result.explanation}
       </p>
     </div>

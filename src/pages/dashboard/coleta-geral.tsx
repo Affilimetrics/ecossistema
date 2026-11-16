@@ -111,10 +111,10 @@ const MARKETPLACE_STATUS_LABEL: Record<MarketplaceStatus, string> = {
 };
 
 const MARKETPLACE_STATUS_STYLE: Record<MarketplaceStatus, string> = {
-  connected: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
-  available: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  developing: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  unavailable: "bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20",
+  connected: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  available: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+  developing: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  unavailable: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700",
 };
 
 const FALLBACK_CATEGORIES: Category[] = [
@@ -143,14 +143,14 @@ const LOG_STYLES: Record<
   LogLevel,
   { bg: string; text: string; icon: React.ComponentType<{ className?: string }> }
 > = {
-  info: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", icon: Info },
-  success: { bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", icon: CheckCircle2 },
-  warning: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", icon: AlertTriangle },
-  error: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", icon: AlertTriangle },
+  info: { bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-600 dark:text-blue-400", icon: Info },
+  success: { bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 },
+  warning: { bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", icon: AlertTriangle },
+  error: { bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-600 dark:text-red-400", icon: AlertTriangle },
 };
 
 /* ============================================================
-   TELA
+   TELA: COLETA GERAL
    ============================================================ */
 
 interface ColetaGeralProps {
@@ -158,7 +158,7 @@ interface ColetaGeralProps {
   setIsDark?: (value: boolean) => void;
 }
 
-export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
+export function ColetaGeral({ isDark }: ColetaGeralProps) {
   const [state, setState] = useState<CollectionState>({
     status: "idle",
     marketplaceId: null,
@@ -291,48 +291,51 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="flex-1 bg-gray-50 dark:bg-slate-950 p-6 overflow-auto"
+      className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 overflow-x-hidden overflow-y-auto"
     >
       {/* CABEÇALHO PADRONIZADO */}
       <motion.div
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="flex items-center justify-between mb-8"
+        className="flex items-start justify-between gap-3 sm:gap-4 mb-6 sm:mb-8"
       >
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Coleta Geral
-          </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+              Coleta Geral
+            </h1>
+            <StatusPill status={state.status} />
+          </div>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
             Configure e acompanhe suas coletas de produtos em um único lugar.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <StatusPill status={state.status} />
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 pt-0.5 [&_button]:rounded-none">
           <NotificationPopover isDark={isDark} />
           <AnimatedThemeToggler />
           <UserNav />
         </div>
       </motion.div>
 
-      <motion.div variants={containerVars} initial="hidden" animate="show">
+      <motion.div variants={containerVars} initial="hidden" animate="show" className="space-y-6">
         {/* MARKETPLACES */}
-        <motion.section variants={itemVars} className="mb-8">
+        <motion.section variants={itemVars}>
           <SectionTitle
             icon={Store}
             title="Marketplaces"
             subtitle="Escolha a plataforma de origem dos produtos."
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {marketplaces.map((m) => {
               const isSelected = state.marketplaceId === m.id;
               const isDisabled = m.status === "unavailable" || m.status === "developing";
               return (
                 <button
                   key={m.id}
+                  type="button"
                   onClick={() => handleSelectMarketplace(m)}
                   disabled={isDisabled}
                   title={
@@ -342,37 +345,39 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
                         : "Integração indisponível no momento"
                       : m.name
                   }
-                  className={`relative text-left p-4 rounded-xl border transition-all focus:outline-none ${
+                  className={`relative text-left p-4 rounded-none border transition-all focus:outline-none flex flex-col justify-between ${
                     isSelected
-                      ? "border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/30 shadow-sm"
+                      ? "border-blue-500 bg-blue-50/70 dark:bg-blue-900/30 ring-1 ring-blue-500 shadow-sm"
                       : isDisabled
-                      ? "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 opacity-60 cursor-not-allowed"
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm cursor-pointer"
+                      ? "border-gray-200 dark:border-gray-800 bg-gray-100/60 dark:bg-gray-900/40 opacity-60 cursor-not-allowed"
+                      : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 shadow-xs cursor-pointer"
                   }`}
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 text-white text-xs font-bold"
+                      className="h-9 w-9 rounded-none flex items-center justify-center shrink-0 text-white text-xs font-bold"
                       style={{ backgroundColor: m.color }}
                     >
                       {m.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                         {m.name}
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">
                         {m.description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-medium ${MARKETPLACE_STATUS_STYLE[m.status]}`}>
+                  <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-none border text-[10px] font-medium ${MARKETPLACE_STATUS_STYLE[m.status]}`}
+                    >
                       {MARKETPLACE_STATUS_LABEL[m.status]}
                     </span>
                     {isSelected && (
-                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-500 text-white">
+                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-none bg-blue-600 text-white">
                         <Check className="h-3 w-3" />
                       </span>
                     )}
@@ -383,15 +388,15 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
           </div>
 
           {selectedMarketplace && selectedMarketplace.status === "available" && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               Marketplace selecionado. A coleta será iniciada somente após a configuração das categorias abaixo.
             </p>
           )}
         </motion.section>
 
         {/* CATEGORIAS */}
-        <motion.section variants={itemVars} className="mb-8">
-          <div className="flex items-center justify-between mb-3">
+        <motion.section variants={itemVars}>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <SectionTitle
               icon={TagIcon}
               title="Categorias"
@@ -399,62 +404,69 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
               noMargin
             />
             <button
+              type="button"
               onClick={() => setShowCategoryModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+              className="h-9 inline-flex items-center gap-1.5 px-3 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-2xs focus:outline-none"
             >
               <Plus className="h-3.5 w-3.5" />
-              Nova categoria
+              <span>Nova categoria</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {categories.map((c) => {
               const selected = state.categoryIds.includes(c.id);
               return (
                 <div
                   key={c.id}
-                  className={`relative rounded-xl border p-3 transition-all ${
+                  className={`relative rounded-none border p-3.5 transition-all flex flex-col justify-between ${
                     selected
-                      ? "border-blue-500 bg-blue-500/5 ring-2 ring-blue-500/20"
-                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
+                      ? "border-blue-500 bg-blue-50/70 dark:bg-blue-900/30 ring-1 ring-blue-500"
+                      : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 shadow-xs"
                   }`}
                 >
                   <button
+                    type="button"
                     onClick={() => toggleCategory(c.id)}
                     className="w-full text-left focus:outline-none"
                     aria-pressed={selected}
                   >
                     <div className="flex items-start gap-2">
                       <span
-                        className={`mt-0.5 h-4 w-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
-                          selected ? "bg-blue-500 border-blue-500" : "border-slate-300 dark:border-slate-600"
+                        className={`mt-0.5 h-4 w-4 shrink-0 rounded-none border flex items-center justify-center transition-colors ${
+                          selected
+                            ? "bg-blue-600 border-blue-600"
+                            : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-950"
                         }`}
                       >
                         {selected && <Check className="h-3 w-3 text-white" />}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
                           {c.name}
                         </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
                           {c.isNative ? "Nativa" : "Personalizada"}
                         </p>
                       </div>
                     </div>
                   </button>
 
-                  <button
-                    onClick={() => toggleLoop(c.id)}
-                    title={c.loop ? "Loop ativo" : "Ativar loop"}
-                    className={`mt-2 inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 transition-colors focus:outline-none ${
-                      c.loop
-                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                    }`}
-                  >
-                    <Repeat className="h-3 w-3" />
-                    Loop {c.loop ? "on" : "off"}
-                  </button>
+                  <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => toggleLoop(c.id)}
+                      title={c.loop ? "Loop ativo" : "Ativar loop"}
+                      className={`inline-flex items-center gap-1 text-[10px] font-medium rounded-none px-2 py-0.5 transition-colors focus:outline-none ${
+                        c.loop
+                          ? "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                      }`}
+                    >
+                      <Repeat className="h-3 w-3" />
+                      <span>Loop {c.loop ? "on" : "off"}</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -462,43 +474,51 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
         </motion.section>
 
         {/* CONTROLE DA COLETA */}
-        <motion.section variants={itemVars} className="mb-8">
+        <motion.section variants={itemVars}>
           <SectionTitle
             icon={Zap}
             title="Controle da coleta"
             subtitle="Inicie, pause ou acompanhe a execução."
           />
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-5">
+          <div className="rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 sm:p-5 shadow-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
               <InfoTile
                 label="Status"
                 value={statusLabel(state.status)}
                 tone={
-                  state.status === "running" ? "green"
-                    : state.status === "error" ? "red"
-                    : state.status === "paused" ? "amber" : "slate"
+                  state.status === "running"
+                    ? "green"
+                    : state.status === "error"
+                    ? "red"
+                    : state.status === "paused"
+                    ? "amber"
+                    : "gray"
                 }
               />
               <InfoTile label="Marketplace" value={selectedMarketplace?.name ?? "Nenhum"} />
               <InfoTile
                 label="Categorias"
-                value={state.categoryIds.length > 0 ? `${state.categoryIds.length} selecionadas` : "Nenhuma"}
+                value={
+                  state.categoryIds.length > 0
+                    ? `${state.categoryIds.length} selecionadas`
+                    : "Nenhuma"
+                }
               />
               <InfoTile label="Última execução" value={formatDateTime(state.lastRunAt)} />
             </div>
 
             {state.processedProducts != null && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 Produtos processados nesta execução:{" "}
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {state.processedProducts.toLocaleString("pt-BR")}
                 </span>
               </p>
             )}
 
             {state.error && (
-              <div className="flex items-start gap-2 text-xs rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5 mb-4">
+              <div className="flex items-start gap-2 text-xs rounded-none bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-3 py-2.5 mb-4">
                 <AlertTriangle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
                 <p className="text-red-700 dark:text-red-300">{state.error}</p>
               </div>
@@ -507,32 +527,35 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
             <div className="flex flex-wrap gap-2">
               {state.status === "idle" && (
                 <button
+                  type="button"
                   onClick={handleStart}
                   disabled={!canStart}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors focus:outline-none"
+                  className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors shadow-xs focus:outline-none"
                 >
-                  <Play className="h-4 w-4" />
-                  Iniciar coleta
+                  <Play className="h-3.5 w-3.5" />
+                  <span>Iniciar coleta</span>
                 </button>
               )}
 
               {state.status === "running" && (
                 <>
                   <button
+                    type="button"
                     onClick={handlePause}
                     disabled={isBusy}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none"
+                    className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium transition-colors shadow-xs focus:outline-none"
                   >
-                    <Pause className="h-4 w-4" />
-                    Pausar coleta
+                    <Pause className="h-3.5 w-3.5" />
+                    <span>Pausar coleta</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setConfirmStop(true)}
                     disabled={isBusy}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none"
+                    className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-medium transition-colors focus:outline-none"
                   >
-                    <Square className="h-4 w-4" />
-                    Parar coleta
+                    <Square className="h-3.5 w-3.5" />
+                    <span>Parar coleta</span>
                   </button>
                 </>
               )}
@@ -540,48 +563,52 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
               {state.status === "paused" && (
                 <>
                   <button
+                    type="button"
                     onClick={handleResume}
                     disabled={isBusy}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none"
+                    className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors shadow-xs focus:outline-none"
                   >
-                    <RotateCcw className="h-4 w-4" />
-                    Retomar coleta
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Retomar coleta</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => setConfirmStop(true)}
                     disabled={isBusy}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none"
+                    className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-medium transition-colors focus:outline-none"
                   >
-                    <Square className="h-4 w-4" />
-                    Parar coleta
+                    <Square className="h-3.5 w-3.5" />
+                    <span>Parar coleta</span>
                   </button>
                 </>
               )}
 
               {(state.status === "starting" || state.status === "stopping") && (
                 <button
+                  type="button"
                   disabled
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-semibold cursor-not-allowed"
+                  className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium cursor-not-allowed"
                 >
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {state.status === "starting" ? "Iniciando..." : "Parando..."}
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>{state.status === "starting" ? "Iniciando..." : "Parando..."}</span>
                 </button>
               )}
 
               {state.status === "error" && (
                 <button
+                  type="button"
                   onClick={handleStart}
                   disabled={!canStart}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold transition-colors focus:outline-none"
+                  className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium transition-colors shadow-xs focus:outline-none"
                 >
-                  <RotateCcw className="h-4 w-4" />
-                  Tentar novamente
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Tentar novamente</span>
                 </button>
               )}
             </div>
 
             {!canStart && state.status === "idle" && (
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-3">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-3">
                 Selecione um marketplace e pelo menos uma categoria para iniciar a coleta.
               </p>
             )}
@@ -596,28 +623,33 @@ export function ColetaGeral({ isDark, setIsDark }: ColetaGeralProps) {
             subtitle="Últimas execuções e eventos da coleta."
           />
 
-          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          <div className="rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-xs overflow-hidden">
             {loading ? (
-              <div className="p-6 space-y-3">
+              <div className="p-4 space-y-2.5">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-12 rounded-lg bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-12 rounded-none bg-gray-100 dark:bg-gray-800 animate-pulse"
+                  />
                 ))}
               </div>
             ) : logs.length === 0 ? (
               <EmptyLogs />
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              <ul className="divide-y divide-gray-200 dark:divide-gray-800">
                 {logs.map((l) => {
                   const style = LOG_STYLES[l.level];
                   const Icon = style.icon;
                   return (
-                    <li key={l.id} className="flex items-start gap-3 px-5 py-3">
-                      <div className={`p-1.5 rounded-lg shrink-0 ${style.bg}`}>
+                    <li key={l.id} className="flex items-start gap-3 px-4 py-3">
+                      <div className={`p-1.5 rounded-none shrink-0 ${style.bg}`}>
                         <Icon className={`h-3.5 w-3.5 ${style.text}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-800 dark:text-slate-200">{l.message}</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        <p className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                          {l.message}
+                        </p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                           {formatDateTime(l.at)}
                         </p>
                       </div>
@@ -668,13 +700,13 @@ function SectionTitle({
   return (
     <div className={noMargin ? "" : "mb-3"}>
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-slate-400" />
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+        <Icon className="h-4 w-4 text-gray-400 shrink-0" />
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           {title}
         </h2>
       </div>
       {subtitle && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 ml-6">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
           {subtitle}
         </p>
       )}
@@ -683,64 +715,93 @@ function SectionTitle({
 }
 
 function StatusPill({ status }: { status: CollectionState["status"] }) {
-  const map: Record<CollectionState["status"], { bg: string; text: string; dot: string; label: string }> = {
-    idle: { bg: "bg-slate-500/10", text: "text-slate-600 dark:text-slate-400", dot: "bg-slate-500", label: "Parada" },
-    starting: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", dot: "bg-blue-500 animate-pulse", label: "Iniciando" },
-    running: { bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", dot: "bg-green-500 animate-pulse", label: "Executando" },
-    paused: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", dot: "bg-amber-500", label: "Pausada" },
-    stopping: { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", dot: "bg-orange-500 animate-pulse", label: "Parando" },
-    error: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", dot: "bg-red-500", label: "Erro" },
+  const map: Record<
+    CollectionState["status"],
+    { bg: string; text: string; dot: string; label: string }
+  > = {
+    idle: { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", dot: "bg-gray-500", label: "Parada" },
+    starting: { bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-600 dark:text-blue-400", dot: "bg-blue-500 animate-pulse", label: "Iniciando" },
+    running: { bg: "bg-emerald-50 dark:bg-emerald-950/40", text: "text-emerald-600 dark:text-emerald-400", dot: "bg-emerald-500 animate-pulse", label: "Executando" },
+    paused: { bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-600 dark:text-amber-400", dot: "bg-amber-500", label: "Pausada" },
+    stopping: { bg: "bg-orange-50 dark:bg-orange-950/40", text: "text-orange-600 dark:text-orange-400", dot: "bg-orange-500 animate-pulse", label: "Parando" },
+    error: { bg: "bg-red-50 dark:bg-red-950/40", text: "text-red-600 dark:text-red-400", dot: "bg-red-500", label: "Erro" },
   };
   const s = map[status];
   return (
-    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${s.bg} ${s.text}`}>
-      <span className={`h-2 w-2 rounded-full ${s.dot}`} />
-      {s.label}
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border border-gray-200 dark:border-gray-800 text-[11px] font-medium ${s.bg} ${s.text}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-none ${s.dot}`} />
+      <span>{s.label}</span>
     </span>
   );
 }
 
 function statusLabel(status: CollectionState["status"]): string {
   switch (status) {
-    case "idle": return "Parada";
-    case "starting": return "Iniciando";
-    case "running": return "Executando";
-    case "paused": return "Pausada";
-    case "stopping": return "Parando";
-    case "error": return "Erro";
+    case "idle":
+      return "Parada";
+    case "starting":
+      return "Iniciando";
+    case "running":
+      return "Executando";
+    case "paused":
+      return "Pausada";
+    case "stopping":
+      return "Parando";
+    case "error":
+      return "Erro";
   }
 }
 
-type Tone = "slate" | "green" | "amber" | "red";
+type Tone = "gray" | "green" | "amber" | "red";
 
-function InfoTile({ label, value, tone = "slate" }: { label: string; value: string; tone?: Tone }) {
+function InfoTile({
+  label,
+  value,
+  tone = "gray",
+}: {
+  label: string;
+  value: string;
+  tone?: Tone;
+}) {
   const tones: Record<Tone, string> = {
-    slate: "text-slate-900 dark:text-slate-100",
-    green: "text-green-600 dark:text-green-400",
+    gray: "text-gray-900 dark:text-gray-100",
+    green: "text-emerald-600 dark:text-emerald-400",
     amber: "text-amber-600 dark:text-amber-400",
     red: "text-red-600 dark:text-red-400",
   };
   return (
-    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2.5">
-      <p className="text-[10px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-      <p className={`text-sm font-semibold mt-0.5 ${tones[tone]}`}>{value}</p>
+    <div className="rounded-none border border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-950/50 p-3.5">
+      <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+        {label}
+      </p>
+      <p className={`text-sm font-bold mt-1 ${tones[tone]}`}>{value}</p>
     </div>
   );
 }
 
 function EmptyLogs() {
   return (
-    <div className="py-12 px-6 text-center">
-      <div className="mx-auto p-3 rounded-full bg-slate-100 dark:bg-slate-800 w-fit mb-3">
-        <Layers className="h-5 w-5 text-slate-400" />
-      </div>
-      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Sem atividade registrada</p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">As execuções aparecerão aqui após serem iniciadas.</p>
+    <div className="p-12 text-center text-gray-500 dark:text-gray-400 space-y-2">
+      <Layers className="h-8 w-8 mx-auto text-gray-400 dark:text-gray-600" />
+      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+        Sem atividade registrada
+      </p>
+      <p className="text-xs max-w-sm mx-auto">
+        As execuções aparecerão aqui após serem iniciadas.
+      </p>
     </div>
   );
 }
 
-function NewCategoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (input: NewCategoryInput) => Promise<{ ok: true; warning?: string }> }) {
+function NewCategoryModal({
+  onClose,
+  onSubmit,
+}: {
+  onClose: () => void;
+  onSubmit: (input: NewCategoryInput) => Promise<{ ok: true; warning?: string }>;
+}) {
   const [name, setName] = useState("");
   const [keywordInput, setKeywordInput] = useState("");
   const [keywords, setKeywords] = useState<string[]>([]);
@@ -751,7 +812,10 @@ function NewCategoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit
   const addKeyword = () => {
     const v = keywordInput.trim();
     if (!v) return;
-    if (keywords.includes(v)) { setKeywordInput(""); return; }
+    if (keywords.includes(v)) {
+      setKeywordInput("");
+      return;
+    }
     setKeywords((prev) => [...prev, v]);
     setKeywordInput("");
   };
@@ -778,7 +842,7 @@ function NewCategoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
@@ -786,53 +850,81 @@ function NewCategoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.96, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl"
+        className="w-full max-w-md rounded-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl"
       >
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-blue-500" />
-            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Nova categoria</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Nova categoria
+            </h3>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Nome da categoria</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nome da categoria
+            </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex.: Eletrodomésticos"
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              className="h-9 w-full px-3 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Palavras-chave</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Palavras-chave
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addKeyword(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addKeyword();
+                  }
+                }}
                 placeholder="Digite e pressione Enter"
-                className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                className="h-9 flex-1 px-3 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               />
-              <button type="button" onClick={addKeyword} className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <Plus className="h-4 w-4" />
+              <button
+                type="button"
+                onClick={addKeyword}
+                className="h-9 px-3 rounded-none border border-gray-200 dark:border-gray-800 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
 
             {keywords.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {keywords.map((k) => (
-                  <span key={k} className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full">
+                  <span
+                    key={k}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-none"
+                  >
                     {k}
-                    <button onClick={() => setKeywords((prev) => prev.filter((x) => x !== k))} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setKeywords((prev) => prev.filter((x) => x !== k))
+                      }
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none"
+                    >
                       <X className="h-3 w-3" />
                     </button>
                   </span>
@@ -842,27 +934,36 @@ function NewCategoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-xs rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2">
+            <div className="flex items-start gap-2 text-xs rounded-none bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 px-3 py-2">
               <AlertTriangle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
               <p className="text-red-700 dark:text-red-300">{error}</p>
             </div>
           )}
 
           {warning && (
-            <div className="flex items-start gap-2 text-xs rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+            <div className="flex items-start gap-2 text-xs rounded-none bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-3 py-2">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
               <p className="text-amber-700 dark:text-amber-300">{warning}</p>
             </div>
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+        <div className="px-5 py-3.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-950/50 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 px-3.5 rounded-none border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
             Cancelar
           </button>
-          <button onClick={handleSubmit} disabled={saving} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold transition-colors">
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Salvar categoria
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-none bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium transition-colors"
+          >
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            <span>Salvar categoria</span>
           </button>
         </div>
       </motion.div>
@@ -870,22 +971,62 @@ function NewCategoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit
   );
 }
 
-function ConfirmDialog({ title, description, confirmLabel, onCancel, onConfirm }: { title: string; description: string; confirmLabel: string; onCancel: () => void; onConfirm: () => void }) {
+function ConfirmDialog({
+  title,
+  description,
+  confirmLabel,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onCancel}>
-      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5 shadow-xl"
+      >
         <div className="flex items-start gap-3 mb-3">
-          <div className="p-2 rounded-lg bg-red-500/10">
+          <div className="p-2 rounded-none bg-red-50 dark:bg-red-950/40">
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{description}</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {title}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {description}
+            </p>
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-5">
-          <button onClick={onCancel} className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Cancelar</button>
-          <button onClick={onConfirm} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-colors">{confirmLabel}</button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-8 px-3 rounded-none border border-gray-200 dark:border-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="h-8 px-3 rounded-none bg-red-600 hover:bg-red-700 text-white text-xs font-medium transition-colors"
+          >
+            {confirmLabel}
+          </button>
         </div>
       </motion.div>
     </motion.div>
