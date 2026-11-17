@@ -7,6 +7,37 @@ import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 
+import magaluLogo from "../../assets/marketplace/magalulogo.svg";
+import mercadoLivreLogo from "../../assets/marketplace/mercadolivrelogo.png";
+import amazonLogo from "../../assets/marketplace/amazonlogo.svg";
+import shopeeLogo from "../../assets/marketplace/shopeelogo.png";
+import tiktokLogo from "../../assets/marketplace/tiktoklogo.svg";
+
+const PLATFORM_LOGOS: Record<string, { src: string; key: string }> = {
+  magalu: { src: magaluLogo, key: "magalu" },
+  magazineluiza: { src: magaluLogo, key: "magalu" },
+  mercadolivre: { src: mercadoLivreLogo, key: "mercadolivre" },
+  amazon: { src: amazonLogo, key: "amazon" },
+  shopee: { src: shopeeLogo, key: "shopee" },
+  tiktok: { src: tiktokLogo, key: "tiktokshop" },
+  tiktokshop: { src: tiktokLogo, key: "tiktokshop" },
+};
+
+function getPlatformLogo(platform: Platform) {
+  const byId = PLATFORM_LOGOS[platform.id.toLowerCase().replace(/[^a-z0-9]/g, "")];
+  if (byId) return byId;
+  const byName = PLATFORM_LOGOS[platform.name.toLowerCase().replace(/[^a-z0-9]/g, "")];
+  return byName ?? null;
+}
+
+const INITIAL_PLATFORMS: Platform[] = MOCK_PLATFORMS.map((p) => {
+  const hasLogo = getPlatformLogo(p) !== null;
+  if (!hasLogo) {
+    return { ...p, status: "developing", connectedAt: undefined, lastSyncAt: undefined };
+  }
+  return p.status === "developing" ? { ...p, status: "disconnected" } : p;
+});
+
 const containerVars: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08, ease: "easeOut" } } };
 const itemVars: Variants = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } } };
 
@@ -17,7 +48,6 @@ export function SettingsPage({ isDark, setIsDark }: SettingsPageProps) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 overflow-x-hidden overflow-y-auto">
-      {/* CABEÇALHO PADRONIZADO */}
       <motion.div initial={{ opacity: 0, y: -15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="flex items-start justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div className="flex-1 min-w-0">
           <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 leading-tight">Configurações</h1>
@@ -30,7 +60,6 @@ export function SettingsPage({ isDark, setIsDark }: SettingsPageProps) {
         </div>
       </motion.div>
 
-      {/* NAVEGAÇÃO INTERNA (BARRA BUGADA REMOVIDA) */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }} className="flex gap-1 mb-6 overflow-x-auto border-b border-gray-200 dark:border-gray-800 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <TabButton active={tab === "integrations"} onClick={() => setTab("integrations")} icon={Plug} label="Integrações" />
         <TabButton active={tab === "account"} onClick={() => setTab("account")} icon={UserCog} label="Conta e perfil" />
@@ -62,7 +91,7 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean; on
 }
 
 function IntegrationsTab() {
-  const [platforms, setPlatforms] = useState<Platform[]>(MOCK_PLATFORMS);
+  const [platforms, setPlatforms] = useState<Platform[]>(INITIAL_PLATFORMS);
   const [filters, setFilters] = useState<PlatformFilters>(emptyPlatformFilters);
   const [modalPlatform, setModalPlatform] = useState<Platform | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -81,10 +110,10 @@ function IntegrationsTab() {
 
   const filtered = useMemo(() => filterPlatforms(platforms, filters), [platforms, filters]);
   const kpis = useMemo(() => computeIntegrationKpis(platforms), [platforms]);
-  
+
   const activeAdvancedCount = filters.status !== "all" ? 1 : 0;
   const hasActiveFilters = filters.search !== "" || filters.category !== "all" || activeAdvancedCount > 0;
-  
+
   const clearFilters = () => setFilters(emptyPlatformFilters);
   const showToast = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 2600); };
 
@@ -118,14 +147,13 @@ function IntegrationsTab() {
         <p className="text-xs text-gray-600 dark:text-gray-400">Conecte suas plataformas para organizar seus links, acompanhar o desempenho e centralizar os dados no Scallora.</p>
       </div>
 
-      {/* BARRA DE FILTROS PADRONIZADA */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.1 }} className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 mb-6">
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 flex-1 min-w-0">
           <div className="relative flex-1 min-w-[160px] max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input type="text" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} placeholder="Buscar plataforma..." className="h-9 w-full pl-9 pr-3 text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-900 dark:text-gray-100 placeholder:text-gray-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors" />
           </div>
-          
+
           <div className="relative shrink-0">
             <select value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value as PlatformCategory | "all" })} className="h-9 appearance-none pl-3 pr-8 text-xs font-medium bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md text-gray-700 dark:text-gray-300 shadow-2xs hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors cursor-pointer">
               <option value="all">Todas as categorias</option>
@@ -137,7 +165,6 @@ function IntegrationsTab() {
             <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
           </div>
 
-          {/* BOTÃO FILTROS COM POPOVER */}
           <div className="relative shrink-0" ref={popoverRef}>
             <button
               type="button"
@@ -216,13 +243,39 @@ function IntegrationsTab() {
   );
 }
 
-function IntegrationCard({ platform, onOpen }: { platform: Platform; onOpen: () => void }) {
+function PlatformAvatar({ platform }: { platform: Platform }) {
   const Icon = platform.icon;
+  const logo = getPlatformLogo(platform);
+
+  if (logo) {
+    const isFullBleed = logo.key === "shopee" || logo.key === "tiktokshop";
+    return (
+      <div
+        className={`h-10 w-10 rounded-md flex items-center justify-center shrink-0 overflow-hidden ${isFullBleed ? "p-0" : "p-1.5 border border-gray-200 dark:border-gray-700"}`}
+        style={{ backgroundColor: logo.key === "magalu" ? "#0086ff" : isFullBleed ? "transparent" : "#ffffff" }}
+      >
+        <img
+          src={logo.src}
+          alt={`Logo ${platform.name}`}
+          className={`h-full w-full ${isFullBleed ? "object-cover scale-110" : "object-contain"}`}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-10 w-10 rounded-md flex items-center justify-center shrink-0 text-white" style={{ backgroundColor: platform.color }}>
+      <Icon className="h-5 w-5" />
+    </div>
+  );
+}
+
+function IntegrationCard({ platform, onOpen }: { platform: Platform; onOpen: () => void }) {
   const action = getActionLabel(platform.status);
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-xs hover:shadow-md transition-all flex flex-col">
       <div className="flex items-start gap-3 mb-3">
-        <div className="h-10 w-10 rounded-md flex items-center justify-center shrink-0 text-white" style={{ backgroundColor: platform.color }}><Icon className="h-5 w-5" /></div>
+        <PlatformAvatar platform={platform} />
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{platform.name}</h3>
           <p className="text-[11px] text-gray-500 dark:text-gray-400">{CATEGORY_LABELS[platform.category]}</p>
@@ -254,14 +307,13 @@ function StatusBadge({ status }: { status: IntegrationStatus }) {
 
 function IntegrationModal({ platform, onClose, onConnect, onDisconnect, onSync }: { platform: Platform; onClose: () => void; onConnect: () => void; onDisconnect: () => void; onSync: () => void }) {
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
-  const Icon = platform.icon;
   const isConnected = platform.status === "connected";
   const isDeveloping = platform.status === "developing";
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl">
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 flex items-start gap-3">
-          <div className="h-10 w-10 rounded-md flex items-center justify-center shrink-0 text-white" style={{ backgroundColor: platform.color }}><Icon className="h-5 w-5" /></div>
+          <PlatformAvatar platform={platform} />
           <div className="min-w-0 flex-1"><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{platform.name}</h2><p className="text-xs text-gray-500 dark:text-gray-400">{CATEGORY_LABELS[platform.category]}</p></div>
           <button onClick={onClose} className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><X className="h-4 w-4" /></button>
         </div>

@@ -10,11 +10,12 @@ import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler
 interface ProductsPageProps { isDark?: boolean; setIsDark?: (value: boolean) => void; }
 
 const PLATFORM_BADGES: Record<string, { label: string; bg: string; text: string }> = {
-  shopee: { label: "Shopee", bg: "bg-orange-50 dark:bg-orange-950/40", text: "text-orange-700 dark:text-orange-400" },
-  mercadolivre: { label: "Mercado Livre", bg: "bg-yellow-50 dark:bg-yellow-950/40", text: "text-yellow-700 dark:text-yellow-400" },
-  amazon: { label: "Amazon", bg: "bg-amber-50 dark:bg-amber-950/40", text: "text-amber-700 dark:text-amber-400" },
-  magalu: { label: "Magalu", bg: "bg-blue-50 dark:bg-blue-950/40", text: "text-blue-700 dark:text-blue-400" },
-  outros: { label: "Outros", bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-700 dark:text-gray-300" },
+  shopee: { label: "Shopee", bg: "bg-orange-50 dark:bg-orange-950/80", text: "text-orange-700 dark:text-orange-400" },
+  mercadolivre: { label: "Mercado Livre", bg: "bg-yellow-50 dark:bg-yellow-950/80", text: "text-yellow-700 dark:text-yellow-400" },
+  amazon: { label: "Amazon", bg: "bg-amber-50 dark:bg-amber-950/80", text: "text-amber-700 dark:text-amber-400" },
+  magalu: { label: "Magalu", bg: "bg-blue-50 dark:bg-blue-950/80", text: "text-blue-700 dark:text-blue-400" },
+  tiktokshop: { label: "TikTok Shop", bg: "bg-pink-50 dark:bg-pink-950/80", text: "text-pink-700 dark:text-pink-400" },
+  outros: { label: "Outros", bg: "bg-gray-100 dark:bg-gray-800/90", text: "text-gray-700 dark:text-gray-300" },
 };
 
 const CATEGORY_OPTIONS = [
@@ -26,6 +27,104 @@ const CATEGORY_OPTIONS = [
   { value: "Beleza", label: "Beleza" },
   { value: "Outros", label: "Outros" },
 ];
+
+const normalizeText = (value?: string) =>
+  (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const getHighResImageUrl = (url?: string): string | undefined => {
+  if (!url) return undefined;
+  let upgraded = url.trim();
+
+  // Unsplash (dados de exemplo/mock): aumenta w=100 ou w=200 para w=800
+  if (upgraded.includes("images.unsplash.com")) {
+    upgraded = upgraded.replace(/([?&])w=\d+/g, "$1w=800").replace(/([?&])q=\d+/g, "$1q=85");
+  }
+
+  // Shopee: remove o sufixo "_tn" de thumbnail
+  if (upgraded.includes("susercontent.com") || upgraded.includes("shopee")) {
+    upgraded = upgraded.replace(/_tn(\.[a-zA-Z0-9]+)?(\?.*)?$/, "$1$2");
+  }
+
+  // Mercado Livre: troca sufixos de miniatura (-I, -V, -S, -T, -N) por alta resolução (-O)
+  if (upgraded.includes("mlstatic.com")) {
+    upgraded = upgraded.replace(/-[IVSTN]\.(jpg|jpeg|png|webp)(\?.*)?$/i, "-O.$1$2");
+  }
+
+  // Amazon: aumenta dimensões de redimensionamento dinâmico
+  if (upgraded.includes("media-amazon.com") || upgraded.includes("ssl-images-amazon.com")) {
+    upgraded = upgraded.replace(/\._[A-Z0-9_,]+_\.(jpg|jpeg|png|webp)$/i, "._SL800_.$1");
+  }
+
+  // Magalu: aumenta largura/altura quando vier como thumbnail
+  if (upgraded.includes("mlcdn.com.br")) {
+    upgraded = upgraded.replace(/\/\d{2,3}x\d{2,3}\//, "/800x800/");
+  }
+
+  return upgraded;
+};
+
+interface ProductImageProps {
+  src?: string;
+  alt: string;
+  variant: "list" | "grid";
+}
+
+const ProductImage: React.FC<ProductImageProps> = ({ src, alt, variant }) => {
+  const highResSrc = getHighResImageUrl(src);
+  const [imgSrc, setImgSrc] = useState<string | undefined>(highResSrc);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(getHighResImageUrl(src));
+    setHasError(false);
+  }, [src]);
+
+  if (!imgSrc || hasError) {
+    return variant === "list" ? (
+      <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 flex items-center justify-center shrink-0">
+        <Package className="h-4 w-4 text-gray-400" />
+      </div>
+    ) : (
+      <Package className="h-12 w-12 text-gray-300 dark:text-gray-700" />
+    );
+  }
+
+  const handleError = () => {
+    if (src && imgSrc !== src) {
+      setImgSrc(src);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (variant === "list") {
+    return (
+      <img
+        src={imgSrc}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onError={handleError}
+        className="h-9 w-9 rounded-md object-cover border border-gray-200 dark:border-gray-800 shrink-0 bg-white"
+      />
+    );
+  }
+
+  return (
+    <img
+      src={imgSrc}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      onError={handleError}
+      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+    />
+  );
+};
 
 const containerVars: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08, ease: "easeOut" } } };
 const itemVars: Variants = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } } };
@@ -53,11 +152,68 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark }) => {
 
   const loadProducts = useCallback(async () => {
     try {
-      setLoading(true); setError(null);
-      const [data, statsData] = await Promise.all([productsApi.getProducts(filters), productsApi.getStats()]);
-      setProducts(data.results); setTotalCount(data.count); setStats(statsData);
-    } catch { setError("Falha ao carregar o catálogo de produtos. Tente novamente."); }
-    finally { setLoading(false); }
+      setLoading(true);
+      setError(null);
+      const [data, statsData] = await Promise.all([
+        productsApi.getProducts(filters),
+        productsApi.getStats(),
+      ]);
+
+      const searchTerm = normalizeText(filters.search);
+      const selectedCategory = normalizeText(filters.category);
+      const selectedPlatform = normalizeText(filters.platform);
+      const selectedStatus = filters.status || "all";
+
+      const filteredResults = data.results.filter((item) => {
+        if (searchTerm) {
+          const matchesSearch =
+            normalizeText(item.name).includes(searchTerm) ||
+            normalizeText(item.category).includes(searchTerm) ||
+            normalizeText(item.sku_or_external_id).includes(searchTerm);
+          if (!matchesSearch) return false;
+        }
+
+        if (selectedCategory && selectedCategory !== "all") {
+          const itemCategory = normalizeText(item.category) || "outros";
+          if (itemCategory !== selectedCategory) return false;
+        }
+
+        if (selectedPlatform && selectedPlatform !== "all") {
+          const itemPlatform = normalizeText(item.platform).replace(/[^a-z0-9]/g, "");
+          if (itemPlatform !== selectedPlatform.replace(/[^a-z0-9]/g, "")) return false;
+        }
+
+        if (selectedStatus !== "all") {
+          const itemStatus = item.status || (item.affiliate_link ? "active" : "pending_link");
+          if (selectedStatus === "pending_link") {
+            if (item.affiliate_link && itemStatus !== "pending_link") return false;
+          } else if (itemStatus !== selectedStatus) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      const pageSize = filters.page_size || 10;
+      const currentPage = filters.page || 1;
+      const serverAlreadyPaginated = data.count > data.results.length;
+
+      if (serverAlreadyPaginated) {
+        setProducts(filteredResults);
+        setTotalCount(filteredResults.length === data.results.length ? data.count : filteredResults.length);
+      } else {
+        const start = (currentPage - 1) * pageSize;
+        setProducts(filteredResults.slice(start, start + pageSize));
+        setTotalCount(filteredResults.length);
+      }
+
+      setStats(statsData);
+    } catch {
+      setError("Falha ao carregar o catálogo de produtos. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   }, [filters]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
@@ -158,6 +314,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark }) => {
                     <option value="mercadolivre">Mercado Livre</option>
                     <option value="amazon">Amazon</option>
                     <option value="magalu">Magalu</option>
+                    <option value="tiktokshop">TikTok Shop</option>
                   </select>
                 </div>
                 <div>
@@ -238,7 +395,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark }) => {
                         <tr key={product.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              {product.image_url ? <img src={product.image_url} alt={product.name} className="h-9 w-9 rounded-md object-cover border border-gray-200 dark:border-gray-800 shrink-0 bg-white" /> : <div className="h-9 w-9 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 flex items-center justify-center shrink-0"><Package className="h-4 w-4 text-gray-400" /></div>}
+                              <ProductImage src={product.image_url} alt={product.name} variant="list" />
                               <div className="min-w-0 flex-1">
                                 <p className="font-medium text-gray-900 dark:text-gray-100 truncate" title={product.name}>{product.name}</p>
                                 <p className="text-[10px] text-gray-400 truncate">{product.category || "Sem categoria"}{product.sku_or_external_id ? ` · ID: ${product.sku_or_external_id}` : ""}</p>
@@ -278,9 +435,9 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ isDark }) => {
                 return (
                   <div key={product.id} className="group flex flex-col justify-between rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50/40 dark:bg-gray-950/40 hover:border-gray-300 dark:hover:border-gray-700 transition-colors overflow-hidden">
                     <div>
-                      <div className="relative w-full h-44 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-center overflow-hidden p-3">
-                        {product.image_url ? <img src={product.image_url} alt={product.name} className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105" /> : <Package className="h-12 w-12 text-gray-300 dark:text-gray-700" />}
-                        <span className={`absolute top-2.5 right-2.5 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium shadow-2xs ${badge.bg} ${badge.text}`}>{badge.label}</span>
+                      <div className="relative w-full h-44 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-center overflow-hidden">
+                        <ProductImage src={product.image_url} alt={product.name} variant="grid" />
+                        <span className={`absolute top-2.5 right-2.5 inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium shadow-xs backdrop-blur-xs ${badge.bg} ${badge.text}`}>{badge.label}</span>
                       </div>
                       <div className="p-4 pb-3">
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 mb-1" title={product.name}>{product.name}</h4>

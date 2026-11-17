@@ -10,6 +10,20 @@ import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 
+import magaluLogo from "../../assets/marketplace/magalulogo.svg";
+import mercadoLivreLogo from "../../assets/marketplace/mercadolivrelogo.png";
+import amazonLogo from "../../assets/marketplace/amazonlogo.svg";
+import shopeeLogo from "../../assets/marketplace/shopeelogo.png";
+import tiktokLogo from "../../assets/marketplace/tiktoklogo.svg";
+
+const MARKETPLACE_LOGOS: Record<string, string> = {
+  magalu: magaluLogo,
+  mercadolivre: mercadoLivreLogo,
+  amazon: amazonLogo,
+  shopee: shopeeLogo,
+  tiktokshop: tiktokLogo,
+};
+
 const containerVars: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08, ease: "easeOut" } } };
 const itemVars: Variants = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } } };
 
@@ -119,11 +133,26 @@ export function ColetaGeral({ isDark }: ColetaGeralProps) {
             {marketplaces.map((m) => {
               const isSelected = state.marketplaceId === m.id;
               const isDisabled = m.status === "unavailable" || m.status === "developing";
+              const logoSrc = MARKETPLACE_LOGOS[m.id];
+              const isFullBleedIcon = m.id === "shopee" || m.id === "tiktokshop";
               return (
                 <button key={m.id} type="button" onClick={() => handleSelectMarketplace(m)} disabled={isDisabled} title={isDisabled ? m.status === "developing" ? "Integração ainda em desenvolvimento" : "Integração indisponível no momento" : m.name}
                   className={`relative text-left p-4 rounded-md border transition-all focus:outline-none flex flex-col justify-between ${isSelected ? "border-blue-500 bg-blue-50/70 dark:bg-blue-900/30 ring-1 ring-blue-500 shadow-sm" : isDisabled ? "border-gray-200 dark:border-gray-800 bg-gray-100/60 dark:bg-gray-900/40 opacity-60 cursor-not-allowed" : "border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 shadow-xs cursor-pointer"}`}>
                   <div className="flex items-start gap-3">
-                    <div className="h-9 w-9 rounded-md flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor: m.color }}>{m.name.slice(0, 2).toUpperCase()}</div>
+                    {logoSrc ? (
+                      <div
+                        className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 overflow-hidden ${isFullBleedIcon ? "p-0" : "p-1.5 border border-gray-200 dark:border-gray-700"}`}
+                        style={{ backgroundColor: m.id === "magalu" ? "#0086ff" : isFullBleedIcon ? "transparent" : "#ffffff" }}
+                      >
+                        <img
+                          src={logoSrc}
+                          alt={`Logo ${m.name}`}
+                          className={`h-full w-full ${isFullBleedIcon ? "object-cover scale-110" : "object-contain"}`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-9 w-9 rounded-md flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor: m.color }}>{m.name.slice(0, 2).toUpperCase()}</div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{m.name}</p>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 mt-0.5">{m.description}</p>
