@@ -48,6 +48,14 @@ export interface CollectionState {
   lastRunAt: string | null;
   processedProducts: number | null;
   error: string | null;
+  /** Id da execução mais recente no Django (usado para buscar os logs). */
+  executionId?: number | null;
+}
+
+export interface CollectionActionResult {
+  state: CollectionState | null;
+  error: string | null;
+  warnings: string[];
 }
 
 export type LogLevel = "info" | "success" | "warning" | "error";

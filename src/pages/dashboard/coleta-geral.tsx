@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Store, Check, X, Play, Pause, Square, RotateCcw, Plus, Loader2,
   AlertTriangle, CheckCircle2, Info, Tag as TagIcon, Repeat, Sparkles, Clock, Zap, Layers,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import type { Category, CollectionLog, CollectionState, LogLevel, Marketplace, MarketplaceStatus, NewCategoryInput } from "../../types/collectionTypes";
+import type { Category, CollectionActionResult, CollectionLog, CollectionState, LogLevel, Marketplace, MarketplaceStatus, NewCategoryInput } from "../../types/collectionTypes";
 import { createCategory, fetchCategories, fetchCollectionLogs, fetchCollectionState, fetchMarketplaces, pauseCollection, resumeCollection, startCollection, stopCollection } from "../../services/collectionApi";
+import { getToken } from "../../services/djangoClient";
 import { NotificationPopover } from "../../components/ui/notification-popover";
 import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
@@ -28,10 +30,10 @@ const containerVars: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, tr
 const itemVars: Variants = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } } };
 
 const FALLBACK_MARKETPLACES: Marketplace[] = [
-  { id: "magalu", name: "Magazine Luiza", description: "Marketplace brasileiro de varejo.", color: "#0086ff", status: "available" },
-  { id: "mercadolivre", name: "Mercado Livre", description: "Maior marketplace da América Latina.", color: "#ffe600", status: "available" },
-  { id: "amazon", name: "Amazon", description: "Marketplace global com catálogo amplo.", color: "#ff9900", status: "available" },
-  { id: "shopee", name: "Shopee", description: "Marketplace com foco em preços competitivos.", color: "#ee4d2d", status: "available" },
+  { id: "magalu", name: "Magazine Luiza", description: "Coleta automática de ofertas e links de afiliado.", color: "#0086ff", status: "available" },
+  { id: "mercadolivre", name: "Mercado Livre", description: "Disponível pelo aplicativo desktop.", color: "#ffe600", status: "unavailable" },
+  { id: "amazon", name: "Amazon", description: "Integração ainda não disponível.", color: "#ff9900", status: "unavailable" },
+  { id: "shopee", name: "Shopee", description: "Integração ainda não disponível.", color: "#ee4d2d", status: "unavailable" },
   { id: "tiktokshop", name: "TikTok Shop", description: "Integração em desenvolvimento.", color: "#000000", status: "developing" },
 ];
 
@@ -48,7 +50,7 @@ const FALLBACK_CATEGORIES: Category[] = [
   { id: "quarto", name: "Quarto", isNative: true, loop: false },
   { id: "sala", name: "Sala", isNative: true, loop: false },
   { id: "banheiro", name: "Banheiro", isNative: true, loop: false },
-  { id: "acessorios", name: "Acessórios", isNative: true, loop: false },
+  { id: "acessórios", name: "Acessórios", isNative: true, loop: false },
 ];
 
 const formatDateTime = (iso: string | null) => iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
@@ -70,43 +72,101 @@ export function ColetaGeral({ isDark }: ColetaGeralProps) {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [confirmStop, setConfirmStop] = useState(false);
 
-  const reload = useCallback(async () => {
-    const [s, m, c, l] = await Promise.all([fetchCollectionState(), fetchMarketplaces(), fetchCategories(), fetchCollectionLogs()]);
-    if (s) setState((prev) => ({ ...prev, ...s }));
-    if (m.length) setMarketplaces(m);
-    if (c.length) setCategories(c);
-    if (l.length) setLogs(l);
-    setLoading(false);
+  const navigate = useNavigate();
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const executionIdRef = useRef<number | null>(null);
+
+  const applyServerState = useCallback((s: CollectionState) => {
+    executionIdRef.current = s.executionId ?? null;
+    setState((prev) => {
+      // Parada/erro: o servidor não dita a seleção do usuário, só o status.
+      if (s.status === "idle" || s.status === "error") {
+        return { ...prev, status: s.status, lastRunAt: s.lastRunAt, processedProducts: s.processedProducts, error: s.error, executionId: s.executionId };
+      }
+      return { ...prev, ...s };
+    });
+    // Coleta em andamento (ex.: página recarregada): garante que palavras-chave
+    // personalizadas em uso apareçam na lista de categorias.
+    if (s.status !== "idle" && s.status !== "error") {
+      setCategories((prev) => {
+        const missing = s.categoryIds.filter((id) => !prev.some((c) => c.id === id));
+        return missing.length
+          ? [...prev, ...missing.map((id) => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1), isNative: false, loop: false }))]
+          : prev;
+      });
+    }
   }, []);
 
+  const reload = useCallback(async () => {
+    if (!getToken()) { navigate("/", { replace: true }); return; }
+    const [m, c, s] = await Promise.all([fetchMarketplaces(), fetchCategories(), fetchCollectionState()]);
+    if (!getToken()) { navigate("/", { replace: true }); return; } // token expirado (401)
+    if (m.length) setMarketplaces(m);
+    setCategories((prev) => {
+      const customs = prev.filter((x) => !x.isNative);
+      const loops = new Map(prev.map((x) => [x.id, x.loop]));
+      return [...c.map((x) => ({ ...x, loop: loops.get(x.id) ?? false })), ...customs];
+    });
+    if (s) {
+      applyServerState(s);
+      setLogs(await fetchCollectionLogs(s.executionId));
+    } else {
+      setState((prev) => ({ ...prev, error: prev.error ?? "Não foi possível carregar o status da coleta." }));
+    }
+    setLoading(false);
+  }, [applyServerState, navigate]);
+
   useEffect(() => { setLoading(true); reload(); }, [reload]);
+
+  // Enquanto há coleta em andamento, acompanha status e logs.
+  useEffect(() => {
+    if (state.status === "idle" || state.status === "error") return;
+    const id = window.setInterval(async () => {
+      const s = await fetchCollectionState();
+      if (!s) return;
+      applyServerState(s);
+      setLogs(await fetchCollectionLogs(s.executionId));
+    }, 3000);
+    return () => window.clearInterval(id);
+  }, [state.status, applyServerState]);
 
   const handleSelectMarketplace = (m: Marketplace) => { if (m.status === "unavailable" || m.status === "developing") return; setState((prev) => ({ ...prev, marketplaceId: m.id })); };
   const toggleCategory = (id: string) => { setState((prev) => ({ ...prev, categoryIds: prev.categoryIds.includes(id) ? prev.categoryIds.filter((x) => x !== id) : [...prev.categoryIds, id] })); };
   const toggleLoop = (id: string) => { setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, loop: !c.loop } : c))); };
 
-  const handleStart = async () => {
-    if (!state.marketplaceId || state.categoryIds.length === 0) return;
-    setState((prev) => ({ ...prev, status: "starting", error: null }));
-    const res = await startCollection({ marketplaceId: state.marketplaceId, categoryIds: state.categoryIds });
-    if (res) { setState((prev) => ({ ...prev, ...res })); reload(); }
-    else setState((prev) => ({ ...prev, status: "idle", error: "Não foi possível iniciar a coleta. Verifique a integração com o backend." }));
+  const runAction = async (optimistic: CollectionState["status"], rollback: CollectionState["status"], action: () => Promise<CollectionActionResult>) => {
+    setWarnings([]);
+    setState((prev) => ({ ...prev, status: optimistic, error: null }));
+    const res = await action();
+    if (res.state) {
+      applyServerState(res.state);
+      setWarnings(res.warnings);
+      setLogs(await fetchCollectionLogs(res.state.executionId));
+    } else {
+      if (!getToken()) { navigate("/", { replace: true }); return; }
+      setState((prev) => ({ ...prev, status: rollback, error: res.error }));
+    }
   };
 
-  const handlePause = async () => { setState((prev) => ({ ...prev, status: "stopping" })); const res = await pauseCollection(); if (res) setState((prev) => ({ ...prev, ...res })); else setState((prev) => ({ ...prev, status: "running" })); };
-  const handleResume = async () => { setState((prev) => ({ ...prev, status: "starting" })); const res = await resumeCollection(); if (res) setState((prev) => ({ ...prev, ...res })); else setState((prev) => ({ ...prev, status: "paused" })); };
-  const handleStop = async () => { setConfirmStop(false); setState((prev) => ({ ...prev, status: "stopping" })); const res = await stopCollection(); if (res) setState((prev) => ({ ...prev, ...res })); else setState((prev) => ({ ...prev, status: "idle" })); };
+  const handleStart = () => {
+    if (!state.marketplaceId || state.categoryIds.length === 0) return;
+    const selected = categories.filter((c) => state.categoryIds.includes(c.id));
+    return runAction("starting", "idle", () => startCollection({ marketplaceId: state.marketplaceId!, categories: selected }));
+  };
+  const handlePause = () => runAction("stopping", "running", pauseCollection);
+  const handleResume = () => runAction("starting", "paused", resumeCollection);
+  const handleStop = () => { setConfirmStop(false); return runAction("stopping", state.status, stopCollection); };
 
   const handleCreateCategory = async (input: NewCategoryInput) => {
     const created = await createCategory(input);
     if (created) { setCategories((prev) => [...prev, created]); return { ok: true as const }; }
-    const local: Category = { id: `custom-${Date.now()}`, name: input.name, isNative: false, loop: false, keywords: input.keywords };
-    setCategories((prev) => [...prev, local]);
-    return { ok: true as const, warning: "Backend indisponível — categoria criada apenas nesta sessão." };
+    const local: Category = { id: input.name.trim().toLowerCase(), name: input.name, isNative: false, loop: false, keywords: input.keywords };
+    setCategories((prev) => (prev.some((c) => c.id === local.id) ? prev : [...prev, local]));
+    return { ok: true as const, warning: "Ainda não é possível salvar categorias personalizadas pela API — ela existe só nesta sessão e a coleta exigirá um template configurado no painel." };
   };
 
   const selectedMarketplace = useMemo(() => marketplaces.find((m) => m.id === state.marketplaceId) ?? null, [marketplaces, state.marketplaceId]);
-  const canStart = state.status === "idle" && state.marketplaceId !== null && state.categoryIds.length > 0;
+  const canStart = (state.status === "idle" || state.status === "error") && state.marketplaceId !== null && state.categoryIds.length > 0;
   const isBusy = state.status === "starting" || state.status === "stopping";
 
   return (
@@ -223,6 +283,12 @@ export function ColetaGeral({ isDark }: ColetaGeralProps) {
                 <p className="text-red-700 dark:text-red-300">{state.error}</p>
               </div>
             )}
+            {warnings.map((w) => (
+              <div key={w} className="flex items-start gap-2 text-xs rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 px-3 py-2.5 mb-4">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+                <p className="text-amber-700 dark:text-amber-300">{w}</p>
+              </div>
+            ))}
             <div className="flex flex-wrap gap-2">
               {state.status === "idle" && <button type="button" onClick={handleStart} disabled={!canStart} className="h-9 inline-flex items-center gap-1.5 px-3.5 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-medium transition-colors shadow-xs focus:outline-none"><Play className="h-3.5 w-3.5" /><span>Iniciar coleta</span></button>}
               {state.status === "running" && (

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
@@ -16,6 +17,7 @@ import { styled } from "@mui/material/styles";
 import AppTheme from "@/shared-theme/AppTheme";
 import ColorModeSelect from "@/shared-theme/ColorModeSelect";
 import { GoogleIcon, SitemarkIcon } from "./components/CustomIcons";
+import { register } from "@/services/authApi";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -60,6 +62,9 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 }));
 
 export default function SignUp(props) {
+  const navigate = useNavigate();
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState("");
   const [nameError, setNameError] = React.useState(false);
   const [nameErrorMessage, setNameErrorMessage] = React.useState("");
   const [emailError, setEmailError] = React.useState(false);
@@ -104,16 +109,23 @@ export default function SignUp(props) {
     return isValid;
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (validateInputs()) {
-      const data = new FormData(event.currentTarget);
-      console.log({
-        name: data.get("name"),
-        email: data.get("email"),
-        password: data.get("password"),
-      });
+    if (!validateInputs()) return;
+    const data = new FormData(event.currentTarget);
+    setSubmitting(true);
+    setSubmitError("");
+    const result = await register(
+      String(data.get("name") ?? ""),
+      String(data.get("email") ?? ""),
+      String(data.get("password") ?? "")
+    );
+    setSubmitting(false);
+    if (!result.ok) {
+      setSubmitError(result.error);
+      return;
     }
+    navigate("/coleta-geral");
   };
 
   return (
@@ -184,13 +196,18 @@ export default function SignUp(props) {
               control={<Checkbox value="allowExtraEmails" color="primary" />}
               label="Quero receber atualizações e novidades por e-mail."
             />
+            {submitError && (
+              <Typography color="error" variant="body2" role="alert">
+                {submitError}
+              </Typography>
+            )}
             <Button
               type="submit"
               fullWidth
               variant="contained"
-              onClick={validateInputs}
+              disabled={submitting}
             >
-              Cadastrar
+              {submitting ? "Cadastrando..." : "Cadastrar"}
             </Button>
           </Box>
           <Typography sx={{ textAlign: "center" }}>

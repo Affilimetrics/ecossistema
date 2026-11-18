@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import ForgotPassword from './ForgotPassword';
 import { GoogleIcon } from './CustomIcons';
+import { login } from '../../../../services/authApi';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -80,7 +81,10 @@ export default function SignInCard() {
     return isValid;
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const [submitting, setSubmitting] = React.useState(false);
+  const [loginError, setLoginError] = React.useState('');
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     // valida no momento do submit, sem depender do state assíncrono
@@ -89,14 +93,16 @@ export default function SignInCard() {
     }
 
     const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get('email'),
-      password: data.get('password'),
-    });
+    setSubmitting(true);
+    setLoginError('');
+    const result = await login(String(data.get('email') ?? ''), String(data.get('password') ?? ''));
+    setSubmitting(false);
 
-    // validação fake por enquanto — quando tiver backend, troque isso
-    // por uma chamada de API e só navegue se a resposta for de sucesso
-    navigate('/dashboard');
+    if (!result.ok) {
+      setLoginError(result.error);
+      return;
+    }
+    navigate('/coleta-geral');
   };
 
   return (
@@ -177,8 +183,13 @@ export default function SignInCard() {
           label="Lembrar de mim"
         />
         <ForgotPassword open={open} handleClose={handleClose} />
-        <Button type="submit" fullWidth variant="contained">
-          Entrar
+        {loginError && (
+          <Typography color="error" variant="body2" role="alert">
+            {loginError}
+          </Typography>
+        )}
+        <Button type="submit" fullWidth variant="contained" disabled={submitting}>
+          {submitting ? 'Entrando...' : 'Entrar'}
         </Button>
         <Typography sx={{ textAlign: 'center' }}>
           Não tem uma conta?{' '}
