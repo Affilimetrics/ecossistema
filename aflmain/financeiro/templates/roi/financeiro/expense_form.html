@@ -1,0 +1,5 @@
+{% extends "roi/base.html" %}
+{% block title %}{{ title }} · ROI Manager{% endblock %}
+{% block content %}
+<div class="form-panel"><p class="eyebrow">NOVO REGISTRO</p><h1>{{ title }}</h1><p class="subtitle">Registre um custo para que ele seja considerado nos indicadores financeiros.</p><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="button" type="submit">Salvar investimento</button><a class="button secondary" href="{% url 'roi:expenses' %}">Cancelar</a></div></form></div>
+{% endblock %}

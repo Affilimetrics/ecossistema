@@ -2,6 +2,7 @@
   const storage = {
     theme: 'skallora-theme',
     sidebar: 'skallora-sidebar',
+    advanced: 'skallora-advanced-nav',
   };
 
   function setTheme(theme) {
@@ -20,6 +21,17 @@
       if (icon) icon.className = chosen === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
       if (label) label.textContent = chosen === 'dark' ? 'Tema claro' : 'Tema escuro';
     });
+  }
+
+  function setAdvancedExpanded(expanded, persist = true) {
+    const trigger = document.querySelector('[data-sidebar-section-toggle="advanced"]');
+    const panel = document.querySelector('[data-sidebar-section="advanced"]');
+    if (!trigger || !panel) return;
+    trigger.setAttribute('aria-expanded', String(Boolean(expanded)));
+    panel.hidden = !expanded;
+    if (persist) {
+      try { localStorage.setItem(storage.advanced, expanded ? 'expanded' : 'collapsed'); } catch (_) {}
+    }
   }
 
   function setSidebarCollapsed(collapsed) {
@@ -49,6 +61,19 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     setSidebarCollapsed(collapsed);
+
+    const advancedTrigger = document.querySelector('[data-sidebar-section-toggle="advanced"]');
+    if (advancedTrigger) {
+      let advancedExpanded = advancedTrigger.dataset.active === 'true';
+      try {
+        const savedAdvanced = localStorage.getItem(storage.advanced);
+        if (advancedTrigger.dataset.active !== 'true' && savedAdvanced) advancedExpanded = savedAdvanced === 'expanded';
+      } catch (_) {}
+      setAdvancedExpanded(advancedExpanded, false);
+      advancedTrigger.addEventListener('click', () => {
+        setAdvancedExpanded(advancedTrigger.getAttribute('aria-expanded') !== 'true');
+      });
+    }
 
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
       button.addEventListener('click', function () {

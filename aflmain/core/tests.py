@@ -190,3 +190,49 @@ class ProdutoChefeTests(TestCase):
         )
         self.assertEqual(produto.score_chefe(), 52)
         self.assertIn("vendas", produto.obter_motivo_chefe().lower())
+
+
+class LTVHomeIntegrationTests(TestCase):
+    def test_home_and_ltv_dashboard_share_the_same_user_metrics(self):
+        from decimal import Decimal
+        from django.contrib.auth import get_user_model
+        from django.urls import reverse
+        from django.utils import timezone
+        from ltv.analytics.metrics import dashboard_metrics
+        from ltv.models import Acquisition, Commission
+
+        user = get_user_model().objects.create_user(
+            username="ltv-home-owner", password="SafePassword123!"
+        )
+        acquisition = Acquisition.objects.create(
+            user=user,
+            external_reference="ltv-home-ref",
+            acquired_at=timezone.now(),
+        )
+        Commission.objects.create(
+            user=user,
+            acquisition=acquisition,
+            amount=Decimal("123.45"),
+            status="approved",
+            sale_date=timezone.now(),
+        )
+        expected = dashboard_metrics(user)
+        self.client.force_login(user)
+
+        home_response = self.client.get(reverse("home"))
+        self.assertEqual(home_response.status_code, 200)
+        self.assertContains(home_response, "LTV MANAGER")
+        self.assertContains(home_response, reverse("ltv:dashboard"))
+        self.assertContains(home_response, reverse("ads_manager:dashboard"))
+        ltv_response = self.client.get(reverse("ltv:dashboard"))
+        self.assertEqual(ltv_response.status_code, 200)
+        for metric_name in ("average_ltv", "approved_total", "acquisition_count", "pending_total", "approved_count", "pending_count"):
+            self.assertEqual(home_response.context["ltv_metrics"][metric_name], expected[metric_name])
+            self.assertEqual(ltv_response.context["metrics"][metric_name], expected[metric_name])
+
+    def test_ltv_advanced_route_uses_main_login(self):
+        from django.urls import reverse
+
+        response = self.client.get(reverse("ltv:dashboard"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)

@@ -1,0 +1,82 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#018D3E">
+  <title>{% block title %}LTV Manager{% endblock %} · LTV Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'ltv/css/variables.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/layout.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/components.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/charts.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/forms.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/tables.css' %}">
+  <link rel="stylesheet" href="{% static 'ltv/css/responsive.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="ambient ambient-red"></div><div class="ambient ambient-green"></div>
+<div class="app-shell">
+  <aside class="sidebar glass-dark" id="sidebar">
+    <a class="brand" href="{% url 'ltv:dashboard' %}">
+      <span class="brand-mark"><span>L</span><i></i></span>
+      <span class="brand-copy"><strong>LTV<span>MANAGER</span></strong><small>INTELLIGENCE SUITE</small></span>
+    </a>
+    <a class="workspace-return" href="{% url 'home' %}">← Voltar ao Workspace Skallora</a>
+    <div class="sidebar-section-label">AVANÇADO</div>
+    <nav class="side-nav">
+      <a href="{% url 'ads_manager:dashboard' %}" class="nav-link"><span class="nav-icon">↗</span><span>Tráfego Pago</span></a>
+      <a href="{% url 'cpa:dashboard' %}" class="nav-link"><span class="nav-icon">◎</span><span>CPA Manager</span></a>
+      <a href="{% url 'roi:dashboard' %}" class="nav-link"><span class="nav-icon">◈</span><span>ROI Manager</span></a>
+    </nav>
+    <div class="sidebar-section-label">VISÃO GERAL</div>
+    <nav class="side-nav">
+      <a href="{% url 'ltv:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><span class="nav-icon">◫</span><span>Dashboard</span></a>
+      <a href="{% url 'ltv:analysis' %}" class="nav-link {% if request.resolver_match.url_name == 'analysis' %}active{% endif %}"><span class="nav-icon">⌁</span><span>Análise de LTV</span><span class="nav-pulse"></span></a>
+      <a href="{% url 'ltv:cohorts' %}" class="nav-link {% if request.resolver_match.url_name == 'cohorts' %}active{% endif %}"><span class="nav-icon">▦</span><span>Coortes</span></a>
+    </nav>
+    <div class="sidebar-section-label">OPERAÇÃO</div>
+    <nav class="side-nav">
+      <a href="{% url 'ltv:acquisition_list' %}" class="nav-link {% if 'acquisition' in request.resolver_match.url_name %}active{% endif %}"><span class="nav-icon">◎</span><span>Aquisições</span></a>
+      <a href="{% url 'ltv:commission_list' %}" class="nav-link {% if 'commission' in request.resolver_match.url_name %}active{% endif %}"><span class="nav-icon">◈</span><span>Comissões</span></a>
+      <a href="{% url 'ltv:marketplaces' %}" class="nav-link {% if request.resolver_match.url_name == 'marketplaces' or 'marketplace_' in request.resolver_match.url_name %}active{% endif %}"><span class="nav-icon">⌖</span><span>Marketplaces</span></a>
+      <a href="{% url 'ltv:products' %}" class="nav-link {% if request.resolver_match.url_name == 'products' or 'product_' in request.resolver_match.url_name %}active{% endif %}"><span class="nav-icon">◇</span><span>Produtos</span></a>
+      <a href="{% url 'ltv:campaigns' %}" class="nav-link {% if request.resolver_match.url_name == 'campaigns' or 'campaign_' in request.resolver_match.url_name %}active{% endif %}"><span class="nav-icon">✳</span><span>Campanhas</span></a>
+      <a href="{% url 'ltv:channels' %}" class="nav-link {% if request.resolver_match.url_name == 'channels' or 'channel_' in request.resolver_match.url_name %}active{% endif %}"><span class="nav-icon">⌘</span><span>Canais</span></a>
+    </nav>
+    <div class="sidebar-section-label">INTELIGÊNCIA</div>
+    <nav class="side-nav">
+      <a href="{% url 'ltv:import' %}" class="nav-link {% if request.resolver_match.url_name == 'import' %}active{% endif %}"><span class="nav-icon">⇧</span><span>Importações</span></a>
+      <a href="{% url 'ltv:automation' %}" class="nav-link {% if request.resolver_match.url_name == 'automation' %}active{% endif %}"><span class="nav-icon">⟳</span><span>Automações</span></a>
+      <a href="{% url 'ltv:reports' %}" class="nav-link {% if request.resolver_match.url_name == 'reports' %}active{% endif %}"><span class="nav-icon">▤</span><span>Relatórios</span></a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-status"><span class="status-dot"></span><span>Ambiente local ativo</span></div>
+      <div class="user-mini"><span class="avatar">{{ request.user.username|first|upper }}</span><span class="user-meta"><strong>{{ request.user.username }}</strong><small>Conta pessoal</small></span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="icon-button logout-button" type="submit" title="Sair">↗</button></form>
+      </div>
+    </div>
+  </aside>
+  <main class="main-area">
+    <header class="topbar glass-panel">
+      <button class="mobile-menu icon-button" id="menuToggle" type="button" aria-label="Abrir menu">☰</button>
+      <div class="topbar-heading"><span class="eyebrow">LIFETIME VALUE ANALYTICS</span><strong>{% block page_heading %}Painel de inteligência{% endblock %}</strong></div>
+      <div class="topbar-actions"><span class="live-indicator"><i></i> Dados locais</span><span class="topbar-date">{% now "d/m/Y" %}</span><span class="avatar avatar-small">{{ request.user.username|first|upper }}</span></div>
+    </header>
+    {% if messages %}<div class="messages-wrap">{% for message in messages %}<div class="message message-{{ message.tags|default:'info' }}"><span>{{ message }}</span><button type="button" class="message-close" aria-label="Fechar">×</button></div>{% endfor %}</div>{% endif %}
+    <section class="page-content">{% block content %}{% endblock %}</section>
+    <footer class="app-footer"><span> LTV MANAGER <b>·</b> Análise de valor ao longo do tempo</span><span>Dados privados da sua conta</span></footer>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js" defer></script>
+<script src="{% static 'ltv/js/main.js' %}" defer></script>
+<script src="{% static 'ltv/js/charts.js' %}" defer></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

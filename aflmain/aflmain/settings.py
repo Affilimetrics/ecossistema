@@ -37,6 +37,25 @@ CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in config('CSRF_TRUSTED_ORIGIN
 CREDENTIAL_ENCRYPTION_KEY = config('CREDENTIAL_ENCRYPTION_KEY', default='')
 DESKTOP_API_SIGNING_KEY = config('DESKTOP_API_SIGNING_KEY', default='')
 DESKTOP_API_TOKEN_MAX_AGE = config('DESKTOP_API_TOKEN_MAX_AGE', default=2592000, cast=int)
+AUTOMATION_INTERVAL_SECONDS = config('AUTOMATION_INTERVAL_SECONDS', default=900, cast=int)
+# Diretório base para importações automáticas locais do ROI Manager.
+ROI_INBOX_DIR = config('ROI_INBOX_DIR', default=str(BASE_DIR / 'data' / 'inbox'))
+
+# Integração de tráfego pago (Meta Ads). O token da Meta usa uma chave Fernet
+# exclusiva, independente de SECRET_KEY e CREDENTIAL_ENCRYPTION_KEY.
+TOKEN_ENCRYPTION_KEY = config('TOKEN_ENCRYPTION_KEY', default='')
+META_APP_ID = config('META_APP_ID', default='')
+META_APP_SECRET = config('META_APP_SECRET', default='')
+META_API_VERSION = config('META_API_VERSION', default='v25.0')
+META_REDIRECT_URI = config(
+    'META_REDIRECT_URI',
+    default='http://127.0.0.1:8000/trafego-pago/auth/meta/callback/',
+)
+META_SCOPES = [scope.strip() for scope in config(
+    'META_SCOPES',
+    default='ads_read,business_management,pages_show_list,pages_read_engagement,instagram_basic',
+).split(',') if scope.strip()]
+META_APPSECRET_PROOF = config('META_APPSECRET_PROOF', default=True, cast=bool)
 
 
 # Application definition
@@ -49,6 +68,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
+    'ads_manager.apps.AdsManagerConfig',
+    'ltv.apps.LtvConfig',
+    'cpa.apps.CpaConfig',
+    'financeiro.apps.FinanceiroConfig',
 ]
 
 MIDDLEWARE = [
@@ -75,6 +98,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.alertas_usuario',
+                'ltv.context_processors.global_context',
             ],
         },
     },
@@ -128,7 +152,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 

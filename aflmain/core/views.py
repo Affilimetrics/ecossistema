@@ -13,7 +13,7 @@ from django.core.validators import validate_email
 from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .models import (Produto, Execucao, Oferta, LogExecucao, ConfiguracaoCanal,
@@ -27,6 +27,15 @@ from .opportunity import calcular_oportunidade
 from magalu_bot.config.config import CATEGORIAS_PRINCIPAIS
 
 from magalu_bot.controlador import controlador_bot
+
+from ads_manager.models import ConnectedAccount, AdAccount, Campaign
+from ads_manager.services.campaign_sync import synchronize_campaigns
+from ads_manager.services.meta import MetaAPIError
+from ads_manager.services.encryption import TokenEncryptionError
+from ltv.analytics.metrics import dashboard_metrics as ltv_dashboard_metrics
+from cpa.analytics import build_dashboard_data as cpa_build_dashboard_data
+from cpa.models import Campaign as CPACampaign
+from financeiro.services.indicadores import dashboard_metrics as roi_dashboard_metrics
 
 
 
@@ -115,6 +124,34 @@ def home(request):
         ultima_execucao and (ultima_execucao.categorias or ultima_execucao.keywords)
     )
     produto_chefe = obter_produto_chefe_usuario(request.user)
+    # O resumo da Home e o dashboard Avançado > LTV Manager consultam
+    # as mesmas tabelas e a mesma função de métricas, sem duplicar snapshots.
+    ltv_metrics = ltv_dashboard_metrics(request.user)
+    # CPA usa os mesmos 30 dias padrão do painel CPA; agregações calculadas no banco.
+    cpa_metrics = cpa_build_dashboard_data(request.user, include_details=False)
+    cpa_active_campaigns_count = CPACampaign.objects.filter(user=request.user, is_active=True).count()
+    # ROI usa a mesma função e o mesmo escopo padrão do dashboard ROI (todo o histórico).
+    roi_metrics = roi_dashboard_metrics(request.user)
+
+    # A visão geral e a aba Avançado > Tráfego Pago usam o mesmo snapshot
+    # persistido de campanhas e a mesma conta selecionada na sessão.
+    ads_connection = ConnectedAccount.objects.filter(user=request.user, provider="META").first()
+    ads_accounts = AdAccount.objects.filter(connection=ads_connection) if ads_connection else AdAccount.objects.none()
+    selected_ads_account_id = request.session.get("selected_ad_account_id")
+    ads_selected_account = ads_accounts.filter(pk=selected_ads_account_id).first() if selected_ads_account_id else None
+    ads_selected_account = ads_selected_account or ads_accounts.first()
+    ads_campaigns = Campaign.objects.none()
+    ads_sync_error = False
+    if ads_connection and ads_selected_account:
+        try:
+            ads_campaigns = synchronize_campaigns(ads_connection, ads_selected_account)
+        except (MetaAPIError, TokenEncryptionError):
+            # Mantém o último snapshot íntegro caso a Meta esteja temporariamente indisponível.
+            ads_sync_error = True
+            ads_campaigns = Campaign.objects.filter(ad_account=ads_selected_account)
+    ads_active_campaigns = ads_campaigns.filter(
+        Q(effective_status__iexact="ACTIVE") | Q(effective_status="", status__iexact="ACTIVE")
+    )
 
     return render(request, "core/home.html", {
         "produtos": produtos,
@@ -130,6 +167,17 @@ def home(request):
         "coleta_configurada": coleta_configurada,
         "produto_chefe": produto_chefe,
         "motivo_produto_chefe": produto_chefe.obter_motivo_chefe() if produto_chefe else "",
+        "ads_connection": ads_connection,
+        "ads_accounts_count": ads_accounts.count(),
+        "ads_selected_account": ads_selected_account,
+        "ads_campaign_count": ads_campaigns.count(),
+        "ads_active_campaign_count": ads_active_campaigns.count(),
+        "ads_active_campaigns": ads_active_campaigns[:5],
+        "ads_campaign_sync_error": ads_sync_error,
+        "ltv_metrics": ltv_metrics,
+        "cpa_metrics": cpa_metrics,
+        "cpa_active_campaigns_count": cpa_active_campaigns_count,
+        "roi_metrics": roi_metrics,
     })
 
 

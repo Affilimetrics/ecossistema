@@ -1,0 +1,70 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#018D3E">
+  <meta name="description" content="ROI Manager — gestão financeira e análise de retorno para operações de afiliados.">
+  <title>{% block title %}ROI Manager{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'roi/css/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="{% if user.is_authenticated %}app-shell{% else %}auth-shell{% endif %}">
+<div class="ambient ambient-one" aria-hidden="true"></div>
+<div class="ambient ambient-two" aria-hidden="true"></div>
+{% if user.is_authenticated %}
+  <aside class="sidebar glass-sidebar" id="sidebar">
+    <a class="brand" href="{% url 'home' %}" aria-label="Voltar ao Workspace Skallora">
+      <span class="brand-mark">R</span>
+      <span class="brand-copy">ROI<span>MANAGER</span></span>
+    </a>
+    <div class="nav-caption">PAINEL</div>
+    <nav class="main-nav" aria-label="Navegação principal">
+      <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'roi:dashboard' %}"><span class="nav-icon">⌂</span><span>Visão geral</span></a>
+      <a class="nav-link {% if request.resolver_match.url_name == 'automation' %}active{% endif %}" href="{% url 'roi:automation' %}"><span class="nav-icon">⌁</span><span>Automações</span></a>
+    </nav>
+    <div class="nav-caption">FINANCEIRO</div>
+    <nav class="main-nav" aria-label="Gestão financeira">
+      <a class="nav-link {% if request.resolver_match.url_name == 'expenses' or request.resolver_match.url_name == 'expense_create' or request.resolver_match.url_name == 'import_expenses' %}active{% endif %}" href="{% url 'roi:expenses' %}"><span class="nav-icon">↗</span><span>Investimentos</span></a>
+      <a class="nav-link {% if request.resolver_match.url_name == 'commissions' or request.resolver_match.url_name == 'commission_create' %}active{% endif %}" href="{% url 'roi:commissions' %}"><span class="nav-icon">◎</span><span>Comissões</span></a>
+    </nav>
+    <div class="nav-caption">ESTRATÉGIA</div>
+    <nav class="main-nav" aria-label="Organização da operação">
+      <a class="nav-link {% if request.resolver_match.url_name == 'products' or request.resolver_match.url_name == 'product_create' %}active{% endif %}" href="{% url 'roi:products' %}"><span class="nav-icon">◇</span><span>Produtos</span></a>
+      <a class="nav-link {% if request.resolver_match.url_name == 'campaigns' or request.resolver_match.url_name == 'campaign_create' %}active{% endif %}" href="{% url 'roi:campaigns' %}"><span class="nav-icon">▤</span><span>Campanhas</span></a>
+      <a class="nav-link {% if request.resolver_match.url_name == 'import_expenses' %}active{% endif %}" href="{% url 'roi:import_expenses' %}"><span class="nav-icon">⇧</span><span>Importar dados</span></a>
+    </nav>
+    <div class="nav-caption">OUTRAS FERRAMENTAS AVANÇADAS</div>
+    <nav class="main-nav" aria-label="Outras ferramentas avançadas">
+      <a class="nav-link" href="{% url 'ads_manager:dashboard' %}"><span class="nav-icon">◉</span><span>Tráfego Pago</span></a>
+      <a class="nav-link" href="{% url 'ltv:dashboard' %}"><span class="nav-icon">◌</span><span>LTV Manager</span></a>
+      <a class="nav-link" href="{% url 'cpa:dashboard' %}"><span class="nav-icon">◎</span><span>CPA Manager</span></a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="profile-chip">
+        <span class="avatar">{{ user.username|first|upper }}</span>
+        <span class="profile-meta"><strong>{{ user.username }}</strong><small>Conta pessoal</small></span>
+      </div>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout-button" type="submit"><span aria-hidden="true">↪</span> Sair da conta</button></form>
+    </div>
+  </aside>
+  <div class="mobile-topbar">
+    <a class="brand compact" href="{% url 'home' %}"><span class="brand-mark">R</span><span class="brand-copy">ROI<span>MANAGER</span></span></a>
+    <button class="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Abrir menu">☰</button>
+  </div>
+{% endif %}
+<main class="{% if user.is_authenticated %}main-content{% else %}auth-main{% endif %}">
+  {% if messages %}<div class="message-stack" aria-live="polite">{% for message in messages %}<div class="toast-message {% if message.tags %}{{ message.tags }}{% endif %}"><span>{{ message }}</span><button type="button" class="toast-close" aria-label="Fechar aviso">×</button></div>{% endfor %}</div>{% endif %}
+  {% block content %}{% endblock %}
+  {% if user.is_authenticated %}
+    <footer class="app-footer"><span>ROI MANAGER</span><span>Decisões financeiras com base em dados reais.</span><span>© {% now "Y" %}</span></footer>
+  {% endif %}
+</main>
+<script src="{% static 'roi/js/app.js' %}" defer></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

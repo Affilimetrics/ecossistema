@@ -1,0 +1,48 @@
+{% extends "roi/base.html" %}
+{% block title %}{{ title }} · ROI Manager{% endblock %}
+{% block content %}
+<header class="page-heading">
+  <div><p class="eyebrow">GESTÃO FINANCEIRA</p><h1>{{ title }}</h1><p class="subtitle">Organize e acompanhe os registros da sua operação.</p></div>
+  <div class="actions">
+    {% if kind == 'expense' %}
+      <a class="button secondary" href="{% url 'roi:import_expenses' %}">Importar CSV</a><a class="button secondary" href="{% url 'roi:export_expenses' %}">Exportar CSV</a><a class="button" href="{% url 'roi:expense_create' %}">＋ Novo investimento</a>
+    {% elif kind == 'commission' %}
+      <a class="button secondary" href="{% url 'roi:export_commissions' %}">Exportar CSV</a><a class="button" href="{% url 'roi:commission_create' %}">＋ Nova comissão</a>
+    {% elif kind == 'product' %}
+      <a class="button" href="{% url 'roi:product_create' %}">＋ Novo produto</a>
+    {% else %}
+      <a class="button" href="{% url 'roi:campaign_create' %}">＋ Nova campanha</a>
+    {% endif %}
+  </div>
+</header>
+
+{% if kind == 'expense' or kind == 'commission' %}
+<form class="filters" method="get">
+  {% if kind == 'expense' %}
+    <label>Categoria<select name="categoria"><option value="">Todas</option>{% for value,label in categories %}<option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+  {% else %}
+    <label>Status<select name="status"><option value="">Todos</option>{% for value,label in statuses %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Produto<select name="produto"><option value="">Todos</option>{% for product in products %}<option value="{{ product.id }}" {% if selected_product == product.id|stringformat:"s" %}selected{% endif %}>{{ product.name }}</option>{% endfor %}</select></label>
+  {% endif %}
+  <label>Marketplace<select name="marketplace"><option value="">Todos</option>{% for marketplace in marketplaces %}<option value="{{ marketplace.id }}" {% if selected_marketplace == marketplace.id|stringformat:"s" %}selected{% endif %}>{{ marketplace.name }}</option>{% endfor %}</select></label>
+  <button class="button" type="submit">Filtrar</button><a class="button secondary" href="{{ request.path }}">Limpar</a>
+</form>
+{% endif %}
+
+<div class="table-card"><div class="table-wrap"><table>
+  <thead><tr><th>Descrição / identificação</th><th>Data</th><th>Valor</th><th>Detalhe</th>{% if kind == 'expense' %}<th>Ações</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for x in items %}
+    <tr>
+      <td><strong>{% if kind == 'expense' %}{{ x.description }}{% elif kind == 'commission' %}Pedido {{ x.order_id|default:"sem ID" }}{% else %}{{ x.name }}{% endif %}</strong>{% if kind == 'product' and x.category %}<div class="muted">{{ x.category }}</div>{% endif %}</td>
+      <td>{% if kind == 'expense' %}{{ x.date|date:"d/m/Y" }}{% elif kind == 'commission' %}{{ x.commission_date|date:"d/m/Y" }}{% elif kind == 'campaign' %}{% if x.starts_on %}{{ x.starts_on|date:"d/m/Y" }}{% else %}Sem início{% endif %}{% else %}{{ x.created_at|date:"d/m/Y" }}{% endif %}</td>
+      <td>{% if kind == 'expense' or kind == 'commission' %}R$ {{ x.amount|floatformat:2 }}{% else %}—{% endif %}</td>
+      <td>{% if kind == 'expense' %}{{ x.get_category_display }}{% elif kind == 'commission' %}<span class="status {% if x.status == 'approved' %}positive{% elif x.status == 'cancelled' or x.status == 'refunded' %}negative{% else %}break_even{% endif %}">{{ x.get_status_display }}</span> · {{ x.marketplace }}{% elif kind == 'product' %}{{ x.marketplace }}{% else %}{{ x.marketplace|default:"Não definido" }}{% endif %}</td>
+      {% if kind == 'expense' %}<td><div class="table-actions"><form class="inline-form" method="post" action="{% url 'roi:expense_delete' x.pk %}">{% csrf_token %}<button class="icon-button" type="submit" data-confirm="Excluir este investimento? O evento será registrado no histórico." title="Excluir investimento" aria-label="Excluir investimento">×</button></form></div></td>{% endif %}
+    </tr>
+  {% empty %}
+    <tr><td colspan="{% if kind == 'expense' %}5{% else %}4{% endif %}"><div class="empty-state"><div class="empty-icon">◇</div><strong>Nenhum registro por aqui ainda</strong><span>Use o botão acima para adicionar seu primeiro registro.</span></div></td></tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

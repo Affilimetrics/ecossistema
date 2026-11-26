@@ -1,0 +1,32 @@
+* { box-sizing: border-box; }
+html { min-width: 320px; scroll-behavior: smooth; }
+body { margin: 0; min-height: 100vh; color: var(--text-primary); font-family: var(--font-main); font-size: 14px; line-height: 1.55; background: radial-gradient(circle at 10% 9%, rgba(231,21,6,.18), transparent 28%), radial-gradient(circle at 85% 14%, rgba(46,204,113,.21), transparent 32%), linear-gradient(135deg, #00652E 0%, #018D3E 50%, #005B2A 100%); background-attachment: fixed; }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; }
+::selection { color: var(--cream); background: var(--danger); }
+.ambient { position: fixed; z-index: 0; pointer-events: none; width: 360px; height: 360px; border-radius: 50%; filter: blur(75px); opacity: .24; }
+.ambient-red { top: 15%; left: -190px; background: rgba(231,21,6,.78); }
+.ambient-green { right: -180px; bottom: -40px; background: rgba(46,204,113,.72); }
+.eyebrow { display: inline-block; color: var(--primary); font-size: 10px; font-weight: 800; letter-spacing: .16em; line-height: 1.5; text-transform: uppercase; }
+.eyebrow-red { color: var(--danger); }
+.eyebrow-cream { color: rgba(253,247,230,.78); }
+h1, h2, h3, p { margin-top: 0; }
+h1, h2, h3 { letter-spacing: -.045em; }
+h1 { margin-bottom: 8px; font-size: clamp(29px, 3vw, 42px); font-weight: 800; line-height: 1.12; }
+h1 em { color: var(--danger); font-style: normal; }
+h2 { margin-bottom: 5px; font-size: 19px; font-weight: 750; }
+p { color: var(--text-secondary); }
+.muted { color: var(--text-secondary); }
+.text-danger, .red-text { color: var(--danger) !important; }
+.messages-wrap { display: grid; gap: 8px; margin: 0 0 18px; }
+.message { display:flex; justify-content:space-between; align-items:center; padding: 12px 15px; border-radius: 12px; background: var(--glass-bg-strong); border: 1px solid var(--glass-border); box-shadow: var(--shadow-soft); }
+.message-success { border-left: 4px solid var(--primary); }
+.message-error { border-left: 4px solid var(--danger); }
+.message-warning { border-left: 4px solid #D99B00; }
+.message-info { border-left: 4px solid #287AC7; }
+.message-close { border:0; background:none; color:var(--text-secondary); font-size:20px; }
+.app-footer { display:flex; justify-content:space-between; gap:12px; padding: 22px 3px 8px; color:rgba(253,247,230,.72); font-size:10px; letter-spacing:.04em; }
+.app-footer b { color:var(--danger-light); padding:0 4px; }
+.text-positive { color: var(--primary-dark) !important; }

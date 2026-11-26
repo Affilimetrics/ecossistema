@@ -1,0 +1,48 @@
+{% extends "roi/base.html" %}
+{% block title %}Visão geral · ROI Manager{% endblock %}
+{% block content %}
+<header class="page-heading">
+  <div>
+    <p class="eyebrow">CENTRAL DE INTELIGÊNCIA FINANCEIRA</p>
+    <h1>Visão geral</h1>
+    <p class="subtitle">Acompanhe a saúde financeira da sua operação de afiliados.</p>
+  </div>
+  <div class="actions">
+    <a class="button secondary" href="{% url 'roi:expense_create' %}">＋ Investimento</a>
+    <a class="button" href="{% url 'roi:commission_create' %}">＋ Comissão</a>
+  </div>
+</header>
+
+<form class="filters" method="get">
+  <label>Período inicial<input type="date" name="inicio" value="{{ start|default:'' }}"></label>
+  <label>Período final<input type="date" name="fim" value="{{ end|default:'' }}"></label>
+  <label>Marketplace<select name="marketplace"><option value="">Todos os marketplaces</option>{% for m in marketplaces %}<option value="{{ m.id }}" {% if selected_marketplace == m.id|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>{% endfor %}</select></label>
+  <button class="button" type="submit">Aplicar filtros</button>
+  <a class="button secondary" href="{% url 'roi:dashboard' %}">Limpar</a>
+</form>
+
+<section class="cards" aria-label="Indicadores financeiros">
+  <article class="metric"><div class="metric-label"><span class="metric-icon">◎</span>Comissões aprovadas</div><strong>R$ {{ approved|floatformat:2 }}</strong><small>Receita efetivamente aprovada</small></article>
+  <article class="metric"><div class="metric-label"><span class="metric-icon">↗</span>Investimento total</div><strong>R$ {{ investment|floatformat:2 }}</strong><small>Despesas registradas no período</small></article>
+  <article class="metric {% if profit < 0 %}negative{% endif %}"><div class="metric-label"><span class="metric-icon">⌁</span>Lucro / prejuízo</div><strong>R$ {{ profit|floatformat:2 }}</strong><small>Comissões aprovadas menos investimentos</small></article>
+  <article class="metric"><div class="metric-label"><span class="metric-icon">％</span>Retorno sobre investimento</div><strong>{% if roi is None %}—{% else %}{{ roi|floatformat:2 }}%{% endif %}</strong><small>{% if roi is None %}Cadastre investimentos para calcular{% else %}ROI sobre comissões aprovadas{% endif %}</small></article>
+  <article class="metric"><div class="metric-label"><span class="metric-icon">◷</span>Comissões pendentes</div><strong>R$ {{ pending|floatformat:2 }}</strong><small>Não entram na receita realizada</small></article>
+  <article class="metric"><div class="metric-label"><span class="metric-icon">●</span>Semáforo financeiro</div><strong><span class="status {% if result.status == 'positive' %}positive{% elif result.status == 'negative' %}negative{% elif result.status == 'break_even' %}break_even{% else %}insufficient{% endif %}">{% if result.status == 'positive' %}Resultado positivo{% elif result.status == 'negative' %}Resultado negativo{% elif result.status == 'break_even' %}Ponto de equilíbrio{% else %}Dados insuficientes{% endif %}</span></strong><small>Leitura do resultado financeiro atual</small></article>
+</section>
+
+<section class="panel">
+  <div class="panel-heading"><div><p class="eyebrow">ACOMPANHAMENTO</p><h2>Movimentações recentes</h2></div></div>
+  <div class="split">
+    <div>
+      <div class="panel-heading"><h3>Investimentos</h3><a href="{% url 'roi:expenses' %}">Ver todos →</a></div>
+      {% for x in expenses %}<p class="entry"><span>{{ x.date|date:"d/m/Y" }} · {{ x.description }}</span><b class="negative">− R$ {{ x.amount|floatformat:2 }}</b></p>
+      {% empty %}<div class="empty-state"><div class="empty-icon">↗</div><strong>Nenhum investimento cadastrado</strong><span>Registre custos para acompanhar seu ROI.</span></div>{% endfor %}
+    </div>
+    <div>
+      <div class="panel-heading"><h3>Comissões</h3><a href="{% url 'roi:commissions' %}">Ver todas →</a></div>
+      {% for x in commissions %}<p class="entry"><span>{{ x.commission_date|date:"d/m/Y" }} · {{ x.marketplace }}</span><b>R$ {{ x.amount|floatformat:2 }} · {{ x.get_status_display }}</b></p>
+      {% empty %}<div class="empty-state"><div class="empty-icon">◎</div><strong>Nenhuma comissão cadastrada</strong><span>Adicione comissões para medir os resultados.</span></div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

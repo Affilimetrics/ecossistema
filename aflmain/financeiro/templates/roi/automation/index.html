@@ -1,0 +1,46 @@
+{% extends "roi/base.html" %}
+{% block title %}Automações · ROI Manager{% endblock %}
+{% block content %}
+<header class="page-heading">
+  <div><p class="eyebrow">ROTINAS INTELIGENTES</p><h1>Central de automação</h1><p class="subtitle">Configure tarefas recorrentes e reduza operações manuais no controle financeiro.</p></div>
+  <span class="status {% if settings_obj.enabled %}positive{% else %}insufficient{% endif %}">{% if settings_obj.enabled %}● Automação ativada{% else %}○ Automação pausada{% endif %}</span>
+</header>
+<div class="automation-grid">
+  <section class="automation-card">
+    <p class="eyebrow">PREFERÊNCIAS</p><h2>Comportamento das rotinas</h2>
+    <p>Estas opções definem o que o processo local poderá executar. Para funcionar, mantenha o comando de automação em execução no computador.</p>
+    <form method="post">{% csrf_token %}
+      <label class="check-row"><input type="checkbox" name="enabled" {% if settings_obj.enabled %}checked{% endif %}> Ativar automação geral</label>
+      <label class="check-row"><input type="checkbox" name="auto_import" {% if settings_obj.auto_import %}checked{% endif %}> Importar arquivos CSV automaticamente</label>
+      <label class="check-row"><input type="checkbox" name="auto_recurring_expenses" {% if settings_obj.auto_recurring_expenses %}checked{% endif %}> Gerar despesas recorrentes</label>
+      <label class="check-row"><input type="checkbox" name="notify_roi_negative" {% if settings_obj.notify_roi_negative %}checked{% endif %}> Registrar alertas quando o ROI estiver negativo</label>
+      <div class="field"><label for="interval-minutes">Intervalo de verificação (minutos)</label><input id="interval-minutes" type="number" min="5" max="1440" name="interval_minutes" value="{{ settings_obj.interval_minutes }}"></div>
+      <div class="field"><label for="inbox-path">Pasta de entrada de arquivos (opcional)</label><input id="inbox-path" name="inbox_path" value="{{ settings_obj.inbox_path }}" placeholder="Ex.: C:\ROI\entrada"></div>
+      <button class="button" type="submit">Salvar preferências</button>
+    </form>
+  </section>
+  <section class="automation-card">
+    <p class="eyebrow">DESPESAS PROGRAMADAS</p><h2>Nova despesa recorrente</h2>
+    <p>Cadastre assinaturas e custos fixos para que sejam lançados automaticamente na data prevista.</p>
+    <form method="post" action="{% url 'roi:recurring_expense_create' %}">{% csrf_token %}
+      <div class="field"><label for="rec-description">Descrição</label><input id="rec-description" required name="description" placeholder="Ex.: Ferramenta de edição"></div>
+      <div class="field"><label for="rec-amount">Valor (R$)</label><input id="rec-amount" required name="amount" inputmode="decimal" placeholder="49,90"></div>
+      <div class="field"><label for="rec-category">Categoria</label><select id="rec-category" name="category"><option value="trafego">Tráfego pago</option><option value="anuncios">Anúncios</option><option value="ferramentas">Ferramentas / softwares</option><option value="assinaturas" selected>Assinaturas</option><option value="conteudo">Produção de conteúdo</option><option value="terceiros">Serviços terceirizados</option><option value="operacao">Operação</option><option value="outros">Outros</option></select></div>
+      <div class="field"><label for="rec-frequency">Frequência</label><select id="rec-frequency" name="frequency"><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="yearly">Anual</option></select></div>
+      <div class="field"><label for="rec-date">Próximo lançamento</label><input id="rec-date" required type="date" name="next_date"></div>
+      <button class="button" type="submit">＋ Adicionar regra</button>
+    </form>
+  </section>
+</div>
+<section class="panel">
+  <div class="panel-heading"><div><p class="eyebrow">REGRAS CADASTRADAS</p><h2>Despesas recorrentes</h2></div></div>
+  {% for rule in rules %}
+    <div class="rule-row"><div><strong>{{ rule.description }}</strong><div class="muted">R$ {{ rule.amount|floatformat:2 }} · {{ rule.get_frequency_display }} · Próxima: {{ rule.next_date|date:"d/m/Y" }}</div></div><form method="post" action="{% url 'roi:recurring_expense_toggle' rule.pk %}">{% csrf_token %}<button class="button secondary" type="submit">{% if rule.active %}Pausar{% else %}Ativar{% endif %}</button></form></div>
+  {% empty %}<div class="empty-state"><strong>Nenhuma regra recorrente</strong><span>As regras criadas aparecerão aqui.</span></div>{% endfor %}
+</section>
+<section class="panel">
+  <div class="panel-heading"><div><p class="eyebrow">MONITORAMENTO</p><h2>Histórico das automações</h2></div></div>
+  {% for e in events %}<div class="event-row"><div><strong>{{ e.get_level_display }} · {{ e.title }}</strong><div class="muted">{{ e.message }}</div></div><small class="muted">{{ e.created_at|date:"d/m/Y H:i" }}</small></div>
+  {% empty %}<div class="empty-state"><strong>Nenhum evento registrado</strong><span>As atividades executadas serão listadas neste espaço.</span></div>{% endfor %}
+</section>
+{% endblock %}

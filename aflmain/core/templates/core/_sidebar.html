@@ -13,6 +13,29 @@
     <a class="nav-link {% if request.resolver_match.url_name == 'ofertas' or request.resolver_match.url_name == 'templates_oferta' %}active{% endif %}" href="{% url 'templates_oferta' %}"><i class="bi bi-tags"></i><span class="nav-label">Ofertas e templates</span></a>
   </nav>
 
+  <div class="sidebar-title text-uppercase small">Ferramentas</div>
+  <nav aria-label="Ferramentas avançadas">
+    <button type="button" class="nav-link sidebar-disclosure {% if request.resolver_match.namespace == 'ads_manager' or request.resolver_match.namespace == 'ltv' or request.resolver_match.namespace == 'cpa' or request.resolver_match.namespace == 'roi' %}active{% endif %}"
+            data-sidebar-section-toggle="advanced" data-active="{% if request.resolver_match.namespace == 'ads_manager' or request.resolver_match.namespace == 'ltv' or request.resolver_match.namespace == 'cpa' or request.resolver_match.namespace == 'roi' %}true{% else %}false{% endif %}"
+            aria-controls="advancedSidebarItems" aria-expanded="{% if request.resolver_match.namespace == 'ads_manager' or request.resolver_match.namespace == 'ltv' or request.resolver_match.namespace == 'cpa' or request.resolver_match.namespace == 'roi' %}true{% else %}false{% endif %}">
+      <i class="bi bi-chevron-double-down"></i><span class="nav-label">Avançado</span><i class="bi bi-chevron-down disclosure-chevron"></i>
+    </button>
+    <div class="sidebar-subnav" id="advancedSidebarItems" data-sidebar-section="advanced" {% if request.resolver_match.namespace != 'ads_manager' and request.resolver_match.namespace != 'ltv' and request.resolver_match.namespace != 'cpa' and request.resolver_match.namespace != 'roi' %}hidden{% endif %}>
+      <a class="nav-link nav-sub-link {% if request.resolver_match.namespace == 'ads_manager' %}active{% endif %}" href="{% url 'ads_manager:dashboard' %}">
+        <i class="bi bi-megaphone"></i><span class="nav-label">Tráfego Pago</span>
+      </a>
+      <a class="nav-link nav-sub-link {% if request.resolver_match.namespace == 'ltv' %}active{% endif %}" href="{% url 'ltv:dashboard' %}">
+        <i class="bi bi-graph-up"></i><span class="nav-label">LTV Manager</span>
+      </a>
+      <a class="nav-link nav-sub-link {% if request.resolver_match.namespace == 'cpa' %}active{% endif %}" href="{% url 'cpa:dashboard' %}">
+        <i class="bi bi-bullseye"></i><span class="nav-label">CPA Manager</span>
+      </a>
+      <a class="nav-link nav-sub-link {% if request.resolver_match.namespace == 'roi' %}active{% endif %}" href="{% url 'roi:dashboard' %}">
+        <i class="bi bi-cash-coin"></i><span class="nav-label">ROI Manager</span>
+      </a>
+    </div>
+  </nav>
+
   <div class="sidebar-title text-uppercase small">Marketplaces</div>
   <nav aria-label="Marketplaces">
     <a class="nav-link {% if request.resolver_match.url_name == 'magalu_bot' %}active{% endif %}" href="{% url 'magalu_bot' %}"><i class="bi bi-shop"></i><span class="nav-label">Central Magalu</span></a>

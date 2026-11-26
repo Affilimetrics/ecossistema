@@ -1,0 +1,16 @@
+{% extends 'ads_manager/base.html' %}
+{% block title %}Métricas • Tráfego Base{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow">DESEMPENHO</span><h1>Métricas da conta</h1><p>Resumo agregado fornecido pela Insights API para os últimos 30 dias.</p></div>{% if account %}<span class="status-pill">{{ account.name|default:account.external_id }}</span>{% endif %}</section>
+{% if totals %}
+<section class="stats-grid">
+  <article class="stat-card"><span>Impressões</span><strong>{{ totals.impressions|default:'—' }}</strong><small>Exibições dos anúncios</small></article>
+  <article class="stat-card"><span>Alcance</span><strong>{{ totals.reach|default:'—' }}</strong><small>Pessoas alcançadas</small></article>
+  <article class="stat-card"><span>Cliques</span><strong>{{ totals.clicks|default:'—' }}</strong><small>Cliques registrados</small></article>
+  <article class="stat-card"><span>Gasto</span><strong>{% if totals.spend %}{{ totals.spend }} {{ account.currency }}{% else %}—{% endif %}</strong><small>Valor informado pela Meta</small></article>
+  <article class="stat-card"><span>CPC</span><strong>{{ totals.cpc|default:'—' }}</strong><small>Custo por clique</small></article>
+  <article class="stat-card"><span>CTR</span><strong>{% if totals.ctr %}{{ totals.ctr }}%{% else %}—{% endif %}</strong><small>Taxa de cliques</small></article>
+</section>
+<p class="subtle note">Os valores são retornados pela API conforme moeda, atribuição, janela de conversão e disponibilidade da conta. Não use este resumo como conciliação financeira.</p>
+{% else %}<section class="content-card"><p class="empty-state">Ainda não há dados para exibir. Selecione uma conta com campanhas e confira se a permissão ads_read foi concedida.</p></section>{% endif %}
+{% endblock %}

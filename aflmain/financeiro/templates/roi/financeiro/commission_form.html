@@ -1,0 +1,5 @@
+{% extends "roi/base.html" %}
+{% block title %}{{ title }} · ROI Manager{% endblock %}
+{% block content %}
+<div class="form-panel"><p class="eyebrow">NOVO REGISTRO</p><h1>{{ title }}</h1><p class="subtitle">Informe o valor da comissão, o marketplace e o status real da transação.</p><div class="import-format"><strong>Importante:</strong> somente comissões aprovadas entram na receita realizada e no cálculo do ROI.</div><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="button" type="submit">Salvar comissão</button><a class="button secondary" href="{% url 'roi:commissions' %}">Cancelar</a></div></form></div>
+{% endblock %}

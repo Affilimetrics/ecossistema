@@ -1,0 +1,7 @@
+{% extends 'ads_manager/base.html' %}
+{% block title %}Campanhas • Tráfego Base{% endblock %}
+{% block content %}
+<section class="page-heading"><div><span class="eyebrow">META ADS</span><h1>Campanhas</h1><p>Consulta somente leitura das campanhas vinculadas à conta selecionada.</p></div>{% if account %}<span class="status-pill">{{ account.name|default:account.external_id }}</span>{% endif %}</section>
+<section class="content-card"><div class="section-title"><div><span class="eyebrow">LISTAGEM</span><h2>Campanhas encontradas</h2></div><span class="counter">{{ campaigns|length }}</span></div>
+{% if campaigns %}<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Objetivo</th><th>Status</th><th>Status efetivo</th><th>ID externo</th></tr></thead><tbody>{% for item in campaigns %}<tr><td><strong>{{ item.name }}</strong></td><td>{{ item.objective|default:'—' }}</td><td>{{ item.status|default:'—' }}</td><td>{{ item.effective_status|default:'—' }}</td><td>{{ item.external_id }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="empty-state">Nenhuma campanha foi carregada. Confirme a conta selecionada e o acesso ads_read.</p>{% endif %}</section>
+{% endblock %}

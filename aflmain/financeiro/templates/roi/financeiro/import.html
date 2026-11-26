@@ -1,0 +1,23 @@
+{% extends "roi/base.html" %}
+{% block title %}Importar investimentos · ROI Manager{% endblock %}
+{% block content %}
+<div class="form-panel">
+  <p class="eyebrow">ENTRADA DE DADOS</p>
+  <h1>Importar investimentos</h1>
+  <p class="subtitle">Envie um CSV, confira a prévia e confirme a inclusão dos registros no seu histórico.</p>
+  <div class="import-format"><strong>Formato esperado</strong><p class="muted">CSV UTF-8 separado por ponto e vírgula ou vírgula. Cabeçalhos: <code>descricao;valor;data;categoria</code>. Data em AAAA-MM-DD; valor com ponto ou vírgula decimal.</p><p class="muted">Exemplo: <code>Hospedagem;39,90;2026-11-17;assinaturas</code></p><p class="muted">Categorias aceitas: trafego, anuncios, ferramentas, assinaturas, conteudo, terceiros, operacao, outros.</p></div>
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}<p><label for="arquivo">Arquivo CSV</label><input id="arquivo" type="file" name="arquivo" accept=".csv,text/csv" required></p><button class="button" type="submit">Validar arquivo</button></form>
+  {% if report %}
+    <div class="panel import-result">
+      <h3>Prévia da importação</h3>
+      <p class="positive">Registros válidos: {{ report.validos }}</p>
+      {% if report.preview %}
+        <div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Data</th><th>Valor</th><th>Categoria</th></tr></thead><tbody>{% for row in report.preview %}<tr><td>{{ row.descricao }}</td><td>{{ row.data }}</td><td>R$ {{ row.valor }}</td><td>{{ row.categoria }}</td></tr>{% endfor %}</tbody></table></div>
+        {% if report.total_validos > 20 %}<p class="muted">Exibindo os primeiros 20 de {{ report.total_validos }} registros válidos.</p>{% endif %}
+        <form method="post" class="confirm-import">{% csrf_token %}<input type="hidden" name="confirmar" value="1"><button class="button" type="submit">Confirmar importação de {{ report.total_validos }} registro(s)</button></form>
+      {% else %}<p class="muted">Nenhum registro válido para importar.</p>{% endif %}
+      {% if report.erros %}<div class="import-errors"><strong>Linhas que precisam de correção</strong>{% for error in report.erros %}<p class="negative">{{ error }}</p>{% endfor %}</div>{% else %}<p class="positive">Nenhum erro encontrado.</p>{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

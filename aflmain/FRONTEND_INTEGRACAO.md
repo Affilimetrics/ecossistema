@@ -26,7 +26,17 @@ O anexo continha indicadores e interações locais sem integração com o Django
 
 ## Compatibilidade e inicialização
 
-- Não foram alterados Models, views, endpoints, rotas, serviços de negócio, migrações ou automações Selenium.
-- Não foram adicionadas dependências Python ou Node.
-- O script `iniciar.bat` foi preservado; continua sendo o ponto de inicialização local.
-- Os novos arquivos estáticos são `core/static/core/auth-ui.css` e `core/static/core/dashboard-ui.js`; `core/static/core/sidebar.css` contém o sistema visual compartilhado.
+As observações acima descrevem a integração visual original. Na revisão de 18/11/2026, o módulo TPB também passou a integrar o mesmo frontend Django: ele reutiliza autenticação, sidebar, tema, layout de navegação e sessão do projeto principal. O TPB adiciona seus próprios modelos, views, URLs, migrations, dependências e folhas de estilo; não cria uma aplicação React ou um segundo servidor.
+
+A navegação **Avançado** é recolhível e revela **Tráfego Pago**. As telas internas do TPB usam uma navegação secundária para Visão geral, Ativos, Campanhas e Métricas. A Home exibe campanhas ativas a partir da mesma fonte persistida que o módulo TPB.
+
+O script `iniciar.bat` foi preservado; continua sendo o ponto de inicialização local. Os arquivos de sidebar e tema continuam em `core/static/core/`; o CSS específico TPB está em `ads_manager/static/ads_manager/css/app.css`.
+
+Para detalhes de rotas, dados, migrations e configuração da Meta, consulte `docs/BIBLIA_RECONSTRUCAO.md`.
+
+
+## Ferramentas avançadas incorporadas (25/11/2026)
+
+A sidebar global apresenta **Avançado** como seção recolhível com quatro destinos: Tráfego Pago (`ads_manager`), LTV Manager (`ltv`), CPA Manager (`cpa`) e ROI Manager (`roi`). A seção abre automaticamente quando a rota atual pertence a um desses namespaces. As interfaces CPA e ROI preservam seu sistema visual interno e incluem retorno ao Workspace.
+
+A Home contém cards-resumo de TPB, LTV, CPA e ROI. CPA e ROI foram conectados pela mesma função de métricas que cada dashboard completo utiliza: `cpa.analytics.build_dashboard_data` (últimos 30 dias; a Home usa o modo de totais sem séries/lista detalhada) e `financeiro.services.indicadores.dashboard_metrics` (histórico padrão). Esses valores não são copiados para tabelas-resumo. Os domínios de CPA, ROI e LTV permanecem separados e sem atribuição automática.

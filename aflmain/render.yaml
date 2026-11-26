@@ -19,3 +19,19 @@ services:
         sync: false
       - key: TIME_ZONE
         value: America/Sao_Paulo
+      - key: CREDENTIAL_ENCRYPTION_KEY
+        sync: false
+      - key: META_APP_ID
+        sync: false
+      - key: META_APP_SECRET
+        sync: false
+      - key: META_REDIRECT_URI
+        sync: false
+      - key: META_API_VERSION
+        value: v25.0
+      - key: META_SCOPES
+        value: ads_read,business_management,pages_show_list,pages_read_engagement,instagram_basic
+      - key: META_APPSECRET_PROOF
+        value: "True"
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false

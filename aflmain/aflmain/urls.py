@@ -9,6 +9,10 @@ urlpatterns = [
         admin.site.urls
     ),
 
+    path("trafego-pago/", include("ads_manager.urls")),
+    path("ltv/", include("ltv.urls", namespace="ltv")),
+    path("cpa/", include("cpa.urls", namespace="cpa")),
+    path("roi/", include("financeiro.urls", namespace="roi")),
     path(
         "",
         include("core.urls")

@@ -286,3 +286,15 @@ body.has-app-sidebar.sidebar-collapsed { padding-left: var(--app-sidebar-collaps
   outline: 3px solid color-mix(in srgb, var(--ui-brand, #2563eb) 45%, transparent);
   outline-offset: 2px;
 }
+
+
+/* Navegação avançada recolhível: Tráfego Pago fica agrupado sob Avançado. */
+.app-sidebar .sidebar-disclosure { width: 100%; border: 1px solid transparent; background: transparent; cursor: pointer; font: inherit; text-align: left; }
+.app-sidebar .sidebar-disclosure .disclosure-chevron { margin-left: auto !important; width: auto; font-size: .72rem; transition: transform .18s ease; }
+.app-sidebar .sidebar-disclosure[aria-expanded="true"] .disclosure-chevron { transform: rotate(180deg); }
+.app-sidebar .sidebar-subnav { display: grid; gap: 3px; margin: 3px 0 5px 12px; padding-left: 10px; border-left: 1px solid var(--ui-border); }
+.app-sidebar .sidebar-subnav[hidden] { display: none !important; }
+.app-sidebar .sidebar-subnav .nav-sub-link { min-height: 39px; padding-top: 8px !important; padding-bottom: 8px !important; font-size: .82rem; }
+.app-sidebar.is-collapsed .sidebar-subnav { display: none !important; }
+.app-sidebar.is-collapsed .sidebar-disclosure { justify-content: center; padding-inline: 0 !important; }
+.app-sidebar.is-collapsed .sidebar-disclosure .disclosure-chevron { display: none; }

@@ -1,0 +1,36 @@
+{% extends 'ads_manager/base.html' %}
+{% block title %}Visão geral • Tráfego Base{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="eyebrow">PAINEL PRINCIPAL</span><h1>Olá, {{ user.username }}.</h1><p>Acompanhe suas conexões e escolha a conta que deseja analisar.</p></div>
+  {% if connection %}<span class="status-pill status-online"><i></i> Meta conectada</span>{% endif %}
+</section>
+{% if not connection %}
+<section class="connect-panel">
+  <div class="connect-symbol">M</div><div class="connect-copy"><h2>Conecte sua conta Meta</h2><p>Autorize o acesso para consultar suas contas de anúncios, páginas, campanhas e métricas. Você continuará controlando as permissões na própria Meta.</p><p class="subtle">Esta primeira versão trabalha em modo de leitura. Nenhum anúncio será criado ou publicado.</p></div>
+  <a class="button" href="{% url 'ads_manager:connect_meta' %}">Conectar Facebook / Instagram</a>
+</section>
+{% else %}
+<section class="stats-grid">
+  <article class="stat-card"><span>Contas de anúncios</span><strong>{{ accounts.count }}</strong><small>Disponíveis para este usuário</small></article>
+  <article class="stat-card"><span>Campanhas sincronizadas</span><strong>{{ campaign_count }}</strong><small>Dados compartilhados com a dashboard</small></article>
+  <article class="stat-card"><span>Campanhas ativas</span><strong>{{ active_campaign_count }}</strong><small>Na conta de anúncios selecionada</small></article>
+  <article class="stat-card"><span>Perfil conectado</span><strong class="stat-name">{{ connection.display_name|default:'Meta' }}</strong><small>ID: {{ connection.external_user_id }}</small></article>
+</section>
+<section class="content-card">
+  <div class="section-title"><div><span class="eyebrow">CONTA DE ANÚNCIOS</span><h2>Selecionar ambiente</h2></div><a class="text-link" href="{% url 'ads_manager:assets' %}">Ver todos os ativos →</a></div>
+  {% if accounts %}
+  <form class="select-row" method="post" action="{% url 'ads_manager:select_account' %}">{% csrf_token %}<select name="account_id" aria-label="Conta de anúncios">{% for item in accounts %}<option value="{{ item.pk }}" {% if selected_account.pk == item.pk %}selected{% endif %}>{{ item.name|default:item.external_id }} · {{ item.currency|default:'Moeda não informada' }}</option>{% endfor %}</select><button class="button button-small" type="submit">Selecionar</button></form>
+  {% if selected_account %}<div class="account-meta"><span>ID {{ selected_account.external_id }}</span><span>Status da Meta: {{ selected_account.account_status|default:'Não informado' }}</span><span>Fuso: {{ selected_account.timezone_name|default:'Não informado' }}</span></div>{% endif %}
+  {% else %}<p class="empty-state">Nenhuma conta de anúncios foi retornada. Acesse Ativos para sincronizar e conferir as permissões concedidas.</p>{% endif %}
+</section>
+<section class="content-card">
+  <div class="section-title"><div><span class="eyebrow">CAMPANHAS ATIVAS</span><h2>Mesmo resumo da dashboard principal</h2></div><span class="counter">{{ active_campaign_count }}</span></div>
+  {% if active_campaigns %}<div class="simple-list">{% for item in active_campaigns %}<div class="list-row"><div><strong>{{ item.name }}</strong><small>{{ item.objective|default:'Objetivo não informado' }} · {{ item.effective_status|default:item.status }}</small></div><small>{{ item.external_id }}</small></div>{% endfor %}</div>
+  {% else %}<p class="empty-state">Nenhuma campanha ativa na conta selecionada.</p>{% endif %}
+  {% if campaign_sync_error %}<p class="subtle note">A Meta não respondeu à última tentativa. Os dados da última sincronização permanecem disponíveis.</p>{% endif %}
+</section>
+<div class="shortcut-grid"><a class="shortcut-card" href="{% url 'ads_manager:campaigns' %}"><span>01 / CAMPANHAS</span><strong>Consultar campanhas →</strong><small>Lista e status das campanhas existentes.</small></a><a class="shortcut-card" href="{% url 'ads_manager:insights' %}"><span>02 / DESEMPENHO</span><strong>Ver métricas →</strong><small>Alcance, impressões, cliques e gastos.</small></a></div>
+<div class="danger-zone"><div><strong>Desconectar Meta</strong><p>Remove a conexão e os dados sincronizados deste usuário no Afillimetrics. Não revoga a autorização nas configurações externas da Meta.</p></div><form method="post" action="{% url 'ads_manager:disconnect_meta' %}">{% csrf_token %}<button class="button button-danger-outline" type="submit">Desconectar</button></form></div>
+{% endif %}
+{% endblock %}

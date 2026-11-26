@@ -1,0 +1,5 @@
+{% extends "roi/base.html" %}
+{% block title %}{{ title }} · ROI Manager{% endblock %}
+{% block content %}
+<div class="form-panel"><p class="eyebrow">CATÁLOGO DA OPERAÇÃO</p><h1>{{ title }}</h1><p class="subtitle">Associe o produto a um marketplace para vincular campanhas e comissões posteriormente.</p><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="button" type="submit">Salvar produto</button><a class="button secondary" href="{% url 'roi:products' %}">Cancelar</a></div></form></div>
+{% endblock %}

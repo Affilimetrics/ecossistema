@@ -101,6 +101,108 @@
         <div class="col-sm-6 col-xl-3"><div class="metric"><span class="metric-icon"><i class="bi bi-send-check"></i></span><div class="metric-label">Ofertas enviadas</div><div class="metric-value">{{ enviadas }}</div></div></div>
       </div>
 
+
+      <section class="last-card p-4 mb-4" id="paidTrafficSummary">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <div class="page-eyebrow mb-1">AVANÇADO · META ADS</div>
+            <h2 class="h5 mb-1">Tráfego pago</h2>
+            <p class="text-secondary small mb-0">Resumo compartilhado com a área completa de tráfego pago.</p>
+          </div>
+          <a href="{% url 'ads_manager:dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-up-right-square me-1"></i>Abrir tráfego pago</a>
+        </div>
+        {% if ads_connection %}
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <span class="badge rounded-pill text-bg-success"><i class="bi bi-check-circle me-1"></i>Meta conectada</span>
+            <span class="small text-secondary">{{ ads_connection.display_name|default:'Conta Meta' }}</span>
+            {% if ads_selected_account %}<span class="small text-secondary">· {{ ads_selected_account.name|default:ads_selected_account.external_id }}</span>{% endif %}
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-lg-4"><div class="metric h-100"><div class="metric-label">Contas de anúncios</div><div class="metric-value">{{ ads_accounts_count }}</div></div></div>
+            <div class="col-6 col-lg-4"><div class="metric h-100"><div class="metric-label">Campanhas na conta selecionada</div><div class="metric-value">{{ ads_campaign_count }}</div></div></div>
+            <div class="col-6 col-lg-4"><div class="metric h-100"><div class="metric-label">Campanhas ativas</div><div class="metric-value text-success">{{ ads_active_campaign_count }}</div></div></div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="small">Campanhas ativas</strong>
+            <a class="small link-light" href="{% url 'ads_manager:campaigns' %}">Ver todas</a>
+          </div>
+          {% if ads_active_campaigns %}
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Campanha</th><th>Objetivo</th><th>Status efetivo</th></tr></thead><tbody>
+              {% for campaign in ads_active_campaigns %}<tr><td class="fw-semibold">{{ campaign.name }}</td><td>{{ campaign.objective|default:'—' }}</td><td><span class="badge text-bg-success">{{ campaign.effective_status|default:campaign.status }}</span></td></tr>{% endfor %}
+            </tbody></table></div>
+          {% else %}<p class="text-secondary small mb-0">Nenhuma campanha ativa foi encontrada na conta selecionada.</p>{% endif %}
+          {% if ads_campaign_sync_error %}<p class="text-warning small mt-3 mb-0"><i class="bi bi-exclamation-triangle me-1"></i>Não foi possível atualizar os dados na Meta agora. Exibindo o último sincronismo salvo.</p>{% endif %}
+        {% else %}
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <p class="text-secondary mb-0">Conecte uma conta Meta para acompanhar contas de anúncios, campanhas ativas e métricas aqui e na área avançada.</p>
+            <a href="{% url 'ads_manager:dashboard' %}" class="btn btn-success btn-sm">Configurar Meta Ads</a>
+          </div>
+        {% endif %}
+      </section>
+
+      <section class="last-card p-4 mb-4" id="ltvManagerSummary">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <div class="page-eyebrow mb-1">AVANÇADO · LTV MANAGER</div>
+            <h2 class="h5 mb-1">Valor do cliente ao longo do tempo</h2>
+            <p class="text-secondary small mb-0">Indicadores compartilhados com o dashboard completo do LTV Manager.</p>
+          </div>
+          <a href="{% url 'ltv:dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-up-right-square me-1"></i>Abrir LTV Manager</a>
+        </div>
+        <div class="row g-3">
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">LTV médio</div><div class="metric-value">R$ {{ ltv_metrics.average_ltv|floatformat:2 }}</div><div class="small text-secondary">Comissão aprovada por aquisição</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Comissões aprovadas</div><div class="metric-value text-success">R$ {{ ltv_metrics.approved_total|floatformat:2 }}</div><div class="small text-secondary">{{ ltv_metrics.approved_count }} registro(s)</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Aquisições</div><div class="metric-value">{{ ltv_metrics.acquisition_count }}</div><div class="small text-secondary">Base de atribuição</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Comissões pendentes</div><div class="metric-value">R$ {{ ltv_metrics.pending_total|floatformat:2 }}</div><div class="small text-secondary">{{ ltv_metrics.pending_count }} aguardando aprovação</div></div></div>
+        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+          <span class="small text-secondary">Os valores usam a mesma fonte de dados da área LTV; nenhuma métrica é copiada ou recalculada em separado.</span>
+          <a class="small link-light" href="{% url 'ltv:commission_list' %}">Consultar comissões</a>
+        </div>
+      </section>
+
+      <section class="last-card p-4 mb-4" id="cpaManagerSummary">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <div class="page-eyebrow mb-1">AVANÇADO · CPA MANAGER</div>
+            <h2 class="h5 mb-1">Custo de aquisição e desempenho de campanhas</h2>
+            <p class="text-secondary small mb-0">Resumo dos registros manuais/importados dos últimos 30 dias, compartilhado com o CPA Manager.</p>
+          </div>
+          <a href="{% url 'cpa:dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-up-right-square me-1"></i>Abrir CPA Manager</a>
+        </div>
+        <div class="row g-3">
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Investimento registrado</div><div class="metric-value">R$ {{ cpa_metrics.totals.spend|floatformat:2 }}</div><div class="small text-secondary">Últimos 30 dias</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">CPA consolidado</div><div class="metric-value">{% if cpa_metrics.totals.cpa != None %}R$ {{ cpa_metrics.totals.cpa|floatformat:2 }}{% else %}—{% endif %}</div><div class="small text-secondary">Gasto ÷ conversões</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Conversões</div><div class="metric-value">{{ cpa_metrics.totals.conversions }}</div><div class="small text-secondary">{{ cpa_metrics.totals.clicks }} cliques</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Campanhas ativas</div><div class="metric-value text-success">{{ cpa_active_campaigns_count }}</div><div class="small text-secondary">Campanhas não arquivadas</div></div></div>
+        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+          <span class="small text-secondary">CPA mede gasto de mídia e conversões informadas; não representa automaticamente comissões aprovadas.</span>
+          <a class="small link-light" href="{% url 'cpa:campaign_list' %}">Consultar campanhas</a>
+        </div>
+      </section>
+
+      <section class="last-card p-4 mb-4" id="roiManagerSummary">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <div class="page-eyebrow mb-1">AVANÇADO · ROI MANAGER</div>
+            <h2 class="h5 mb-1">Resultado financeiro da operação</h2>
+            <p class="text-secondary small mb-0">Indicadores do histórico de investimentos e comissões registrados no ROI Manager.</p>
+          </div>
+          <a href="{% url 'roi:dashboard' %}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-up-right-square me-1"></i>Abrir ROI Manager</a>
+        </div>
+        <div class="row g-3">
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Comissões aprovadas</div><div class="metric-value text-success">R$ {{ roi_metrics.approved|floatformat:2 }}</div><div class="small text-secondary">Receita realizada no ROI</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Investimentos</div><div class="metric-value">R$ {{ roi_metrics.investment|floatformat:2 }}</div><div class="small text-secondary">Custos registrados</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">Lucro / prejuízo</div><div class="metric-value {% if roi_metrics.profit < 0 %}text-danger{% else %}text-success{% endif %}">R$ {{ roi_metrics.profit|floatformat:2 }}</div><div class="small text-secondary">Comissões menos investimentos</div></div></div>
+          <div class="col-6 col-xl-3"><div class="metric h-100"><div class="metric-label">ROI</div><div class="metric-value">{% if roi_metrics.roi != None %}{{ roi_metrics.roi|floatformat:2 }}%{% else %}—{% endif %}</div><div class="small text-secondary">{% if roi_metrics.roi == None %}Sem investimento para calcular{% else %}Retorno sobre investimento{% endif %}</div></div></div>
+        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
+          <span class="small text-secondary">Este resumo usa a mesma função do ROI Manager; os registros não são sincronizados automaticamente com CPA ou LTV.</span>
+          <a class="small link-light" href="{% url 'roi:expenses' %}">Consultar investimentos</a>
+        </div>
+      </section>
+
       {% if produto_chefe %}
       <section class="chief-product-card p-3 mb-4">
         <div class="d-flex flex-wrap align-items-center gap-3">
