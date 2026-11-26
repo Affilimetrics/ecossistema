@@ -40,3 +40,15 @@ Para detalhes de rotas, dados, migrations e configuração da Meta, consulte `do
 A sidebar global apresenta **Avançado** como seção recolhível com quatro destinos: Tráfego Pago (`ads_manager`), LTV Manager (`ltv`), CPA Manager (`cpa`) e ROI Manager (`roi`). A seção abre automaticamente quando a rota atual pertence a um desses namespaces. As interfaces CPA e ROI preservam seu sistema visual interno e incluem retorno ao Workspace.
 
 A Home contém cards-resumo de TPB, LTV, CPA e ROI. CPA e ROI foram conectados pela mesma função de métricas que cada dashboard completo utiliza: `cpa.analytics.build_dashboard_data` (últimos 30 dias; a Home usa o modo de totais sem séries/lista detalhada) e `financeiro.services.indicadores.dashboard_metrics` (histórico padrão). Esses valores não são copiados para tabelas-resumo. Os domínios de CPA, ROI e LTV permanecem separados e sem atribuição automática.
+
+
+## Mercado Livre (Django)
+
+O módulo está disponível em `/mercado-livre/`, com namespace `mercado_livre`. A página usa a sidebar global e os mesmos estilos-base do workspace. O frontend envia POST autenticados/CSRF para busca, configurações e atualização de links; downloads CSV/JSON são endpoints autenticados. A lista é renderizada no servidor e não requer npm, bundler ou build de frontend independente.
+
+
+### Mercado Livre — módulo integrado ao Workspace
+
+O Mercado Livre aparece na área **Marketplaces** da sidebar, no lugar do antigo item “Em breve”; não faz parte do grupo Avançado. A interface Django permite pesquisar anúncios, cadastrar links oficiais por produto e importar o JSON `affiliate_links.json` por ID ou URL original (arquivo de até 1 MB). A página também oferece exportação CSV/JSON e configuração de token.
+
+A tela usa os templates Django (`mercado_livre/templates/mercado_livre/`) e os estilos globais/Bootstrap já servidos pelo projeto; não há frontend npm. Os produtos são persistidos no catálogo `core.Produto` e os links em `core.Afiliado`, de modo que a Home mantém o total de links unificado e o gráfico **Links por marketplace** mostra Magalu e Mercado Livre no mesmo conjunto, considerando apenas links de afiliado efetivamente configurados. O botão individual de produto e a importação JSON executam POST com CSRF.

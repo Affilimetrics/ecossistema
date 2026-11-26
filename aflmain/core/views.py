@@ -1,6 +1,5 @@
 import json
 
-import pandas as pd
 
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -36,6 +35,7 @@ from ltv.analytics.metrics import dashboard_metrics as ltv_dashboard_metrics
 from cpa.analytics import build_dashboard_data as cpa_build_dashboard_data
 from cpa.models import Campaign as CPACampaign
 from financeiro.services.indicadores import dashboard_metrics as roi_dashboard_metrics
+from mercado_livre.models import SearchRun
 
 
 
@@ -68,49 +68,57 @@ def index(request):
 @login_required
 def home(request):
     """Home operacional do usuário autenticado, com métricas e gráficos."""
-    produtos_qs = list(
+    # Os gráficos usam agregações SQL e uma única fonte (core.Produto/Afiliado).
+    # Assim, Magalu, Mercado Livre e futuras integrações entram no mesmo conjunto,
+    # sem carregar todos os produtos em memória no worker web.
+    linked_products = (
         Produto.objects.filter(
             owner=request.user,
             afiliado__link_afiliado__isnull=False,
-        ).exclude(afiliado__link_afiliado="").values(
-            "categoria", "marketplace"
         )
+        .exclude(afiliado__link_afiliado="")
     )
-
-    df = pd.DataFrame(produtos_qs, columns=["categoria", "marketplace"])
-
     categorias_predefinidas = list(CATEGORIAS_PRINCIPAIS.values())
     categorias_lower = {str(c).strip().casefold(): c for c in categorias_predefinidas}
+    category_counts = {
+        str(row["categoria"] or ""): int(row["total"])
+        for row in linked_products.values("categoria").annotate(total=Count("pk"))
+    }
+    category_totals = {}
+    for raw_category, total in category_counts.items():
+        text_category = raw_category.strip()
+        if text_category.casefold().startswith("keyword:"):
+            normalized_category = "Outros"
+        else:
+            normalized_category = categorias_lower.get(text_category.casefold(), "Outros")
+        category_totals[normalized_category] = category_totals.get(normalized_category, 0) + total
 
-    if df.empty:
+    if not category_counts:
         categorias_chart = [["Categoria", "Links"], ["Outros", 0]]
         marketplaces_chart = [["Marketplace", "Links"], ["Nenhum", 0]]
     else:
-        def classificar_categoria(valor):
-            texto = str(valor or "").strip()
-            if texto.casefold().startswith("keyword:"):
-                return "Outros"
-            return categorias_lower.get(texto.casefold(), "Outros")
-
-        df["categoria_grafico"] = df["categoria"].map(classificar_categoria)
-        categoria_counts = (
-            df.groupby("categoria_grafico", dropna=False)
-            .size()
-            .sort_values(ascending=False)
-        )
-        # Mantém todas as categorias predefinidas no gráfico, mesmo sem links.
-        categoria_rows = [[categoria, int(categoria_counts.get(categoria, 0))]
-                          for categoria in categorias_predefinidas]
-        outros = int(categoria_counts.get("Outros", 0))
+        categoria_rows = [
+            [categoria, int(category_totals.get(categoria, 0))]
+            for categoria in categorias_predefinidas
+        ]
+        outros = int(category_totals.get("Outros", 0))
         if outros or not categoria_rows:
             categoria_rows.append(["Outros", outros])
         categorias_chart = [["Categoria", "Links"], *categoria_rows]
 
-        marketplace_counts = df["marketplace"].fillna("OUTROS").replace("", "OUTROS").str.upper().value_counts()
-        marketplaces_chart = [["Marketplace", "Links"], *[[str(k), int(v)] for k, v in marketplace_counts.items()]]
+        marketplace_rows = linked_products.values("marketplace").annotate(total=Count("pk")).order_by("-total", "marketplace")
+        display_names = {"MAGALU": "Magalu", "MERCADO_LIVRE": "Mercado Livre", "AMAZON": "Amazon"}
+        marketplaces_chart = [["Marketplace", "Links"]]
+        marketplaces_chart.extend([
+            [display_names.get((row["marketplace"] or "OUTROS").upper(), (row["marketplace"] or "Outros").replace("_", " ").title()), int(row["total"])]
+            for row in marketplace_rows
+        ])
 
     produtos = Produto.objects.filter(owner=request.user).count()
     links = Produto.objects.filter(owner=request.user, afiliado__link_afiliado__isnull=False).exclude(afiliado__link_afiliado="").count()
+    ml_products_count = Produto.objects.filter(owner=request.user, marketplace="MERCADO_LIVRE").count()
+    ml_affiliate_links_count = linked_products.filter(marketplace="MERCADO_LIVRE").count()
+    ml_search_runs_count = SearchRun.objects.filter(user=request.user).count()
     ofertas = Oferta.objects.filter(owner=request.user).count()
     enviadas = Oferta.objects.filter(owner=request.user, status="ENVIADA").count()
     ultima_execucao = Execucao.objects.filter(owner=request.user).first()
@@ -178,6 +186,9 @@ def home(request):
         "cpa_metrics": cpa_metrics,
         "cpa_active_campaigns_count": cpa_active_campaigns_count,
         "roi_metrics": roi_metrics,
+        "ml_products_count": ml_products_count,
+        "ml_affiliate_links_count": ml_affiliate_links_count,
+        "ml_search_runs_count": ml_search_runs_count,
     })
 
 

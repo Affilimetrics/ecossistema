@@ -65,3 +65,8 @@ As migrations `cpa/0001_initial.py` e `cpa/0002_seed_existing_users.py` criam o 
 Não há OAuth nem conectores automáticos para Meta Ads, Google Ads, TikTok Ads ou marketplaces. O CPA Manager não sincroniza automaticamente com TPB, ROI ou LTV. Não há atribuição individual de conversões, ROAS, lucro líquido, múltiplas moedas ou rate limiting avançado. A interface assume BRL. Chart.js e Inter são obtidos por CDN.
 
 Documentação técnica: `cpa/docs/BIBLIA_RECONSTRUCAO.md`.
+
+
+## Compatibilidade com o módulo financeiro
+
+`Channel.user` utiliza `related_name="cpa_channels"`. Não remova esse nome: `financeiro.Channel` também pertence ao usuário e usa seu próprio relacionamento reverso. A migration `0003_channel_user_related_name` registra a alteração de metadados do relacionamento sem perda de dados.

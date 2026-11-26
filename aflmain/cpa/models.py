@@ -24,6 +24,8 @@ class Platform(OwnedDimension):
         verbose_name_plural = "plataformas de anúncios"
 
 class Channel(OwnedDimension):
+    # Evita colisão com financeiro.Channel no reverse accessor do usuário.
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="cpa_channels")
     class Meta:
         ordering = ["name"]
         constraints = [models.UniqueConstraint(fields=["user", "code"], name="cpa_channel_code_uniq")]

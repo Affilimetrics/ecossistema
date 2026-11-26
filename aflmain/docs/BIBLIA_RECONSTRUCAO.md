@@ -184,7 +184,7 @@ Edite `.env`: defina `SECRET_KEY`, `CREDENTIAL_ENCRYPTION_KEY` e `TOKEN_ENCRYPTI
 ```powershell
 python manage.py check
 python manage.py migrate
-python manage.py test core ads_manager ltv cpa financeiro
+python manage.py test core ads_manager ltv cpa financeiro mercado_livre
 python manage.py runserver
 ```
 
@@ -203,7 +203,7 @@ Executar sempre após alterações em modelos, rotas ou integração:
 ```powershell
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test core ads_manager ltv cpa financeiro
+python manage.py test core ads_manager ltv cpa financeiro mercado_livre
 ```
 
 Os testes do TPB cobrem autenticação compartilhada, bloqueio de acesso a conta de outro usuário, criptografia e a presença da mesma campanha na Home, na visão geral TPB e na listagem de campanhas.
@@ -303,7 +303,7 @@ O `--loop` deve ser executado em processo dedicado/monitorado; o web worker não
 ```powershell
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test core ads_manager ltv cpa financeiro
+python manage.py test core ads_manager ltv cpa financeiro mercado_livre
 ```
 
 Os testes de integração precisam confirmar que (a) visitante não autenticado é encaminhado para o login principal; (b) a navegação Avançado mantém LTV e TPB distintos; (c) um usuário não lê aquisições/comissões de outro; (d) métricas da Home e de `/ltv/dashboard/` são idênticas para o mesmo usuário; (e) assets estão sob `/static/ltv/`; (f) a importação continua transacional/idempotente.
@@ -338,3 +338,67 @@ Os quatro módulos aparecem no disclosure global **Avançado**. As interfaces in
 ## 18. Fronteiras entre CPA, ROI e LTV
 
 CPA, ROI e LTV partilham usuário, sessão, banco e processo Django, mas não compartilham automaticamente eventos financeiros. CPA registra campanhas/gastos/cliques/conversões; ROI registra despesas e comissões agregadas para resultado operacional; LTV registra aquisições e comissões com regras de atribuição/lifetime value. Não tratar conversão como comissão ou receita; não copiar linha entre apps sem conciliação e identificadores estáveis. Home agrega via serviços de domínio individuais e não persiste snapshots paralelos.
+
+
+---
+
+## Módulo Mercado Livre Afiliados (Django)
+
+### Papel e limite funcional
+
+`mercado_livre/` substitui a ferramenta independente de terminal do arquivo `mercado_livre_afiliados.zip`. A origem não usa npm/Node; sua lógica era Python (`requests`) e uma interface CLI. A versão integrada expõe a mesma busca de anúncios do site configurado, aplica o limite de 1–50 resultados, normaliza título/preço/preço original/desconto/URL/imagem, resolve links oficiais já cadastrados, e exporta CSV/JSON.
+
+Não gera links de afiliado artificialmente. Um ID/apelido de afiliado não é suficiente para derivar uma URL rastreável. Links devem ser gerados no portal oficial e cadastrados no campo de afiliado de cada anúncio.
+
+### Arquitetura
+
+- App Django: `mercado_livre.apps.MercadoLivreConfig`, instalado em `INSTALLED_APPS`.
+- Namespace: `mercado_livre`, prefixo `/mercado-livre/`.
+- Autenticação: `login_required`, compartilhada com o projeto principal; sem cadastro/login paralelo.
+- Configuração por conta: `MercadoLivreSettings`; o Access Token usa `core.fields.EncryptedTextField` e depende de `CREDENTIAL_ENCRYPTION_KEY`. Como alternativa, `ML_ACCESS_TOKEN` pode ser definido no ambiente.
+- Persistência operacional: `MarketplaceItem` conecta o anúncio externo a `core.Produto`; `SearchRun` registra consultas/erros.
+- Catálogo e indicadores: `core.Produto` é a fonte unificada; `core.Afiliado` guarda o link usado pelo dashboard e pelos fluxos de oferta.
+- Propriedade: todas as consultas, alterações e exportações são filtradas por usuário autenticado.
+
+### Fluxo de pesquisa
+
+1. `POST /mercado-livre/buscar/` valida termo e quantidade.
+2. `MercadoLivreAPI` consulta `https://api.mercadolibre.com/sites/{SITE_ID}/search` com timeout; inclui Bearer token quando há credencial.
+3. Erros de timeout, conexão, HTTP 401/403, 429, HTTP não-OK ou JSON inesperado são apresentados ao usuário e registrados em `SearchRun`.
+4. Produtos válidos são normalizados; preço original ausente não produz desconto presumido. URLs de anúncios são validadas para os domínios do Mercado Livre.
+5. `persist_search_results` grava o catálogo e os metadados dos anúncios dentro de `transaction.atomic()`. Rebuscas atualizam registros existentes pelo ID/URL sem duplicar o catálogo normal.
+6. O link de afiliado, quando cadastrado, atualiza `MarketplaceItem.affiliate_url` e `core.Afiliado` na mesma transação.
+7. A rota `/mercado-livre/importar-mapeamento/` importa o JSON no formato da ferramenta original, aceitando ID externo ou URL original, filtrando links HTTP/HTTPS válidos, limitando o upload a 1 MB e restringindo a associação aos itens do usuário autenticado. O ID tem precedência sobre a URL, de acordo com o resolver original.
+
+### Dashboard consolidado
+
+A Home conta todos os produtos de `core.Produto` e todos os links não vazios de `core.Afiliado`, independentemente do marketplace. O gráfico agrupa no SQL por `marketplace`; os nomes são apresentados como Magalu, Mercado Livre etc. Os cards da ferramenta exibem produtos encontrados e links configurados, mas são apenas um recorte dos mesmos registros — não uma fonte paralela. Produtos Mercado Livre sem link oficial continuam no catálogo e aparecem como pendentes, sem inflar o número de links afiliados.
+
+### Rotas
+
+- `mercado_livre:dashboard` — `/mercado-livre/`
+- `mercado_livre:search` — `/mercado-livre/buscar/`
+- `mercado_livre:save_settings` — `/mercado-livre/configuracoes/`
+- `mercado_livre:import_affiliate_mapping` — `/mercado-livre/importar-mapeamento/`
+- `mercado_livre:update_affiliate_link` — `/mercado-livre/produto/<id>/afiliado/`
+- `mercado_livre:export_csv` — `/mercado-livre/exportar/csv/`
+- `mercado_livre:export_json` — `/mercado-livre/exportar/json/`
+
+### Dependências e operação
+
+`requests` já fazia parte do `requirements.txt` principal; nenhuma aplicação Node, npm, segundo servidor, novo banco ou dependência de runtime foi adicionada. `pandas` foi removido porque a Home era seu único uso e os gráficos agora usam agregações SQL (`Count`). Configure opcionalmente `ML_ACCESS_TOKEN`, `ML_SITE_ID=MLB`, `ML_AFFILIATE_ID` e `ML_REQUEST_TIMEOUT=20`. O token individual do usuário é preferível em ambientes multiusuário. Não registre tokens em logs.
+
+### Migration
+
+`mercado_livre/migrations/0001_initial.py` depende de `core.0009_produto_indicadores_e_progresso_coleta` e cria apenas tabelas novas do módulo (`MercadoLivreSettings`, `MarketplaceItem`, `SearchRun`). Não altera nem recria dados do Magalu, TPB, LTV, CPA ou ROI.
+
+### Verificação pós-atualização
+
+```bash
+python manage.py migrate
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test mercado_livre core
+```
+
+Em produção, use HTTPS, mantenha `CREDENTIAL_ENCRYPTION_KEY` estável, faça backup do banco antes da migration e respeite limites/permissões de API vigentes no portal oficial do Mercado Livre.

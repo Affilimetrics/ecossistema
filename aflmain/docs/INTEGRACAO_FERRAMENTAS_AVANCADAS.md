@@ -66,7 +66,7 @@ python manage.py migrate
 python manage.py collectstatic --noinput
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test core ads_manager ltv cpa financeiro
+python manage.py test core ads_manager ltv cpa financeiro mercado_livre
 ```
 
 A execução da suíte de testes, `check` e `makemigrations --check` precisa ocorrer no ambiente com as dependências do `requirements.txt`. Após validação, iniciar somente o serviço web principal e, quando necessário, os workers de automação específicos. Não executar comandos de setup dos ZIPs originais.
@@ -81,15 +81,28 @@ A execução da suíte de testes, `check` e `makemigrations --check` precisa oco
 
 ## 10. Relatório de validação desta revisão (25/11/2026)
 
-Validações estáticas concluídas no pacote final:
+Validações estáticas realizadas no pacote que inclui Mercado Livre:
 
-- 149 arquivos Python analisados com `ast.parse`, sem erro de sintaxe.
+- 161 arquivos Python analisados com `ast.parse` e `compileall`, sem erro de sintaxe.
 - 9 arquivos JavaScript verificados com `node --check`.
-- Referências namespaced/global nos templates CPA, ROI e LTV e caminhos estáticos namespaced conferidos.
-- Padrões de URL namespaced conferidos: CPA (13), ROI (16), LTV (33) e TPB (8); além de 37 rotas globais do `core`.
-- `render.yaml` parseado com sucesso; `requirements.txt` com 13 dependências e sem entradas duplicadas.
-- Os ZIPs de origem CPA, ROI e a base integrada anterior passaram em `ZipFile.testzip()`.
+- `render.yaml` parseado com sucesso; `requirements.txt` com 12 dependências e sem nomes duplicados.
+- Namespace `mercado_livre` e sete rotas (dashboard, busca, configuração, importação JSON, atualização individual de afiliado e duas exportações) conferidos com a sidebar e os templates.
+- Migration `mercado_livre.0001_initial` conferida contra o último schema core (`core.0009_produto_indicadores_e_progresso_coleta`).
+- ZIP da base integrada anterior e ZIP da ferramenta Mercado Livre original passaram em `ZipFile.testzip()`. O pacote de saída também foi submetido à mesma verificação.
+- Não há `.env`, banco SQLite local ou credenciais reais no pacote de saída.
 
-**Validação Django pendente no ambiente de implantação:** `python manage.py check`, `makemigrations --check` e a suíte de testes não foram executados porque o ambiente usado para preparar o pacote não possui Django instalado (`ModuleNotFoundError: No module named 'django'`) e não foi possível instalar dependências pela rede. Isso não deve ser interpretado como aprovação runtime. Execute a rotina da seção 8 em ambiente com `requirements.txt` instalado antes de promover para produção.
+**Validação Django runtime pendente:** `python manage.py check`, `makemigrations --check` e a suíte de testes não foram executados neste ambiente porque Django não está instalado (`ModuleNotFoundError: No module named 'django'`). A instalação de dependências já havia falhado por indisponibilidade de rede. Isso não equivale a aprovação runtime; execute os comandos na seção 8 do projeto com o `requirements.txt` instalado antes de publicar.
 
-Nenhuma dependência Python adicional foi necessária: Django, `openpyxl` e demais bibliotecas usadas pelos dois módulos já constam no único `requirements.txt` do projeto host.
+Nenhuma dependência nova foi adicionada: `requests` já estava no único `requirements.txt` e o `pandas` foi removido porque não restou uso no código Python do projeto.
+
+
+## Integração de marketplace — Mercado Livre
+
+O Mercado Livre é uma ferramenta do grupo **Marketplaces**, não uma das quatro ferramentas financeiras/analíticas de Avançado. O app Django `mercado_livre/` é exposto em `/mercado-livre/`, usa login compartilhado e persiste no catálogo `core.Produto`. Links oficiais podem ser cadastrados por anúncio ou importados em lote por ID/URL via `affiliate_links.json`; são gravados em `core.Afiliado`, portanto a contagem geral e o gráfico por marketplace somam Magalu e Mercado Livre. Veja `mercado_livre/README.md` e `docs/BIBLIA_RECONSTRUCAO.md` para rotas, modelos, credenciais, migration e testes.
+
+
+### Validação específica do Mercado Livre (25/11/2026)
+
+O módulo `mercado_livre` fica em **Marketplaces** na sidebar, separado do disclosure Avançado. A busca persiste em `core.Produto`; quando um link de afiliado oficial é atribuído individualmente ou via importação JSON em lote, a ferramenta sincroniza `core.Afiliado`. O gráfico agregado da Home usa esses mesmos registros para somar Magalu e Mercado Livre no mesmo conjunto. A importação preserva o formato do arquivo de origem, aceita chave por ID externo ou URL original, prioriza o ID, limita o arquivo a 1 MB e filtra pelo usuário autenticado.
+
+A integração inclui testes para busca com API simulada, persistência sem fabricar tracking URL, atualização sem duplicar produto, associação por ID/URL, prioridade do ID, isolamento de usuário, exportação por usuário e gráfico consolidado. A validação runtime Django deve ser executada no ambiente com `requirements.txt`; o ambiente de empacotamento não tinha Django disponível, portanto não foi possível executar `manage.py check`, `makemigrations --check` ou a suíte.

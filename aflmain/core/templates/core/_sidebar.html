@@ -39,7 +39,7 @@
   <div class="sidebar-title text-uppercase small">Marketplaces</div>
   <nav aria-label="Marketplaces">
     <a class="nav-link {% if request.resolver_match.url_name == 'magalu_bot' %}active{% endif %}" href="{% url 'magalu_bot' %}"><i class="bi bi-shop"></i><span class="nav-label">Central Magalu</span></a>
-    <span class="nav-link market-disabled" aria-disabled="true" title="Integração ainda não disponível"><i class="bi bi-cart3"></i><span class="nav-label">Mercado Livre <small>Em breve</small></span></span>
+    <a class="nav-link {% if request.resolver_match.namespace == 'mercado_livre' %}active{% endif %}" href="{% url 'mercado_livre:dashboard' %}"><i class="bi bi-cart3"></i><span class="nav-label">Mercado Livre</span></a>
     <span class="nav-link market-disabled" aria-disabled="true" title="Integração ainda não disponível"><i class="bi bi-box-seam"></i><span class="nav-label">Amazon <small>Em breve</small></span></span>
   </nav>
 

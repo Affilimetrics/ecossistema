@@ -57,6 +57,12 @@ META_SCOPES = [scope.strip() for scope in config(
 ).split(',') if scope.strip()]
 META_APPSECRET_PROOF = config('META_APPSECRET_PROOF', default=True, cast=bool)
 
+# Mercado Livre — token opcional global; preferir credencial individual criptografada no módulo.
+ML_ACCESS_TOKEN = config('ML_ACCESS_TOKEN', default='')
+ML_SITE_ID = config('ML_SITE_ID', default='MLB')
+ML_AFFILIATE_ID = config('ML_AFFILIATE_ID', default='')
+ML_REQUEST_TIMEOUT = config('ML_REQUEST_TIMEOUT', default=20, cast=int)
+
 
 # Application definition
 
@@ -72,6 +78,7 @@ INSTALLED_APPS = [
     'ltv.apps.LtvConfig',
     'cpa.apps.CpaConfig',
     'financeiro.apps.FinanceiroConfig',
+    'mercado_livre.apps.MercadoLivreConfig',
 ]
 
 MIDDLEWARE = [
