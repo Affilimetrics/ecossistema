@@ -39,6 +39,10 @@ urlpatterns = [
     ),
 
     path("cadastro/", views.cadastro, name="cadastro"),
+    path("perfil/", views.perfil, name="perfil"),
+    path("perfil/excluir/", views.excluir_conta, name="excluir_conta"),
+    path("desenvolvimento/testes/", views.painel_testes, name="painel_testes"),
+    path("desenvolvimento/testes/executar/", views.executar_testes_pela_interface, name="executar_testes"),
     path("home/", views.home, name="home"),
     path("coleta/", views.coleta_geral, name="coleta_geral"),
     path("coleta/categoria-personalizada/", views.criar_categoria_personalizada_view, name="criar_categoria_personalizada"),

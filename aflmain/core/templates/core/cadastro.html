@@ -22,7 +22,7 @@
         <div class="auth-feature-list">
           <div class="auth-feature"><i class="bi bi-person-check"></i><span>Configurações e dados separados por conta.</span></div>
           <div class="auth-feature"><i class="bi bi-clock-history"></i><span>Horários e mensagens podem considerar seu fuso.</span></div>
-          <div class="auth-feature"><i class="bi bi-shield-check"></i><span>Configure canais de divulgação quando estiver pronto.</span></div>
+          <div class="auth-feature"><i class="bi bi-shield-check"></i><span>Senhas protegidas e cadastro validado no servidor.</span></div>
         </div>
       </div>
       <div class="auth-story-foot">A plataforma apoia sua operação; resultados dependem das ofertas, do público e da execução.</div>
@@ -33,19 +33,23 @@
       <div class="auth-card">
         <div class="mb-4"><h2>Criar sua conta</h2><p class="auth-card-intro mb-0">Preencha os dados para configurar seu espaço.</p></div>
         {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags|default:'danger' }} py-2" role="alert">{{ message }}</div>{% endfor %}{% endif %}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
         <form method="post" novalidate>
           {% csrf_token %}
-          <div class="mb-3"><label for="nome" class="form-label">Nome</label><input type="text" name="nome" id="nome" class="form-control" placeholder="Seu nome" value="{{ request.POST.nome }}" autocomplete="name" required></div>
-          <div class="mb-3"><label for="email" class="form-label">E-mail</label><input type="email" name="email" id="email" class="form-control" placeholder="seu@email.com" value="{{ request.POST.email }}" autocomplete="email" required></div>
+          <div class="mb-3"><label for="nome" class="form-label">Nome</label><input type="text" name="nome" id="nome" class="form-control" placeholder="Seu nome" value="{{ form.nome.value|default:'' }}" autocomplete="name" required>{% for error in form.nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+          <div class="mb-3"><label for="email" class="form-label">E-mail</label><input type="email" name="email" id="email" class="form-control" placeholder="seu@email.com" value="{{ form.email.value|default:'' }}" autocomplete="email" required>{% for error in form.email.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
           <div class="row g-2 mb-3">
-            <div class="col-sm-4"><label class="form-label" for="pais">País</label><input class="form-control" id="pais" name="pais" value="{{ request.POST.pais|default:'Brasil' }}" autocomplete="country-name"></div>
-            <div class="col-sm-4"><label class="form-label" for="estado">Estado</label><input class="form-control" id="estado" name="estado" value="{{ request.POST.estado }}" placeholder="SP" autocomplete="address-level1"></div>
-            <div class="col-sm-4"><label class="form-label" for="cidade">Cidade</label><input class="form-control" id="cidade" name="cidade" value="{{ request.POST.cidade }}" autocomplete="address-level2"></div>
-            <input type="hidden" name="timezone" id="timezone" value="{{ request.POST.timezone|default:'America/Sao_Paulo' }}">
-            <div class="form-text">Seu fuso horário ajuda a adaptar mensagens baseadas no horário local.</div>
+            <div class="col-sm-6"><label class="form-label" for="data_nascimento">Data de nascimento</label><input class="form-control" type="date" id="data_nascimento" name="data_nascimento" value="{{ form.data_nascimento.value|default:'' }}">{% for error in form.data_nascimento.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+            <div class="col-sm-6"><label class="form-label" for="telefone">Telefone</label><input class="form-control" id="telefone" name="telefone" value="{{ form.telefone.value|default:'' }}" autocomplete="tel" placeholder="+55 11 99999-9999">{% for error in form.telefone.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
+            <div class="col-sm-4"><label class="form-label" for="pais">País</label><input class="form-control" id="pais" name="pais" value="{{ form.pais.value|default:'Brasil' }}" autocomplete="country-name"></div>
+            <div class="col-sm-4"><label class="form-label" for="estado">Estado</label><input class="form-control" id="estado" name="estado" value="{{ form.estado.value|default:'' }}" placeholder="SP" autocomplete="address-level1"></div>
+            <div class="col-sm-4"><label class="form-label" for="cidade">Cidade</label><input class="form-control" id="cidade" name="cidade" value="{{ form.cidade.value|default:'' }}" autocomplete="address-level2"></div>
+            <input type="hidden" name="timezone" id="timezone" value="{{ form.timezone.value|default:'America/Sao_Paulo' }}">
+            {% for error in form.timezone.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            <div class="form-text">O fuso horário ajuda a adaptar mensagens ao horário local.</div>
           </div>
-          <div class="mb-3"><label for="password" class="form-label">Senha</label><div class="auth-icon-input"><input type="password" name="password" id="password" class="form-control" minlength="8" autocomplete="new-password" required><button class="auth-password-toggle" type="button" data-toggle-password="password" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button></div></div>
-          <div class="mb-4"><label for="password_confirm" class="form-label">Confirmar senha</label><div class="auth-icon-input"><input type="password" name="password_confirm" id="password_confirm" class="form-control" minlength="8" autocomplete="new-password" required><button class="auth-password-toggle" type="button" data-toggle-password="password_confirm" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button></div></div>
+          <div class="mb-3"><label for="password" class="form-label">Senha</label><div class="auth-icon-input"><input type="password" name="password" id="password" class="form-control" minlength="8" autocomplete="new-password" required><button class="auth-password-toggle" type="button" data-toggle-password="password" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button></div>{% for error in form.password.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}<div class="form-text">Mínimo de 8 caracteres, com número e caractere especial.</div></div>
+          <div class="mb-4"><label for="password_confirm" class="form-label">Confirmar senha</label><div class="auth-icon-input"><input type="password" name="password_confirm" id="password_confirm" class="form-control" minlength="8" autocomplete="new-password" required><button class="auth-password-toggle" type="button" data-toggle-password="password_confirm" aria-label="Mostrar senha"><i class="bi bi-eye"></i></button></div>{% for error in form.password_confirm.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}</div>
           <button type="submit" class="auth-primary">Criar conta <i class="bi bi-arrow-right ms-2"></i></button>
         </form>
         <div class="auth-divider">já está cadastrado?</div>

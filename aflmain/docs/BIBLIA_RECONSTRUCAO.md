@@ -184,7 +184,7 @@ Edite `.env`: defina `SECRET_KEY`, `CREDENTIAL_ENCRYPTION_KEY` e `TOKEN_ENCRYPTI
 ```powershell
 python manage.py check
 python manage.py migrate
-python manage.py test core ads_manager ltv cpa financeiro mercado_livre
+python manage.py test core ads_manager ltv cpa financeiro
 python manage.py runserver
 ```
 
@@ -196,17 +196,21 @@ O `render.yaml` preserva o serviço web e inclui as variáveis do Meta. O `build
 
 A atualização de campanhas é síncrona no request e usa timeout HTTP do cliente Meta. Não há worker Celery, scheduler ou sincronização em background nesta versão.
 
-## 11. Testes de integridade recomendados
+## 11. Testes de integridade
 
-Executar sempre após alterações em modelos, rotas ou integração:
+O executor oficial é o Django nativo (`TestCase`/`unittest`), já utilizado pelo repositório. Após qualquer alteração em modelo, rota, formulário ou integração, execute:
 
-```powershell
+```bat
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test core ads_manager ltv cpa financeiro mercado_livre
+run_tests.cmd all
 ```
 
-Os testes do TPB cobrem autenticação compartilhada, bloqueio de acesso a conta de outro usuário, criptografia e a presença da mesma campanha na Home, na visão geral TPB e na listagem de campanhas.
+As suítes existentes para Core, API Desktop, Magalu, TPB, LTV, CPA, ROI e parser Desktop estão catalogadas em `docs/TESTES.md`. O documento contém comandos isolados por módulo, o comando completo com rótulos explícitos (incluindo pacotes fora de `INSTALLED_APPS`), exemplos para executar um único caso e a matriz de rastreabilidade alteração → teste. `python manage.py test` sem rótulos realiza somente a descoberta padrão dos apps instalados. Para executar todas as suítes catalogadas em Windows sem usar o banco operacional, execute `run_tests.cmd all`; para um teste isolado, passe a classe, como `run_tests.cmd core.test_profile.ProfileTests`. Toda nova funcionalidade deve acrescentar um teste executável e atualizar essa matriz.
+
+Em desenvolvimento (`DEBUG=True`), um usuário `is_staff=True` pode abrir `/desenvolvimento/testes/` e disparar as suítes pela interface. Cada execução é um processo Django separado que usa um arquivo SQLite temporário descartado ao final; a página não aceita nomes arbitrários de testes e não é exposta em produção. O CMD/PowerShell continua sendo o meio recomendado para automação contínua e integração contínua.
+
+Os testes do TPB cobrem autenticação compartilhada, bloqueio de acesso a conta de outro usuário, criptografia e a presença da mesma campanha na Home, na visão geral TPB e na listagem de campanhas. Os outros módulos têm as coberturas específicas descritas em `docs/TESTES.md`; isso não significa cobertura exaustiva de todos os seus fluxos.
 
 Um teste real de OAuth exige aplicativo Meta configurado, callback autorizado, conta de anúncios de teste e permissões concedidas. Testes locais não comprovam aprovação ou disponibilidade de permissões no ambiente externo da Meta.
 
@@ -303,7 +307,7 @@ O `--loop` deve ser executado em processo dedicado/monitorado; o web worker não
 ```powershell
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test core ads_manager ltv cpa financeiro mercado_livre
+python manage.py test core ads_manager ltv cpa financeiro
 ```
 
 Os testes de integração precisam confirmar que (a) visitante não autenticado é encaminhado para o login principal; (b) a navegação Avançado mantém LTV e TPB distintos; (c) um usuário não lê aquisições/comissões de outro; (d) métricas da Home e de `/ltv/dashboard/` são idênticas para o mesmo usuário; (e) assets estão sob `/static/ltv/`; (f) a importação continua transacional/idempotente.
@@ -340,65 +344,27 @@ Os quatro módulos aparecem no disclosure global **Avançado**. As interfaces in
 CPA, ROI e LTV partilham usuário, sessão, banco e processo Django, mas não compartilham automaticamente eventos financeiros. CPA registra campanhas/gastos/cliques/conversões; ROI registra despesas e comissões agregadas para resultado operacional; LTV registra aquisições e comissões com regras de atribuição/lifetime value. Não tratar conversão como comissão ou receita; não copiar linha entre apps sem conciliação e identificadores estáveis. Home agrega via serviços de domínio individuais e não persiste snapshots paralelos.
 
 
----
+## 19. Conta, autenticação e perfil — Issue 01 do roadmap
 
-## Módulo Mercado Livre Afiliados (Django)
+### 19.1 Identidade e autenticação compartilhadas
 
-### Papel e limite funcional
+- O usuário continua sendo o modelo nativo `auth.User`; todos os módulos do ecossistema usam a mesma sessão e o mesmo banco. Não criar autenticação separada para TPB, LTV, CPA, ROI, Magalu ou Desktop.
+- O fluxo de cadastro normaliza o e-mail para minúsculas e o utiliza como `username` de login. O identificador `username` possui unicidade no banco do Django; o fluxo de formulário também verifica e-mail duplicado sem diferenciar maiúsculas/minúsculas.
+- Novas senhas são gravadas pelo `BCryptSHA256PasswordHasher`, com a dependência `bcrypt`. `PBKDF2PasswordHasher` e `PBKDF2SHA1PasswordHasher` permanecem disponíveis para validar hashes anteriores; não se deve apagar usuários nem resetar senhas na migração. O Django pode atualizar o hash após autenticação bem-sucedida.
+- A política configurada exige pelo menos 8 caracteres, um número e um caractere especial. A validação ocorre no servidor; atributos HTML no formulário não são a segurança principal.
+- “Lembrar de mim” controla a duração da sessão por 14 dias. A senha não é persistida em cookie, localStorage ou texto puro. Sem a opção, a sessão expira ao fechar o navegador.
+- O `next` de login é validado para impedir redirecionamento para domínio externo.
 
-`mercado_livre/` substitui a ferramenta independente de terminal do arquivo `mercado_livre_afiliados.zip`. A origem não usa npm/Node; sua lógica era Python (`requests`) e uma interface CLI. A versão integrada expõe a mesma busca de anúncios do site configurado, aplica o limite de 1–50 resultados, normaliza título/preço/preço original/desconto/URL/imagem, resolve links oficiais já cadastrados, e exporta CSV/JSON.
+### 19.2 Perfil e dados mantidos
 
-Não gera links de afiliado artificialmente. Um ID/apelido de afiliado não é suficiente para derivar uma URL rastreável. Links devem ser gerados no portal oficial e cadastrados no campo de afiliado de cada anúncio.
+`PerfilUsuario` permanece ligado por `OneToOneField` ao usuário. A migration `core/0010_perfil_usuario_dados_conta.py` acrescenta data de nascimento, telefone, foto, metas mensais de investimento/retorno, lista de plataformas de interesse e nicho. País, estado, cidade e fuso horário existentes foram preservados. O nome e e-mail continuam nos campos do modelo `auth.User`; quando o e-mail muda, `username` é atualizado junto para manter o login por e-mail consistente.
 
-### Arquitetura
+A página `/perfil/` permite editar os dados pessoais e preferências. Uploads são guardados em `MEDIA_ROOT/perfis/`, servidos em desenvolvimento por `/media/`, e a pasta local `media/` não deve ser versionada. A exclusão da conta agenda a remoção do arquivo da foto somente depois do commit da transação. A foto passa pela validação de imagem do Django/Pillow e possui limite de 5 MB. **O `render.yaml` atual não configura disco persistente nem armazenamento de mídia externo**; antes de depender de fotos em produção, configure armazenamento persistente/externo e sua URL pública. Plataformas selecionadas indicam preferência do usuário; não significam que a integração esteja conectada ou disponível.
 
-- App Django: `mercado_livre.apps.MercadoLivreConfig`, instalado em `INSTALLED_APPS`.
-- Namespace: `mercado_livre`, prefixo `/mercado-livre/`.
-- Autenticação: `login_required`, compartilhada com o projeto principal; sem cadastro/login paralelo.
-- Configuração por conta: `MercadoLivreSettings`; o Access Token usa `core.fields.EncryptedTextField` e depende de `CREDENTIAL_ENCRYPTION_KEY`. Como alternativa, `ML_ACCESS_TOKEN` pode ser definido no ambiente.
-- Persistência operacional: `MarketplaceItem` conecta o anúncio externo a `core.Produto`; `SearchRun` registra consultas/erros.
-- Catálogo e indicadores: `core.Produto` é a fonte unificada; `core.Afiliado` guarda o link usado pelo dashboard e pelos fluxos de oferta.
-- Propriedade: todas as consultas, alterações e exportações são filtradas por usuário autenticado.
+### 19.3 Exclusão e cascata
 
-### Fluxo de pesquisa
+A exclusão ocorre somente por POST em `/perfil/excluir/`, exige senha atual e a confirmação literal `EXCLUIR`. O serviço `core/account_deletion.py` remove primeiro registros transacionais de CPA e ROI que referenciam campanhas, produtos ou dimensões protegidas por `on_delete=PROTECT`, depois os produtos ROI que protegem o marketplace; em seguida, a exclusão do usuário aplica os `CASCADE` declarados nos módulos Core, TPB, LTV, CPA e ROI. Relações `SET_NULL`, como `ltv.AttributionHistory.changed_by`, podem preservar o evento histórico sem manter referência ao usuário. A operação não apaga contas externas nem chama endpoints externos para revogar autorizações junto a marketplaces ou plataformas de anúncios.
 
-1. `POST /mercado-livre/buscar/` valida termo e quantidade.
-2. `MercadoLivreAPI` consulta `https://api.mercadolibre.com/sites/{SITE_ID}/search` com timeout; inclui Bearer token quando há credencial.
-3. Erros de timeout, conexão, HTTP 401/403, 429, HTTP não-OK ou JSON inesperado são apresentados ao usuário e registrados em `SearchRun`.
-4. Produtos válidos são normalizados; preço original ausente não produz desconto presumido. URLs de anúncios são validadas para os domínios do Mercado Livre.
-5. `persist_search_results` grava o catálogo e os metadados dos anúncios dentro de `transaction.atomic()`. Rebuscas atualizam registros existentes pelo ID/URL sem duplicar o catálogo normal.
-6. O link de afiliado, quando cadastrado, atualiza `MarketplaceItem.affiliate_url` e `core.Afiliado` na mesma transação.
-7. A rota `/mercado-livre/importar-mapeamento/` importa o JSON no formato da ferramenta original, aceitando ID externo ou URL original, filtrando links HTTP/HTTPS válidos, limitando o upload a 1 MB e restringindo a associação aos itens do usuário autenticado. O ID tem precedência sobre a URL, de acordo com o resolver original.
+### 19.4 Testes obrigatórios da conta
 
-### Dashboard consolidado
-
-A Home conta todos os produtos de `core.Produto` e todos os links não vazios de `core.Afiliado`, independentemente do marketplace. O gráfico agrupa no SQL por `marketplace`; os nomes são apresentados como Magalu, Mercado Livre etc. Os cards da ferramenta exibem produtos encontrados e links configurados, mas são apenas um recorte dos mesmos registros — não uma fonte paralela. Produtos Mercado Livre sem link oficial continuam no catálogo e aparecem como pendentes, sem inflar o número de links afiliados.
-
-### Rotas
-
-- `mercado_livre:dashboard` — `/mercado-livre/`
-- `mercado_livre:search` — `/mercado-livre/buscar/`
-- `mercado_livre:save_settings` — `/mercado-livre/configuracoes/`
-- `mercado_livre:import_affiliate_mapping` — `/mercado-livre/importar-mapeamento/`
-- `mercado_livre:update_affiliate_link` — `/mercado-livre/produto/<id>/afiliado/`
-- `mercado_livre:export_csv` — `/mercado-livre/exportar/csv/`
-- `mercado_livre:export_json` — `/mercado-livre/exportar/json/`
-
-### Dependências e operação
-
-`requests` já fazia parte do `requirements.txt` principal; nenhuma aplicação Node, npm, segundo servidor, novo banco ou dependência de runtime foi adicionada. `pandas` foi removido porque a Home era seu único uso e os gráficos agora usam agregações SQL (`Count`). Configure opcionalmente `ML_ACCESS_TOKEN`, `ML_SITE_ID=MLB`, `ML_AFFILIATE_ID` e `ML_REQUEST_TIMEOUT=20`. O token individual do usuário é preferível em ambientes multiusuário. Não registre tokens em logs.
-
-### Migration
-
-`mercado_livre/migrations/0001_initial.py` depende de `core.0009_produto_indicadores_e_progresso_coleta` e cria apenas tabelas novas do módulo (`MercadoLivreSettings`, `MarketplaceItem`, `SearchRun`). Não altera nem recria dados do Magalu, TPB, LTV, CPA ou ROI.
-
-### Verificação pós-atualização
-
-```bash
-python manage.py migrate
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python manage.py test mercado_livre core
-```
-
-Em produção, use HTTPS, mantenha `CREDENTIAL_ENCRYPTION_KEY` estável, faça backup do banco antes da migration e respeite limites/permissões de API vigentes no portal oficial do Mercado Livre.
+As funcionalidades acima possuem classes de teste separadas: `core.test_authentication.RegistrationTests`, `core.test_authentication.LoginTests`, `core.test_profile.ProfileTests` e `core.test_profile.AccountDeletionTests`. Execute cada classe isoladamente pelo CMD/PowerShell, conforme `docs/TESTES.md`, ou escolha a funcionalidade correspondente na página `/desenvolvimento/testes/` (somente staff e `DEBUG=True`). O painel também possui testes de permissão e de isolamento do executor em `core.test_testing_portal` e `core.test_test_runner`.

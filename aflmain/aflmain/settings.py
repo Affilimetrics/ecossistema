@@ -57,12 +57,6 @@ META_SCOPES = [scope.strip() for scope in config(
 ).split(',') if scope.strip()]
 META_APPSECRET_PROOF = config('META_APPSECRET_PROOF', default=True, cast=bool)
 
-# Mercado Livre — token opcional global; preferir credencial individual criptografada no módulo.
-ML_ACCESS_TOKEN = config('ML_ACCESS_TOKEN', default='')
-ML_SITE_ID = config('ML_SITE_ID', default='MLB')
-ML_AFFILIATE_ID = config('ML_AFFILIATE_ID', default='')
-ML_REQUEST_TIMEOUT = config('ML_REQUEST_TIMEOUT', default=20, cast=int)
-
 
 # Application definition
 
@@ -78,7 +72,6 @@ INSTALLED_APPS = [
     'ltv.apps.LtvConfig',
     'cpa.apps.CpaConfig',
     'financeiro.apps.FinanceiroConfig',
-    'mercado_livre.apps.MercadoLivreConfig',
 ]
 
 MIDDLEWARE = [
@@ -105,6 +98,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.alertas_usuario',
+                'core.context_processors.ferramentas_desenvolvimento',
                 'ltv.context_processors.global_context',
             ],
         },
@@ -142,6 +136,22 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# Senhas novas usam BCrypt-SHA256. Hashes PBKDF2 já existentes continuam
+# reconhecidos e podem ser atualizados automaticamente no próximo login.
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+]
+
+AUTH_PASSWORD_VALIDATORS.append({
+    'NAME': 'core.password_validators.NumberAndSpecialCharacterValidator',
+})
+
+# Uploads de fotos de perfil.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 
 # Internationalization

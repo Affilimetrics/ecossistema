@@ -39,17 +39,19 @@
   <div class="sidebar-title text-uppercase small">Marketplaces</div>
   <nav aria-label="Marketplaces">
     <a class="nav-link {% if request.resolver_match.url_name == 'magalu_bot' %}active{% endif %}" href="{% url 'magalu_bot' %}"><i class="bi bi-shop"></i><span class="nav-label">Central Magalu</span></a>
-    <a class="nav-link {% if request.resolver_match.namespace == 'mercado_livre' %}active{% endif %}" href="{% url 'mercado_livre:dashboard' %}"><i class="bi bi-cart3"></i><span class="nav-label">Mercado Livre</span></a>
+    <span class="nav-link market-disabled" aria-disabled="true" title="Integração ainda não disponível"><i class="bi bi-cart3"></i><span class="nav-label">Mercado Livre <small>Em breve</small></span></span>
     <span class="nav-link market-disabled" aria-disabled="true" title="Integração ainda não disponível"><i class="bi bi-box-seam"></i><span class="nav-label">Amazon <small>Em breve</small></span></span>
   </nav>
 
   <div class="sidebar-footer mt-auto border-top pt-3">
-    <a href="{% url 'configuracoes' %}" class="user-chip text-decoration-none" title="Configurações da conta">
-      <span class="user-avatar">{{ user.first_name|default:user.username|first|upper }}</span>
+    <a href="{% url 'perfil' %}" class="user-chip text-decoration-none" title="Meu perfil">
+      {% if user.perfil_local.foto %}<img src="{{ user.perfil_local.foto.url }}" class="user-avatar" alt="Foto de perfil">{% else %}<span class="user-avatar">{{ user.first_name|default:user.username|first|upper }}</span>{% endif %}
       <span class="user-meta"><span class="user-name">{{ user.first_name|default:user.username }}</span><span class="user-role">Conta pessoal</span></span>
     </a>
     <button type="button" class="sidebar-action" data-theme-toggle aria-label="Usar tema escuro" title="Usar tema escuro"><i class="bi bi-moon-stars"></i><span class="action-label">Tema escuro</span></button>
+    <a href="{% url 'perfil' %}" class="sidebar-action text-decoration-none"><i class="bi bi-person-circle"></i><span class="action-label">Meu perfil</span></a>
     <a href="{% url 'configuracoes' %}" class="sidebar-action text-decoration-none"><i class="bi bi-gear"></i><span class="action-label">Configurações</span></a>
+    {% if ferramentas_desenvolvimento_disponiveis %}<a href="{% url 'painel_testes' %}" class="sidebar-action text-decoration-none"><i class="bi bi-clipboard2-check"></i><span class="action-label">Testes (local)</span></a>{% endif %}
     <form method="post" action="{% url 'logout' %}">
       {% csrf_token %}
       <button type="submit" class="sidebar-action"><i class="bi bi-box-arrow-right"></i><span class="action-label">Sair</span></button>

@@ -278,14 +278,21 @@ class ProdutoQuente(models.Model):
 
 class PerfilUsuario(models.Model):
     owner = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfil_local")
+    data_nascimento = models.DateField(null=True, blank=True)
+    telefone = models.CharField(max_length=30, blank=True, default="")
+    foto = models.ImageField(upload_to="perfis/", null=True, blank=True)
     pais = models.CharField(max_length=80, default="Brasil", blank=True)
     estado = models.CharField(max_length=100, blank=True, default="")
     cidade = models.CharField(max_length=120, blank=True, default="")
     timezone = models.CharField(max_length=80, default="America/Sao_Paulo")
+    meta_investimento_mensal = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    meta_retorno_mensal = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    plataformas_divulgacao = models.JSONField(default=list, blank=True)
+    nicho = models.CharField(max_length=120, blank=True, default="")
     atualizado_em = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Localização de {self.owner}: {self.timezone}"
+        return f"Perfil de {self.owner}"
 
 
 class ProgressoColeta(models.Model):

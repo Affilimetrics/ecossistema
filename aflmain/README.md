@@ -35,7 +35,7 @@ O módulo LTV Manager foi incorporado ao Django principal em `ltv/`, dentro de *
 
 ### Coleta geral e Central Magalu
 - `/coleta/`: fluxo simplificado com checkboxes de marketplaces e somente categoria/palavra-chave.
-- Magalu possui coleta automatizada própria; Mercado Livre possui busca manual pela API oficial e associação de links de afiliado; Amazon permanece desabilitada.
+- Magalu está funcional; Mercado Livre e Amazon ficam desabilitados até seus coletores existirem.
 - `/magalu/`: Central Magalu para recursos específicos/avançados, incluindo múltiplas keywords, loop, logs e controles detalhados.
 - O CTA principal agora é **Ir para coleta**.
 
@@ -112,7 +112,7 @@ Home autenticada
 - Todas as áreas operacionais protegidas por autenticação.
 - Home autenticada como destino após login.
 - Sidebar com os bots dos marketplaces.
-- Magalu disponível; Mercado Livre integrado por busca API; Amazon preparada como próximo módulo.
+- Magalu disponível; Mercado Livre e Amazon preparados como próximos módulos.
 - Coleta por categoria, palavra-chave ou ambos.
 - Categorias opcionais.
 - Loop de palavras-chave sequencial: uma chave termina antes da próxima começar e um novo ciclo só começa após todas as chaves do ciclo atual.
@@ -122,7 +122,7 @@ Home autenticada
 - Persistência em banco Django.
 - Exportação Excel/CSV mantida como relatório.
 - Logs e progresso em tempo real no navegador.
-- Gráficos Google Charts alimentados por agregações SQL feitas pelo ORM do Django.
+- Gráficos Google Charts alimentados por agregações feitas com pandas.
 - Gráfico de categorias: categorias predefinidas + `Outros` para palavras-chave.
 - Gráfico de marketplaces: pronto para receber novos bots.
 - Telegram/WhatsApp desacoplados do coletor.
@@ -335,7 +335,7 @@ python manage.py test
 
 ### `requirements.txt`
 
-Lista as dependências Python do projeto: Django, Selenium, openpyxl, PostgreSQL/URL configuration, Requests, Gunicorn e demais bibliotecas auxiliares.
+Lista as dependências Python do projeto: Django, Selenium, pandas, openpyxl, PostgreSQL/URL configuration, Gunicorn e demais bibliotecas auxiliares.
 
 ### `.env.example`
 
@@ -418,7 +418,7 @@ Controla as páginas e APIs HTTP:
 - ofertas;
 - contexto compartilhado do tráfego pago, incluindo conexão Meta, conta selecionada e campanhas ativas.
 
-A função `home()` prepara os dados dos gráficos por agregações SQL no ORM e usa `ads_manager.services.campaign_sync` para ler/sincronizar o mesmo snapshot de campanhas da área TPB.
+A função `home()` também prepara os dados dos gráficos usando **pandas** e usa o serviço `ads_manager.services.campaign_sync` para ler/sincronizar o mesmo snapshot de campanhas da área TPB.
 
 ### `core/urls.py`
 
@@ -471,7 +471,7 @@ Possui:
 - gráfico de links por marketplace;
 - última execução.
 
-Os gráficos usam Google Charts no navegador e recebem dados agregados pelo backend com o ORM/SQL do Django.
+Os gráficos usam Google Charts no navegador e recebem dados agregados pelo backend com pandas.
 
 ### `login.html`
 
@@ -816,17 +816,28 @@ Isso é diferente do estado do Selenium: navegar para outra página **não dever
 
 # 21. Testes
 
-Execute:
+O projeto usa o executor nativo do Django (`TestCase`/`unittest`). Para verificar a aplicação inteira, execute na pasta `aflmain`:
 
-```powershell
+```bat
 python manage.py check
-python manage.py test
+python manage.py makemigrations --check --dry-run
 ```
 
-Antes de subir para produção, confirme também:
+Para executar **todos os módulos de teste catalogados**, inclusive Magalu e Desktop, use `run_tests.cmd all`; para uma classe isolada, passe o rótulo, por exemplo `run_tests.cmd core.test_profile.ProfileTests`. O script usa SQLite temporário e não toca no banco operacional. `python manage.py test` sem rótulos executa a descoberta padrão somente nos apps instalados. Consulte [`docs/TESTES.md`](docs/TESTES.md).
 
-```powershell
+```bat
+run_tests.cmd all
+```
+
+Cadastro, login, perfil e exclusão de conta também podem ser executados separadamente por classe: `run_tests.cmd core.test_authentication.RegistrationTests`, `run_tests.cmd core.test_authentication.LoginTests`, `run_tests.cmd core.test_profile.ProfileTests` e `run_tests.cmd core.test_profile.AccountDeletionTests`. Os demais módulos têm comandos isolados. A matriz completa, os comandos e o procedimento da página de testes estão em [`docs/TESTES.md`](docs/TESTES.md).
+
+Em desenvolvimento, um usuário staff com `DEBUG=True` pode abrir `http://127.0.0.1:8000/desenvolvimento/testes/` e executar cada suíte pela interface. A página usa um SQLite temporário, não o banco configurado do projeto, e não fica disponível em produção.
+
+Antes de aplicar migrations, confirme e depois execute:
+
+```bat
 python manage.py migrate --plan
+python manage.py migrate
 ```
 
 ---
@@ -838,7 +849,7 @@ python manage.py migrate --plan
 2. Configurar .env
 3. python manage.py migrate
 4. python manage.py check
-5. python manage.py test
+5. executar a suíte completa de `docs/TESTES.md`
 6. python manage.py runserver
 7. Criar conta
 8. Testar login
@@ -1157,7 +1168,7 @@ Depois de atualizar uma instalação existente, faça backup e execute:
 ```powershell
 python manage.py migrate
 python manage.py check
-python manage.py test core ads_manager ltv cpa financeiro mercado_livre
+python manage.py test core ads_manager ltv cpa financeiro
 ```
 
 O deploy Render continua usando `build.sh`, que instala `requirements.txt`, coleta estáticos e aplica migrations. Adicione no painel do Render as variáveis `META_APP_ID`, `META_APP_SECRET`, `META_REDIRECT_URI` e `TOKEN_ENCRYPTION_KEY`; as demais opções da Meta possuem padrão documentado em `.env.example`/`render.yaml`.
@@ -1244,14 +1255,14 @@ python manage.py run_automations --once
 python manage.py run_automations --loop --interval 900
 ```
 
-A execução contínua não é inicializada pelo processo web. O argumento `--interval` usa `AUTOMATION_INTERVAL_SECONDS` (padrão de 900 segundos, definido no `.env`/ambiente) como frequência de verificação do processo; cada usuário habilitado só é processado quando seu próprio `AutomationSettings.interval_seconds` vence. Esse comando cria snapshots e registros de execução, mas não consulta APIs de marketplaces. A busca do Mercado Livre é executada sob demanda pela interface Django; ela não é uma rotina contínua/background. A coleta Magalu permanece no controlador próprio; Amazon e Shopee continuam sem integração web nesta versão.
+A execução contínua não é inicializada pelo processo web. O argumento `--interval` usa `AUTOMATION_INTERVAL_SECONDS` (padrão de 900 segundos, definido no `.env`/ambiente) como frequência de verificação do processo; cada usuário habilitado só é processado quando seu próprio `AutomationSettings.interval_seconds` vence. O comando cria snapshots e registros de execução; não consulta APIs de marketplaces. Os conectores de Magalu, Mercado Livre, Amazon e Shopee não estão ativos nesta versão.
 
 ### 26.7 Testes e arquivos principais
 
 ```powershell
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test core ads_manager ltv cpa financeiro mercado_livre
+python manage.py test core ads_manager ltv cpa financeiro
 ```
 
 Arquivos principais: `ltv/models.py`, `ltv/views.py`, `ltv/analytics/metrics.py`, `ltv/services/importer.py`, `ltv/automation/tasks.py`, `ltv/management/commands/run_automations.py`, `ltv/templates/ltv/` e `ltv/static/ltv/`. A documentação completa está em `docs/BIBLIA_RECONSTRUCAO.md` e `ltv/BIBLIA_RECONSTRUCAO.md`.
@@ -1311,7 +1322,7 @@ A Home chama `financeiro.services.indicadores.dashboard_metrics(request.user)`, 
 ```powershell
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test core ads_manager ltv cpa financeiro mercado_livre
+python manage.py test core ads_manager ltv cpa financeiro
 ```
 
 A Home apresenta dados de TPB, LTV, CPA e ROI por serviços/fontes respectivas. Os domínios são intencionalmente independentes. Não fazer sincronização por nomes de campanha, data, valores coincidentes ou suposição de conversão = comissão.
@@ -1322,12 +1333,14 @@ A Home apresenta dados de TPB, LTV, CPA e ROI por serviços/fontes respectivas. 
 O modelo `cpa.Channel.user` declara `related_name="cpa_channels"` para não colidir com `financeiro.Channel.user` no reverse accessor do usuário Django. A migration `cpa.0003_channel_user_related_name` aplica essa alteração sem recriar tabelas nem apagar registros. Ao atualizar uma instalação existente, execute `python manage.py migrate`; não edite nem apague migrations já aplicadas.
 
 
-## Integração Mercado Livre Afiliados
+## Atualização 26/11/2026 — Issue 01: cadastro, autenticação e perfil
 
-O módulo `mercado_livre/` porta para Django a ferramenta Python de terminal fornecida em `mercado_livre_afiliados.zip`. O pacote de origem não era um projeto npm/Node: era Python com `requests`, CLI, arquivo `affiliate_links.json` e exportação CSV/JSON. A lógica foi convertida para páginas autenticadas, serviços Django e persistência no banco principal.
+- Cadastro acrescenta data de nascimento e telefone, mantendo país, estado, cidade e fuso horário.
+- E-mails do fluxo de conta são normalizados para minúsculas e usados como identificador de login.
+- Novas senhas usam BCrypt-SHA256 e exigem 8 caracteres, número e caractere especial. Hashes PBKDF2 existentes continuam sendo aceitos para permitir atualização no próximo login.
+- A rota `/perfil/` permite alterar nome, e-mail, foto, telefone, localização, metas, preferências e senha.
+- A exclusão de conta exige senha atual e confirmação literal `EXCLUIR`; dados com relacionamento `CASCADE` são removidos no banco local, sem excluir/revogar a conta na plataforma externa.
+- A documentação de teste foi centralizada em `docs/TESTES.md`, com comandos isolados por módulo e painel local em `/desenvolvimento/testes/`.
+- A migration `core/0010_perfil_usuario_dados_conta.py` adiciona os novos campos sem apagar os dados anteriores. Execute `python manage.py migrate`.
 
-Acesse **Marketplaces → Mercado Livre** (rota `/mercado-livre/`). A ferramenta permite buscar de 1 a 50 anúncios por termo pela API `GET /sites/{SITE_ID}/search`, salvar os produtos no catálogo `core.Produto`, configurar Access Token por usuário (criptografado com `CREDENTIAL_ENCRYPTION_KEY`) ou via `ML_ACCESS_TOKEN`, cadastrar o link oficial de afiliado de cada anúncio individualmente ou importar em lote o arquivo `affiliate_links.json` por ID/URL e exportar CSV/JSON. `ML_AFFILIATE_ID` é apenas referência e nunca é usado para inventar tracking URLs.
-
-As métricas da Home continuam usando as tabelas compartilhadas `core.Produto` e `core.Afiliado`: produtos do Mercado Livre entram nos totais gerais; links configurados entram no gráfico de marketplace junto com o Magalu. Produtos sem link afiliado ficam visíveis como pendentes, mas não são contados como links afiliados. O dashboard agora agrega os dados no banco (ORM/SQL) em vez de carregar todo o catálogo para Pandas; por isso `pandas` foi removido das dependências principais, pois não era utilizado em outro módulo.
-
-Atualização de instalação existente: faça backup do banco, instale `requirements.txt` e execute `python manage.py migrate`, `python manage.py check` e `python manage.py test mercado_livre core`. Consulte `mercado_livre/README.md` e `docs/BIBLIA_RECONSTRUCAO.md` para detalhes.
+- O executor da página de testes também possui teste isolado: `python manage.py test core.test_test_runner`.

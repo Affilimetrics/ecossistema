@@ -28,6 +28,3 @@ Informe a URL do Django no login. Para desenvolvimento local: `http://127.0.0.1:
 - Parar forçadamente uma busca Mercado Livre encerra o processo filho. Se o Chrome continuar aberto, feche-o manualmente; o perfil persistente permanece.
 
 Consulte `../docs/IMPLEMENTACAO_DESKTOP.md` para a arquitetura e o passo a passo completo.
-
-
-> **Nota de escopo:** o coletor Mercado Livre deste aplicativo desktop é uma integração local baseada em navegador/Playwright. Ele é separado do módulo web Django `/mercado-livre/`, que usa a API oficial de busca, aceita mapeamento `affiliate_links.json` e compartilha o catálogo/indicadores da Home. O procedimento e as limitações deste README referem-se somente ao executável desktop.

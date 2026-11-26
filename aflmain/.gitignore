@@ -23,3 +23,6 @@ desktop_app/dist/
 desktop_app/*.spec.bak
 **/.venv/
 desktop_app/integrations/mercado_livre/ml_session_cache/
+
+# Uploads locais de usuários (não versionar)
+media/

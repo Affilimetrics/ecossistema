@@ -1,8 +1,5 @@
 # Implementação do Skallora Desktop — arquitetura, integração e operação
 
-> **Escopo desta documentação:** este arquivo descreve somente o coletor Mercado Livre executado localmente pelo aplicativo Windows, via Playwright/Chrome e sessão do navegador. Ele é distinto do módulo web Django `mercado_livre/`, incluído posteriormente a partir de `mercado_livre_afiliados.zip`, que consulta a API oficial com `requests`, usa o login web compartilhado e persiste no catálogo central. O módulo web não depende do Chrome, Playwright ou do cache de sessão descrito abaixo.
-
-
 > Esta documentação descreve o que foi adicionado nesta entrega, os limites que permanecem e o procedimento para executar e compilar no Windows. O desktop é uma nova interface de operação; o Django continua sendo a fonte central de dados.
 
 ## 1. Resultado da implementação

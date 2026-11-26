@@ -1,14 +1,16 @@
 import json
 
+import pandas as pd
 
-from django.http import JsonResponse
+from django.conf import settings
+from django.http import JsonResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import User
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET
 from django.contrib import messages
 from django.db import transaction
@@ -17,6 +19,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .models import (Produto, Execucao, Oferta, LogExecucao, ConfiguracaoCanal,
                      ConfiguracaoAutomacao, TemplateOferta, AlertaSistema, ProdutoQuente, PerfilUsuario)
+from .forms import CadastroForm, PerfilForm, ExclusaoContaForm
+from .test_runner import TEST_SUITES, executar_suite_isolada
+from .account_deletion import excluir_conta_e_dados_relacionados
 from .services import criar_oferta, enviar_oferta, obter_produto_chefe_usuario
 from .template_service import garantir_templates_nativos, keywords_sem_template, garantir_registros_keywords, atualizar_produtos_quentes, normalizar_chave
 from .marketing import desconto
@@ -35,7 +40,6 @@ from ltv.analytics.metrics import dashboard_metrics as ltv_dashboard_metrics
 from cpa.analytics import build_dashboard_data as cpa_build_dashboard_data
 from cpa.models import Campaign as CPACampaign
 from financeiro.services.indicadores import dashboard_metrics as roi_dashboard_metrics
-from mercado_livre.models import SearchRun
 
 
 
@@ -68,57 +72,49 @@ def index(request):
 @login_required
 def home(request):
     """Home operacional do usuário autenticado, com métricas e gráficos."""
-    # Os gráficos usam agregações SQL e uma única fonte (core.Produto/Afiliado).
-    # Assim, Magalu, Mercado Livre e futuras integrações entram no mesmo conjunto,
-    # sem carregar todos os produtos em memória no worker web.
-    linked_products = (
+    produtos_qs = list(
         Produto.objects.filter(
             owner=request.user,
             afiliado__link_afiliado__isnull=False,
+        ).exclude(afiliado__link_afiliado="").values(
+            "categoria", "marketplace"
         )
-        .exclude(afiliado__link_afiliado="")
     )
+
+    df = pd.DataFrame(produtos_qs, columns=["categoria", "marketplace"])
+
     categorias_predefinidas = list(CATEGORIAS_PRINCIPAIS.values())
     categorias_lower = {str(c).strip().casefold(): c for c in categorias_predefinidas}
-    category_counts = {
-        str(row["categoria"] or ""): int(row["total"])
-        for row in linked_products.values("categoria").annotate(total=Count("pk"))
-    }
-    category_totals = {}
-    for raw_category, total in category_counts.items():
-        text_category = raw_category.strip()
-        if text_category.casefold().startswith("keyword:"):
-            normalized_category = "Outros"
-        else:
-            normalized_category = categorias_lower.get(text_category.casefold(), "Outros")
-        category_totals[normalized_category] = category_totals.get(normalized_category, 0) + total
 
-    if not category_counts:
+    if df.empty:
         categorias_chart = [["Categoria", "Links"], ["Outros", 0]]
         marketplaces_chart = [["Marketplace", "Links"], ["Nenhum", 0]]
     else:
-        categoria_rows = [
-            [categoria, int(category_totals.get(categoria, 0))]
-            for categoria in categorias_predefinidas
-        ]
-        outros = int(category_totals.get("Outros", 0))
+        def classificar_categoria(valor):
+            texto = str(valor or "").strip()
+            if texto.casefold().startswith("keyword:"):
+                return "Outros"
+            return categorias_lower.get(texto.casefold(), "Outros")
+
+        df["categoria_grafico"] = df["categoria"].map(classificar_categoria)
+        categoria_counts = (
+            df.groupby("categoria_grafico", dropna=False)
+            .size()
+            .sort_values(ascending=False)
+        )
+        # Mantém todas as categorias predefinidas no gráfico, mesmo sem links.
+        categoria_rows = [[categoria, int(categoria_counts.get(categoria, 0))]
+                          for categoria in categorias_predefinidas]
+        outros = int(categoria_counts.get("Outros", 0))
         if outros or not categoria_rows:
             categoria_rows.append(["Outros", outros])
         categorias_chart = [["Categoria", "Links"], *categoria_rows]
 
-        marketplace_rows = linked_products.values("marketplace").annotate(total=Count("pk")).order_by("-total", "marketplace")
-        display_names = {"MAGALU": "Magalu", "MERCADO_LIVRE": "Mercado Livre", "AMAZON": "Amazon"}
-        marketplaces_chart = [["Marketplace", "Links"]]
-        marketplaces_chart.extend([
-            [display_names.get((row["marketplace"] or "OUTROS").upper(), (row["marketplace"] or "Outros").replace("_", " ").title()), int(row["total"])]
-            for row in marketplace_rows
-        ])
+        marketplace_counts = df["marketplace"].fillna("OUTROS").replace("", "OUTROS").str.upper().value_counts()
+        marketplaces_chart = [["Marketplace", "Links"], *[[str(k), int(v)] for k, v in marketplace_counts.items()]]
 
     produtos = Produto.objects.filter(owner=request.user).count()
     links = Produto.objects.filter(owner=request.user, afiliado__link_afiliado__isnull=False).exclude(afiliado__link_afiliado="").count()
-    ml_products_count = Produto.objects.filter(owner=request.user, marketplace="MERCADO_LIVRE").count()
-    ml_affiliate_links_count = linked_products.filter(marketplace="MERCADO_LIVRE").count()
-    ml_search_runs_count = SearchRun.objects.filter(user=request.user).count()
     ofertas = Oferta.objects.filter(owner=request.user).count()
     enviadas = Oferta.objects.filter(owner=request.user, status="ENVIADA").count()
     ultima_execucao = Execucao.objects.filter(owner=request.user).first()
@@ -186,9 +182,6 @@ def home(request):
         "cpa_metrics": cpa_metrics,
         "cpa_active_campaigns_count": cpa_active_campaigns_count,
         "roi_metrics": roi_metrics,
-        "ml_products_count": ml_products_count,
-        "ml_affiliate_links_count": ml_affiliate_links_count,
-        "ml_search_runs_count": ml_search_runs_count,
     })
 
 
@@ -196,14 +189,28 @@ def login(request):
     if request.user.is_authenticated:
         return redirect("home")
     if request.method == "POST":
-        username = (request.POST.get("username") or "").strip().lower()
+        login_identifier = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
+        # Compatibilidade com contas antigas cujo username/e-mail foi salvo
+        # com maiúsculas ou cujo username não coincide exatamente com o e-mail.
+        account = User.objects.filter(email__iexact=login_identifier).order_by("pk").first()
+        if account is None:
+            account = User.objects.filter(username__iexact=login_identifier).order_by("pk").first()
+        username = account.username if account is not None else login_identifier.lower()
         user = authenticate(request, username=username, password=password)
         if user is not None:
             auth_login(request, user)
-            if not request.POST.get("remember_me"):
-                request.session.set_expiry(0)
-            return redirect(request.GET.get("next") or "home")
+            # "Lembrar de mim" prolonga somente a sessão; senha nunca é salva
+            # em cookie, localStorage ou outro armazenamento do navegador.
+            request.session.set_expiry(60 * 60 * 24 * 14 if request.POST.get("remember_me") else 0)
+            destination = request.POST.get("next") or request.GET.get("next") or "/home/"
+            if not url_has_allowed_host_and_scheme(
+                destination,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                destination = "/home/"
+            return redirect(destination)
         messages.error(request, "E-mail ou senha inválidos.")
     return render(request, "core/login.html")
 
@@ -211,42 +218,143 @@ def login(request):
 def cadastro(request):
     if request.user.is_authenticated:
         return redirect("home")
-    if request.method == "POST":
-        nome = (request.POST.get("nome") or "").strip()
-        email = (request.POST.get("email") or "").strip().lower()
-        senha = request.POST.get("password") or ""
-        confirmacao = request.POST.get("password_confirm") or ""
-        if not nome or not email or not senha:
-            messages.error(request, "Preencha todos os campos obrigatórios.")
-        elif senha != confirmacao:
-            messages.error(request, "As senhas não coincidem.")
-        elif User.objects.filter(username=email).exists() or User.objects.filter(email__iexact=email).exists():
-            messages.error(request, "Já existe uma conta com esse e-mail.")
-        else:
-            try:
-                validate_email(email)
-                validate_password(senha)
-                # Usuário e perfil formam uma única operação. Se a criação do
-                # perfil falhar, o usuário também é revertido e não fica uma
-                # conta incompleta no banco.
-                with transaction.atomic():
-                    user = User.objects.create_user(
-                        username=email, email=email, password=senha, first_name=nome
-                    )
-                    PerfilUsuario.objects.create(
-                        owner=user,
-                        pais=(request.POST.get("pais") or "Brasil").strip(),
-                        estado=(request.POST.get("estado") or "").strip(),
-                        cidade=(request.POST.get("cidade") or "").strip(),
-                        timezone=(request.POST.get("timezone") or "America/Sao_Paulo").strip(),
-                    )
-                auth_login(request, user)
-                messages.success(request, "Conta criada com sucesso.")
-                return redirect("home")
-            except ValidationError as exc:
-                for erro in exc.messages:
-                    messages.error(request, erro)
-    return render(request, "core/cadastro.html")
+    form = CadastroForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        dados = form.cleaned_data
+        # Usuário e perfil são criados na mesma transação para evitar conta
+        # sem perfil quando uma das gravações falha.
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=dados["email"],
+                email=dados["email"],
+                password=dados["password"],
+                first_name=dados["nome"],
+            )
+            PerfilUsuario.objects.create(
+                owner=user,
+                data_nascimento=dados.get("data_nascimento"),
+                telefone=dados.get("telefone", "").strip(),
+                pais=(dados.get("pais") or "Brasil").strip(),
+                estado=(dados.get("estado") or "").strip(),
+                cidade=(dados.get("cidade") or "").strip(),
+                timezone=dados.get("timezone") or "America/Sao_Paulo",
+            )
+        auth_login(request, user)
+        messages.success(request, "Conta criada com sucesso.")
+        return redirect("home")
+    return render(request, "core/cadastro.html", {"form": form})
+
+
+@login_required
+def perfil(request):
+    perfil_usuario, _ = PerfilUsuario.objects.get_or_create(owner=request.user)
+    form = PerfilForm(
+        request.POST or None,
+        request.FILES or None,
+        user=request.user,
+        profile=perfil_usuario,
+    )
+    if request.method == "POST" and form.is_valid():
+        dados = form.cleaned_data
+        foto_anterior = perfil_usuario.foto
+        foto_anterior_nome = foto_anterior.name if foto_anterior else ""
+        alterar_foto = bool(dados.get("foto") or dados.get("remover_foto"))
+
+        with transaction.atomic():
+            request.user.first_name = dados["nome"].strip()
+            request.user.email = dados["email"]
+            request.user.username = dados["email"]
+            update_fields = ["first_name", "email", "username"]
+            if dados.get("password"):
+                request.user.set_password(dados["password"])
+                update_fields.append("password")
+            request.user.save(update_fields=update_fields)
+
+            perfil_usuario.telefone = dados.get("telefone", "").strip()
+            perfil_usuario.data_nascimento = dados.get("data_nascimento")
+            perfil_usuario.pais = (dados.get("pais") or "").strip()
+            perfil_usuario.estado = (dados.get("estado") or "").strip()
+            perfil_usuario.cidade = (dados.get("cidade") or "").strip()
+            perfil_usuario.timezone = dados["timezone"]
+            perfil_usuario.meta_investimento_mensal = dados.get("meta_investimento_mensal")
+            perfil_usuario.meta_retorno_mensal = dados.get("meta_retorno_mensal")
+            perfil_usuario.plataformas_divulgacao = dados.get("plataformas_divulgacao") or []
+            perfil_usuario.nicho = (dados.get("nicho") or "").strip()
+            if dados.get("foto"):
+                perfil_usuario.foto = dados["foto"]
+            elif dados.get("remover_foto"):
+                perfil_usuario.foto = None
+            perfil_usuario.save()
+
+            foto_atual_nome = perfil_usuario.foto.name if perfil_usuario.foto else ""
+            if alterar_foto and foto_anterior_nome and foto_anterior_nome != foto_atual_nome:
+                storage = foto_anterior.storage
+                transaction.on_commit(lambda storage=storage, name=foto_anterior_nome: storage.delete(name))
+
+        if dados.get("password"):
+            update_session_auth_hash(request, request.user)
+        messages.success(request, "Perfil atualizado com sucesso.")
+        return redirect("perfil")
+
+    return render(request, "core/perfil.html", {
+        "form": form,
+        "perfil": perfil_usuario,
+        "exclusao_form": ExclusaoContaForm(user=request.user),
+    })
+
+
+@login_required
+@require_POST
+def excluir_conta(request):
+    form = ExclusaoContaForm(request.POST, user=request.user)
+    if not form.is_valid():
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+        return redirect("perfil")
+
+    user = request.user
+    # Os relacionamentos com on_delete=CASCADE removem os dados pertencentes
+    # à conta em todos os módulos. Auditorias com SET_NULL preservam o evento,
+    # mas deixam de apontar para o usuário excluído.
+    excluir_conta_e_dados_relacionados(user)
+    auth_logout(request)
+    return redirect("index")
+
+
+@staff_member_required
+@require_GET
+def painel_testes(request):
+    if not settings.DEBUG:
+        raise Http404
+    return render(request, "core/testes.html", {
+        "suites": TEST_SUITES,
+        "resultado": None,
+    })
+
+
+@staff_member_required
+def executar_testes_pela_interface(request):
+    if not settings.DEBUG:
+        raise Http404
+    if request.method != "POST":
+        return redirect("painel_testes")
+    suite_key = request.POST.get("suite", "")
+    resultado = None
+    if suite_key not in TEST_SUITES:
+        resultado = {
+            "success": False,
+            "output": "Selecione uma suíte de testes válida.",
+            "command": "",
+            "database": "Não iniciado",
+        }
+    else:
+        resultado = executar_suite_isolada(suite_key)
+    return render(request, "core/testes.html", {
+        "suites": TEST_SUITES,
+        "resultado": resultado,
+        "suite_selecionada": suite_key,
+    })
 
 
 def logout_view(request):
