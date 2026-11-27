@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext, Dispatch, SetStateAction, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, DollarSign, ShoppingCart, Tag, BarChart3, Users, ChevronDown, ChevronsRight, TrendingUp, Activity, Package, Bell, Settings, HelpCircle, LucideIcon, Flame, Radar, Target, Megaphone, X, Menu, MoreHorizontal, Store, RefreshCw, ArrowRight, ArrowLeft, Check, MessageCircle, Compass, ExternalLink, Plug, Calendar } from "lucide-react";
+import { Home, DollarSign, ShoppingCart, Tag, BarChart3, Users, ChevronDown, ChevronsRight, TrendingUp, Activity, Package, Bell, Settings, HelpCircle, LucideIcon, Flame, Radar, Target, Megaphone, X, Menu, MoreHorizontal, Store, RefreshCw, ArrowRight, ArrowLeft, Check, MessageCircle, Compass, ExternalLink, Plug, Calendar, Gauge } from "lucide-react";
 import { Line, LineChart, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { motion, AnimatePresence, Variants, animate, useMotionValue } from "framer-motion";
 import { NotificationPopover } from "../ui/notification-popover";
@@ -51,7 +51,7 @@ const INTERACTIVE_TOUR_STEPS: InteractiveTourStep[] = [
     targetId: "tour-navigation",
     badge: "2 de 4 • Navegação",
     title: "Seu Menu de Ferramentas",
-    description: "Aqui você acessa todas as áreas do Scallora: Central de Divulgação, Catálogo de Produtos, Coleta Geral, Análises e Remarketing.",
+    description: "Aqui você acessa todas as áreas do Scallora: Métricas, Central de Divulgação, Catálogo de Produtos, Produtos Em Alta, Coleta Geral, Análises e Remarketing.",
     tip: "No desktop, você pode recolher o menu clicando em 'Ocultar' no rodapé.",
   },
   {
@@ -75,16 +75,15 @@ const HELP_GUIDE_STEPS: HelpGuideStep[] = [
   { title: "Conecte seus Marketplaces", subtitle: "Guia Rápido • 1 de 4", description: "Comece acessando Configurações > Integrações para vincular suas contas de afiliado nos principais marketplaces.", highlights: ["Conecte Amazon, Mercado Livre, Shopee, Magazine Luiza e TikTok Shop", "Gerencie o status de sincronização de cada plataforma em um só lugar", "Mantenha seus links de afiliado sempre ativos e prontos para coleta"], icon: Plug, accentColor: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50" },
   { title: "Configure sua Coleta Geral", subtitle: "Guia Rápido • 2 de 4", description: "Na aba Coleta Geral, você escolhe o marketplace de origem e define quais categorias deseja minerar automaticamente.", highlights: ["Selecione plataformas como Amazon, Mercado Livre, Shopee e Magalu", "Crie categorias personalizadas com palavras-chave específicas", "Ative o modo Loop para coletas contínuas sem intervenção manual"], icon: Store, accentColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50" },
   { title: "Recupere Vendas no Remarketing", subtitle: "Guia Rápido • 3 de 4", description: "Nem todo clique vira compra imediata. Acompanhe os visitantes que clicaram nos seus links e não finalizaram o pedido.", highlights: ["Filtre oportunidades por produto, link de afiliado ou período", "Adicione observações internas e altere o status de acompanhamento", "Monitore sua taxa de recuperação e receita recuperada"], icon: RefreshCw, accentColor: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50" },
-  { title: "Analise e Exporte Resultados", subtitle: "Guia Rápido • 4 de 4", description: "Use a aba Análises para comparar o desempenho entre plataformas e identificar os produtos mais lucrativos.", highlights: ["Visualize gráficos de evolução diária por métrica", "Compare Amazon, Mercado Livre, Shopee e Magalu lado a lado", "Exporte relatórios completos em Excel (.xlsx) com um clique"], icon: BarChart3, accentColor: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50" },
+  { title: "Analise e Exporte Resultados", subtitle: "Guia Rápido • 4 de 4", description: "Use as abas Métricas e Análises para acompanhar indicadores financeiros detalhados, criar fórmulas próprias e comparar o desempenho entre plataformas.", highlights: ["Acompanhe ROI, CPA, CPC, lucro líquido e crie métricas personalizadas na aba Métricas", "Compare Amazon, Mercado Livre, Shopee e Magalu lado a lado em Análises", "Exporte relatórios completos em Excel (.xlsx) com um clique"], icon: BarChart3, accentColor: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50" },
 ];
 
 interface OptionProps { Icon: LucideIcon; title: string; selected: string; setSelected: Dispatch<SetStateAction<string>>; open: boolean; notifs?: number; path?: string; onClick?: () => void; onNavigateCallback?: () => void; tourId?: string; }
 interface DashboardShellProps { children: React.ReactNode; isDark: boolean; setIsDark?: Dispatch<SetStateAction<boolean>>; userId?: string; }
 interface ExampleContentProps { isDark: boolean; setIsDark: Dispatch<SetStateAction<boolean>>; }
 
-const ADVANCED_ROUTES = ["/divulgacao", "/products", "/hot-products", "/coleta-geral", "/analytics", "/remarketing"];
 const MOBILE_PRIMARY_NAV = [{ Icon: Home, title: "Início", path: "/dashboardv2" }, { Icon: Megaphone, title: "Divulgar", path: "/divulgacao" }, { Icon: ShoppingCart, title: "Produtos", path: "/products" }, { Icon: Flame, title: "Em Alta", path: "/hot-products" }];
-const MOBILE_EXTRA_NAV = [{ Icon: Radar, title: "Coleta geral", path: "/coleta-geral" }, { Icon: BarChart3, title: "Análises", path: "/analytics" }, { Icon: Target, title: "Remarketing", path: "/remarketing" }, { Icon: Settings, title: "Configurações", path: "/settings" }, { Icon: HelpCircle, title: "Ajuda e suporte", path: undefined, action: "help" as const }];
+const MOBILE_EXTRA_NAV = [{ Icon: Gauge, title: "Métricas", path: "/metrics" }, { Icon: Radar, title: "Coleta geral", path: "/coleta-geral" }, { Icon: BarChart3, title: "Análises", path: "/analytics" }, { Icon: Target, title: "Remarketing", path: "/remarketing" }, { Icon: Settings, title: "Configurações", path: "/settings" }, { Icon: HelpCircle, title: "Ajuda e suporte", path: undefined, action: "help" as const }];
 const containerVars: Variants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08, ease: "easeOut" } } };
 const itemVars: Variants = { hidden: { opacity: 0, y: 15 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" } } };
 
@@ -290,29 +289,19 @@ export const Sidebar = () => {
   const [tabletDrawerOpen, setTabletDrawerOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
-  const [advancedOpen, setAdvancedOpen] = useState(() => ADVANCED_ROUTES.includes(location.pathname));
   useEffect(() => { setTabletDrawerOpen(false); setMobileMoreOpen(false); }, [location.pathname, viewportMode]);
 
   const renderNavLinks = (isExpanded: boolean, onItemClick?: () => void) => (
     <>
       <div className="space-y-1 mb-8 flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <Option Icon={Home} title="Dashboard" selected={selected} setSelected={setSelected} open={isExpanded} path="/dashboardv2" onNavigateCallback={onItemClick} />
-        <button type="button" onClick={() => setAdvancedOpen((prev) => !prev)} aria-expanded={advancedOpen} className="relative flex h-11 w-full items-center rounded-md transition-colors duration-200 focus:outline-none text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200">
-          <div className="grid h-full w-12 shrink-0 place-content-center"><ChevronsRight className={`h-4 w-4 transition-transform duration-300 ${advancedOpen ? "rotate-90" : ""}`} /></div>
-          <span className={`text-sm font-medium transition-opacity duration-200 ${isExpanded ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>Avançado</span>
-        </button>
-        <AnimatePresence initial={false}>
-          {advancedOpen && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="overflow-hidden space-y-1">
-              <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={isExpanded} path="/divulgacao" onNavigateCallback={onItemClick} />
-              <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={isExpanded} path="/products" onNavigateCallback={onItemClick} />
-              <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={isExpanded} path="/hot-products" onNavigateCallback={onItemClick} />
-              <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={isExpanded} path="/coleta-geral" onNavigateCallback={onItemClick} />
-              <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={isExpanded} path="/analytics" onNavigateCallback={onItemClick} />
-              <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={isExpanded} path="/remarketing" onNavigateCallback={onItemClick} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <Option Icon={Gauge} title="Métricas" selected={selected} setSelected={setSelected} open={isExpanded} path="/metrics" onNavigateCallback={onItemClick} />
+        <Option Icon={Megaphone} title="Central de Divulgação" selected={selected} setSelected={setSelected} open={isExpanded} path="/divulgacao" onNavigateCallback={onItemClick} />
+        <Option Icon={ShoppingCart} title="Produtos" selected={selected} setSelected={setSelected} open={isExpanded} path="/products" onNavigateCallback={onItemClick} />
+        <Option Icon={Flame} title="Produtos Em Alta" selected={selected} setSelected={setSelected} open={isExpanded} path="/hot-products" onNavigateCallback={onItemClick} />
+        <Option Icon={Radar} title="Coleta geral" selected={selected} setSelected={setSelected} open={isExpanded} path="/coleta-geral" onNavigateCallback={onItemClick} />
+        <Option Icon={BarChart3} title="Análises" selected={selected} setSelected={setSelected} open={isExpanded} path="/analytics" onNavigateCallback={onItemClick} />
+        <Option Icon={Target} title="Remarketing" selected={selected} setSelected={setSelected} open={isExpanded} path="/remarketing" onNavigateCallback={onItemClick} />
       </div>
       <div className="mt-auto border-t border-gray-200 dark:border-gray-800 pt-4 space-y-1">
         <div className={`px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide transition-opacity duration-200 ${isExpanded ? "opacity-100 delay-100" : "opacity-0 pointer-events-none"}`}>Conta</div>

@@ -1,99 +1,93 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
-import './styles.css';
+import * as React from "react";
+import * as ReactDOM from "react-dom/client";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import MarketingPage from "./marketing-page/MarketingPage.jsx";
+import SignInSide from "./pages/auth/sign-in-side/SignInSide.jsx";
+import SignUp from "./pages/auth/sign-up/SignUp.jsx";
+import { DashboardShell, ExampleContent, DarkModeProvider, useDarkMode } from "./components/layout/dashboard-with-collapsible-sidebar";
+import Products from "./pages/dashboard/products";
+import HotProducts from "./pages/dashboard/hot-products";
+import ColetaGeral from "./pages/dashboard/coleta-geral";
+import Analytics from "./pages/dashboard/analytics";
+import Remarketing from "./pages/dashboard/remarketing";
+import Settings from "./pages/dashboard/settings";
+import CentralDivulgacao from "./pages/dashboard/central-divulgacao";
+import { Metrics } from "./pages/dashboard/metrics";
+import "./styles.css";
 
-// Autenticação e Páginas Públicas
-import SignInSide from './pages/auth/sign-in-side/SignInSide';
-import SignUp from './pages/auth/sign-up/SignUp';
-import MarketingPage from './marketing-page/MarketingPage';
-
-// Componentes de Layout do Dashboard
-import {
-  DashboardShell,
-  DarkModeProvider,
-  ExampleContent,
-  useDarkMode,
-} from './components/layout/dashboard-with-collapsible-sidebar';
-
-// Páginas do Dashboard
-import HotProductsContent from './pages/dashboard/hot-products';
-import ColetaGeral from './pages/dashboard/coleta-geral';
-import RemarketingPage from './pages/dashboard/remarketing';
-import SettingsPage from './pages/dashboard/settings';
-import CentralDivulgacao from './pages/dashboard/central-divulgacao';
-import ProductsPage from './pages/dashboard/products';
-import AnalyticsPage from './pages/dashboard/analytics'; // Adicionado
-
-// Layout único: a sidebar e o tema permanecem ao trocar de rota.
-const DashboardLayout = () => {
+function DashboardLayout() {
   const { isDark, setIsDark } = useDarkMode();
   return (
     <DashboardShell isDark={isDark} setIsDark={setIsDark}>
       <Outlet />
     </DashboardShell>
   );
-};
+}
 
-const DashboardPage = () => {
+function DashboardHome() {
   const { isDark, setIsDark } = useDarkMode();
   return <ExampleContent isDark={isDark} setIsDark={setIsDark} />;
-};
+}
 
-const HotProductsPage = () => {
+function MetricsPageWrapper() {
   const { isDark, setIsDark } = useDarkMode();
-  return <HotProductsContent isDark={isDark} setIsDark={setIsDark} />;
-};
+  return <Metrics isDark={isDark} setIsDark={setIsDark} />;
+}
 
-const ColetaGeralPage = () => {
+function ProductsPageWrapper() {
+  const { isDark, setIsDark } = useDarkMode();
+  return <Products isDark={isDark} setIsDark={setIsDark} />;
+}
+
+function HotProductsPageWrapper() {
+  const { isDark, setIsDark } = useDarkMode();
+  return <HotProducts isDark={isDark} setIsDark={setIsDark} />;
+}
+
+function ColetaGeralPageWrapper() {
   const { isDark, setIsDark } = useDarkMode();
   return <ColetaGeral isDark={isDark} setIsDark={setIsDark} />;
-};
+}
 
-const RemarketingPageWrapper = () => {
+function AnalyticsPageWrapper() {
   const { isDark, setIsDark } = useDarkMode();
-  return <RemarketingPage isDark={isDark} setIsDark={setIsDark} />;
-};
+  return <Analytics isDark={isDark} setIsDark={setIsDark} />;
+}
 
-const SettingsPageWrapper = () => {
+function RemarketingPageWrapper() {
   const { isDark, setIsDark } = useDarkMode();
-  return <SettingsPage isDark={isDark} setIsDark={setIsDark} />;
-};
+  return <Remarketing isDark={isDark} setIsDark={setIsDark} />;
+}
 
-const CentralDivulgacaoWrapper = () => {
+function SettingsPageWrapper() {
+  const { isDark, setIsDark } = useDarkMode();
+  return <Settings isDark={isDark} setIsDark={setIsDark} />;
+}
+
+function CentralDivulgacaoPageWrapper() {
   const { isDark, setIsDark } = useDarkMode();
   return <CentralDivulgacao isDark={isDark} setIsDark={setIsDark} />;
-};
+}
 
-const ProductsPageWrapper = () => {
-  const { isDark, setIsDark } = useDarkMode();
-  return <ProductsPage isDark={isDark} setIsDark={setIsDark} />;
-};
-
-// Wrapper para a nova página de Análises
-const AnalyticsPageWrapper = () => {
-  const { isDark, setIsDark } = useDarkMode();
-  return <AnalyticsPage isDark={isDark} setIsDark={setIsDark} />;
-};
-
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <DarkModeProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<SignInSide />} />
+          <Route path="/" element={<MarketingPage />} />
+          <Route path="/login" element={<SignInSide />} />
+          <Route path="/cadastro" element={<SignUp />} />
           <Route element={<DashboardLayout />}>
-            <Route path="/dashboardv2" element={<DashboardPage />} />
+            <Route path="/dashboardv2" element={<DashboardHome />} />
+            <Route path="/metrics" element={<MetricsPageWrapper />} />
+            <Route path="/divulgacao" element={<CentralDivulgacaoPageWrapper />} />
             <Route path="/products" element={<ProductsPageWrapper />} />
-            <Route path="/hot-products" element={<HotProductsPage />} />
-            <Route path="/coleta-geral" element={<ColetaGeralPage />} />
+            <Route path="/hot-products" element={<HotProductsPageWrapper />} />
+            <Route path="/coleta-geral" element={<ColetaGeralPageWrapper />} />
+            <Route path="/analytics" element={<AnalyticsPageWrapper />} />
             <Route path="/remarketing" element={<RemarketingPageWrapper />} />
             <Route path="/settings" element={<SettingsPageWrapper />} />
-            <Route path="/divulgacao" element={<CentralDivulgacaoWrapper />} />
-            <Route path="/analytics" element={<AnalyticsPageWrapper />} /> {/* Adicionado */}
           </Route>
-          <Route path="/sign-up" element={<SignUp />} />
-          <Route path="/marketing" element={<MarketingPage />} />
         </Routes>
       </BrowserRouter>
     </DarkModeProvider>
