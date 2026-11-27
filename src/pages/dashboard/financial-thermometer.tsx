@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { motion, animate, useMotionValue } from "framer-motion";
+import {
+  motion,
+  animate,
+  useMotionValue,
+  useTransform,
+  useReducedMotion,
+} from "framer-motion";
 import {
   Thermometer,
   Flame,
@@ -63,9 +69,7 @@ const LEVEL_CONFIG: Record<
   HealthLevel,
   {
     label: string;
-    arcStart: string;
-    arcEnd: string;
-    accent: string;
+    hubBorderHex: string;
     badgeBg: string;
     badgeText: string;
     badgeBorder: string;
@@ -75,9 +79,7 @@ const LEVEL_CONFIG: Record<
 > = {
   critical: {
     label: "Crítico",
-    arcStart: "#f87171",
-    arcEnd: "#dc2626",
-    accent: "#dc2626",
+    hubBorderHex: "#ef4444", // red-500
     badgeBg: "bg-red-500/8 dark:bg-red-500/12",
     badgeText: "text-red-700 dark:text-red-400",
     badgeBorder: "border-red-500/20",
@@ -86,9 +88,7 @@ const LEVEL_CONFIG: Record<
   },
   warning: {
     label: "Atenção",
-    arcStart: "#fbbf24",
-    arcEnd: "#d97706",
-    accent: "#d97706",
+    hubBorderHex: "#f59e0b", // amber-500
     badgeBg: "bg-amber-500/8 dark:bg-amber-500/12",
     badgeText: "text-amber-700 dark:text-amber-400",
     badgeBorder: "border-amber-500/20",
@@ -97,20 +97,16 @@ const LEVEL_CONFIG: Record<
   },
   healthy: {
     label: "Saudável",
-    arcStart: "#60a5fa",
-    arcEnd: "#2563eb",
-    accent: "#2563eb",
-    badgeBg: "bg-blue-500/8 dark:bg-blue-500/12",
-    badgeText: "text-blue-700 dark:text-blue-400",
-    badgeBorder: "border-blue-500/20",
+    hubBorderHex: "#10b981", // emerald-500
+    badgeBg: "bg-emerald-500/8 dark:bg-emerald-500/12",
+    badgeText: "text-emerald-700 dark:text-emerald-400",
+    badgeBorder: "border-emerald-500/20",
     summary: "Operação equilibrada, com ritmo constante de tráfego e comissões recorrentes.",
     icon: CheckCircle2,
   },
   excellent: {
     label: "Excelente",
-    arcStart: "#34d399",
-    arcEnd: "#059669",
-    accent: "#059669",
+    hubBorderHex: "#10b981", // emerald-500
     badgeBg: "bg-emerald-500/8 dark:bg-emerald-500/12",
     badgeText: "text-emerald-700 dark:text-emerald-400",
     badgeBorder: "border-emerald-500/20",
@@ -121,7 +117,7 @@ const LEVEL_CONFIG: Record<
 
 function computeHealthLevel(score: number): HealthLevel {
   if (score >= 85) return "excellent";
-  if (score >= 65) return "healthy";
+  if (score >= 70) return "healthy";
   if (score >= 40) return "warning";
   return "critical";
 }
@@ -156,134 +152,235 @@ function generateOperationalInsight(factors: FinancialFactorInput[]): string {
 
 const AnimatedNumber = ({
   target,
-  duration = 0.85,
+  duration = 0.95,
 }: {
   target: number;
   duration?: number;
 }) => {
-  const count = useMotionValue(0);
-  const [display, setDisplay] = useState(0);
+  const prefersReducedMotion = useReducedMotion();
+  const count = useMotionValue(prefersReducedMotion ? target : 0);
+  const [display, setDisplay] = useState(prefersReducedMotion ? Math.round(target) : 0);
 
   useEffect(() => {
+    if (prefersReducedMotion) {
+      count.set(target);
+      setDisplay(Math.round(target));
+      return;
+    }
+
     const controls = animate(count, target, {
       duration,
       ease: [0.22, 1, 0.36, 1],
       onUpdate: (latest) => setDisplay(Math.round(latest)),
     });
     return () => controls.stop();
-  }, [target, duration, count]);
+  }, [target, duration, count, prefersReducedMotion]);
 
   return <span className="tabular-nums">{display}</span>;
 };
 
 const GaugeArc = ({
   score,
-  startColor,
-  endColor,
-  accentColor,
-  size = 204,
+  level,
+  hubBorderColor,
 }: {
   score: number;
-  startColor: string;
-  endColor: string;
-  accentColor: string;
-  size?: number;
+  level: HealthLevel;
+  hubBorderColor: string;
 }) => {
-  const stroke = 11;
-  const radius = (size - stroke * 2) / 2;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circumference = Math.PI * radius;
+  const prefersReducedMotion = useReducedMotion();
   const clampedScore = Math.max(0, Math.min(100, score));
-  const progress = (clampedScore / 100) * circumference;
 
-  const angleRad = Math.PI * (1 - clampedScore / 100);
-  const knobX = cx + radius * Math.cos(angleRad);
-  const knobY = cy - radius * Math.sin(angleRad);
+  // Geometria solicitada: viewBox 240x160, pivô em (120, 130), raio ~96, espessura ~16
+  const cx = 120;
+  const cy = 130;
+  const radius = 94;
+  const stroke = 16;
+  const hubRadius = 28;
 
-  const ticks = Array.from({ length: 17 }, (_, i) => {
-    const tAngle = Math.PI * (1 - i / 16);
-    const innerR = radius - stroke / 2 - 5;
-    const outerR = radius - stroke / 2 - (i % 4 === 0 ? 10 : 7.5);
+  // Converte score (0..100) em ponto (x, y) no semicírculo superior
+  const polarToCartesian = (pct: number, r = radius) => {
+    const angleRad = Math.PI * (1 - pct / 100);
     return {
-      x1: cx + innerR * Math.cos(tAngle),
-      y1: cy - innerR * Math.sin(tAngle),
-      x2: cx + outerR * Math.cos(tAngle),
-      y2: cy - outerR * Math.sin(tAngle),
-      major: i % 4 === 0,
+      x: cx + r * Math.cos(angleRad),
+      y: cy - r * Math.sin(angleRad),
     };
+  };
+
+  const describeSegment = (startPct: number, endPct: number) => {
+    const start = polarToCartesian(startPct);
+    const end = polarToCartesian(endPct);
+    return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${radius} ${radius} 0 0 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+  };
+
+  // Vão uniforme de ~1.5° (0.83% de 180°) entre as 3 zonas
+  const gapPct = 0.83;
+  const zones = [
+    {
+      id: "red" as const,
+      start: 0,
+      end: 40 - gapPct / 2,
+      color: "#ef4444", // red-500
+      active: clampedScore < 40,
+    },
+    {
+      id: "yellow" as const,
+      start: 40 + gapPct / 2,
+      end: 70 - gapPct / 2,
+      color: "#f59e0b", // amber-500
+      active: clampedScore >= 40 && clampedScore < 70,
+    },
+    {
+      id: "green" as const,
+      start: 70 + gapPct / 2,
+      end: 100,
+      color: "#10b981", // emerald-500
+      active: clampedScore >= 70,
+    },
+  ];
+
+  // Rótulos externos nos limites das zonas (0, 40, 70, 100)
+  const boundaryMarkers = [
+    { value: 0, pct: 0, anchor: "end" as const, dx: -4, dy: 3 },
+    { value: 40, pct: 40, anchor: "end" as const, dx: -2, dy: -2 },
+    { value: 70, pct: 70, anchor: "start" as const, dx: 2, dy: -2 },
+    { value: 100, pct: 100, anchor: "start" as const, dx: 4, dy: 3 },
+  ];
+
+  // Ângulo alvo: -90° (esquerda, score 0) até +90° (direita, score 100)
+  const targetAngle = -90 + clampedScore * 1.8;
+  const needleAngle = useMotionValue(prefersReducedMotion ? targetAngle : -90);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      needleAngle.set(targetAngle);
+      return;
+    }
+
+    const controls = animate(needleAngle, targetAngle, {
+      duration: 0.95,
+      ease: [0.22, 1, 0.36, 1],
+    });
+    return () => controls.stop();
+  }, [targetAngle, needleAngle, prefersReducedMotion]);
+
+  // Calcula os vértices (x, y) do polígono da agulha diretamente a partir do ângulo,
+  // evitando depender de transformOrigin em elementos SVG internos.
+  const needlePoints = useTransform(needleAngle, (deg) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const perpX = -sin;
+    const perpY = cos;
+
+    // Ponta chega exatamente até a borda interna da faixa colorida (radius - stroke / 2 - 2)
+    const tipLength = radius - stroke / 2 - 2; // 84px
+    // Contrapeso curto do lado oposto do pivô (aparece levemente atrás do hub se necessário ou estabiliza o eixo)
+    const tailLength = 14;
+    const halfBaseWidth = 4.5;
+
+    const tipX = cx + tipLength * cos;
+    const tipY = cy + tipLength * sin;
+
+    const leftX = cx + halfBaseWidth * perpX;
+    const leftY = cy + halfBaseWidth * perpY;
+
+    const tailX = cx - tailLength * cos;
+    const tailY = cy - tailLength * sin;
+
+    const rightX = cx - halfBaseWidth * perpX;
+    const rightY = cy - halfBaseWidth * perpY;
+
+    return `${tipX.toFixed(2)},${tipY.toFixed(2)} ${leftX.toFixed(2)},${leftY.toFixed(2)} ${tailX.toFixed(2)},${tailY.toFixed(2)} ${rightX.toFixed(2)},${rightY.toFixed(2)}`;
   });
 
+  const levelLabel = LEVEL_CONFIG[level].label;
+
   return (
-    <svg
-      width={size}
-      height={size / 1.72}
-      viewBox={`0 0 ${size} ${size / 1.72}`}
-      className="overflow-visible"
+    <div
+      role="meter"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={clampedScore}
+      aria-label="Score geral da operação"
+      className="relative w-full max-w-[260px] mx-auto select-none"
     >
-      <defs>
-        <linearGradient id="scalloraGaugeProgress" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor={startColor} />
-          <stop offset="100%" stopColor={endColor} />
-        </linearGradient>
-      </defs>
+      <span className="sr-only">
+        {clampedScore} de 100, nível {levelLabel}
+      </span>
 
-      {ticks.map((t, idx) => (
-        <line
-          key={idx}
-          x1={t.x1}
-          y1={t.y1}
-          x2={t.x2}
-          y2={t.y2}
-          stroke="currentColor"
-          strokeWidth={t.major ? 1.25 : 0.85}
-          strokeLinecap="round"
-          className={
-            t.major
-              ? "text-gray-300 dark:text-gray-700"
-              : "text-gray-200 dark:text-gray-800"
-          }
-        />
-      ))}
-
-      {/* Trilho base neutro */}
-      <path
-        d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        className="text-gray-100 dark:text-gray-800/90"
-      />
-
-      {/* Arco de progresso refinado */}
-      <motion.path
-        d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
-        fill="none"
-        stroke="url(#scalloraGaugeProgress)"
-        strokeWidth={stroke}
-        strokeLinecap="round"
-        initial={{ strokeDasharray: `0 ${circumference}` }}
-        animate={{ strokeDasharray: `${progress} ${circumference}` }}
-        transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
-      />
-
-      {/* Marcador integrado à extremidade do arco */}
-      <motion.g
-        initial={{ opacity: 0, scale: 0.6 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.45, duration: 0.35, ease: "easeOut" }}
+      <svg
+        viewBox="0 0 240 160"
+        width="100%"
+        className="block overflow-visible"
+        aria-hidden="true"
       >
-        <circle
-          cx={knobX}
-          cy={knobY}
-          r={4.25}
-          fill="#ffffff"
-          stroke={accentColor}
-          strokeWidth={2.25}
+        {/* 1. Arco dividido em 3 faixas de cor com pontas retas */}
+        {zones.map((zone) => (
+          <path
+            key={zone.id}
+            d={describeSegment(zone.start, zone.end)}
+            fill="none"
+            stroke={zone.color}
+            strokeWidth={stroke}
+            strokeLinecap="butt"
+            style={{
+              opacity: zone.active ? 1 : 0.3,
+              transition: "opacity 300ms ease",
+            }}
+          />
+        ))}
+
+        {/* 2. Rótulos externos nos limites (0, 40, 70, 100) */}
+        {boundaryMarkers.map((marker) => {
+          const pos = polarToCartesian(marker.pct, radius + stroke / 2 + 8);
+          return (
+            <text
+              key={marker.value}
+              x={pos.x + marker.dx}
+              y={pos.y + marker.dy}
+              textAnchor={marker.anchor}
+              className="fill-gray-400 dark:fill-gray-500 text-[10px] font-medium tabular-nums"
+            >
+              {marker.value}
+            </text>
+          );
+        })}
+
+        {/* 3. Agulha afilada que nasce no pivô (120, 130) — desenhada ANTES do hub para sair por trás */}
+        <motion.polygon
+          points={needlePoints}
+          fill="currentColor"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          className="text-gray-900 dark:text-gray-100 stroke-white dark:stroke-gray-900"
         />
-      </motion.g>
-    </svg>
+
+        {/* 4. Hub circular no pivô (raio 28) com borda na cor da zona atual */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r={hubRadius}
+          stroke={hubBorderColor}
+          strokeWidth={2}
+          className="fill-white dark:fill-gray-900 transition-colors duration-300"
+        />
+      </svg>
+
+      {/* Número centralizado exatamente sobre o hub (pivô em 50% X, 81.25% Y do viewBox 240x160) */}
+      <div
+        aria-hidden="true"
+        style={{ left: "50%", top: "81.25%" }}
+        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center"
+      >
+        <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-gray-50 leading-none">
+          <AnimatedNumber target={clampedScore} duration={0.95} />
+        </span>
+        <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 leading-none mt-0.5">
+          /100
+        </span>
+      </div>
+    </div>
   );
 };
 
@@ -293,11 +390,11 @@ const FactorRow = ({ factor }: { factor: FinancialFactorInput }) => {
   const hasRealDelta = Boolean(factor.delta && factor.delta.trim().length > 0);
 
   const barTone =
-    clampedValue >= 75
-      ? "bg-emerald-500/80 dark:bg-emerald-400/75"
-      : clampedValue >= 55
-      ? "bg-blue-500/80 dark:bg-blue-400/75"
-      : "bg-amber-500/80 dark:bg-amber-400/75";
+    clampedValue >= 70
+      ? "bg-emerald-500/85 dark:bg-emerald-400/80"
+      : clampedValue >= 40
+      ? "bg-amber-500/85 dark:bg-amber-400/80"
+      : "bg-red-500/85 dark:bg-red-400/80";
 
   return (
     <div className="space-y-1.5">
@@ -377,33 +474,31 @@ export default function FinancialThermometer({
         </span>
       </div>
 
-      {/* Velocímetro e Score Principal */}
-      <div className="my-4 flex flex-col items-center">
-        <div className="relative flex flex-col items-center justify-center">
-          <GaugeArc
-            score={clampedScore}
-            startColor={config.arcStart}
-            endColor={config.arcEnd}
-            accentColor={config.accent}
-            size={204}
-          />
+      {/* Velocímetro com Agulha Central e Hub */}
+      <div className="my-3 flex flex-col items-center">
+        <GaugeArc
+          score={clampedScore}
+          level={level}
+          hubBorderColor={config.hubBorderHex}
+        />
 
-          <div className="absolute bottom-0.5 flex flex-col items-center">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
-              Score Geral
-            </span>
-            <div className="flex items-baseline gap-0.5 mt-0.5">
-              <span className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-50 leading-none">
-                <AnimatedNumber target={clampedScore} duration={0.9} />
-              </span>
-              <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
-                /100
-              </span>
-            </div>
-          </div>
+        {/* Legenda das 3 faixas com intervalos */}
+        <div className="flex items-center justify-center gap-3.5 mt-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
+            <span>0–39</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-amber-500" />
+            <span>40–69</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <span>70–100</span>
+          </span>
         </div>
 
-        <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3 leading-relaxed max-w-[270px]">
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2.5 leading-relaxed max-w-[270px]">
           {config.summary}
         </p>
       </div>
