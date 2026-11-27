@@ -13,11 +13,12 @@ import {
   MousePointer,
   RotateCcw,
   SlidersHorizontal,
-  Calculator,
   Calendar,
   ChevronDown,
   LayoutGrid,
   LineChart as LineChartIcon,
+  Trash2,
+  Plus,
   LucideIcon,
 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -26,14 +27,14 @@ import { UserNav } from "../../components/ui/user-nav";
 import { AnimatedThemeToggler } from "../../components/ui/animated-theme-toggler";
 import {
   STANDARD_METRICS,
-  evaluateFormula,
-  formatFormulaDisplay,
   formatMetricValue,
   type MetricsDataPoint,
   type MetricsInput,
   type StandardMetricId,
 } from "../../lib/metricsFormulas";
 import {
+  DEFAULT_CUSTOM_SECTION,
+  deleteCustomSectionConfig,
   loadCustomSectionConfig,
   resetCustomSectionConfig,
   saveCustomSectionConfig,
@@ -72,7 +73,6 @@ const MOCK_METRICS_INPUT: MetricsInput = {
   reembolsos: 14,
 };
 
-// Curva diária relativa para gerar a evolução histórica de cada dia do período
 const DAILY_PROFILES = [
   { inv: 0.78, fat: 0.65, prod: 0.66, links: 0.85, clk: 0.72, chk: 0.68, vis: 0.74, conv: 0.64, reemb: 1.15 },
   { inv: 0.82, fat: 0.71, prod: 0.72, links: 0.88, clk: 0.77, chk: 0.73, vis: 0.79, conv: 0.71, reemb: 1.05 },
@@ -90,17 +90,10 @@ const DAILY_PROFILES = [
   { inv: 1.10, fat: 1.21, prod: 1.20, links: 1.00, clk: 1.16, chk: 1.19, vis: 1.14, conv: 1.20, reemb: 0.78 },
 ] as const;
 
-/**
- * Ponto único de leitura dos valores-base consolidados do período.
- * Pronto para ser substituído por chamada autenticada ao backend Django.
- */
 export function getMetricsInput(): MetricsInput {
   return { ...MOCK_METRICS_INPUT };
 }
 
-/**
- * Série temporal diária para alimentar os gráficos de todas as métricas (padrão e personalizadas).
- */
 export function getMetricsTimeSeries(days: number): MetricsDataPoint[] {
   const base = getMetricsInput();
   const today = new Date();
@@ -111,18 +104,42 @@ export function getMetricsTimeSeries(days: number): MetricsDataPoint[] {
     d.setDate(today.getDate() - i);
 
     const profile =
-      DAILY_PROFILES[(DAILY_PROFILES.length - 1 - (i % DAILY_PROFILES.length) + DAILY_PROFILES.length) % DAILY_PROFILES.length];
+      DAILY_PROFILES[
+        (DAILY_PROFILES.length -
+          1 -
+          (i % DAILY_PROFILES.length) +
+          DAILY_PROFILES.length) %
+          DAILY_PROFILES.length
+      ];
 
     const dailyInput: MetricsInput = {
-      valorInvestido: +(base.valorInvestido / days * profile.inv).toFixed(2),
-      faturamentoBruto: +(base.faturamentoBruto / days * profile.fat).toFixed(2),
-      produtosVendidos: Math.max(1, Math.round((base.produtosVendidos / days) * profile.prod)),
+      valorInvestido: +((base.valorInvestido / days) * profile.inv).toFixed(2),
+      faturamentoBruto: +(
+        (base.faturamentoBruto / days) *
+        profile.fat
+      ).toFixed(2),
+      produtosVendidos: Math.max(
+        1,
+        Math.round((base.produtosVendidos / days) * profile.prod)
+      ),
       linksAtivos: Math.max(1, Math.round(base.linksAtivos * profile.links)),
-      cliquesTotais: Math.max(1, Math.round((base.cliquesTotais / days) * profile.clk)),
+      cliquesTotais: Math.max(
+        1,
+        Math.round((base.cliquesTotais / days) * profile.clk)
+      ),
       checkouts: Math.max(1, Math.round((base.checkouts / days) * profile.chk)),
-      visitantes: Math.max(1, Math.round((base.visitantes / days) * profile.vis)),
-      conversoes: Math.max(1, Math.round((base.conversoes / days) * profile.conv)),
-      reembolsos: Math.max(0, Math.round((base.reembolsos / days) * profile.reemb)),
+      visitantes: Math.max(
+        1,
+        Math.round((base.visitantes / days) * profile.vis)
+      ),
+      conversoes: Math.max(
+        1,
+        Math.round((base.conversoes / days) * profile.conv)
+      ),
+      reembolsos: Math.max(
+        0,
+        Math.round((base.reembolsos / days) * profile.reemb)
+      ),
     };
 
     points.push({
@@ -171,13 +188,13 @@ export function Metrics({ isDark }: MetricsProps) {
     [period]
   );
 
-  const [customConfig, setCustomConfig] = useState<CustomSectionConfig>(() =>
-    loadCustomSectionConfig()
+  const [customConfig, setCustomConfig] = useState<CustomSectionConfig | null>(
+    () => loadCustomSectionConfig()
   );
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingCustomId, setEditingCustomId] = useState<string | null>(null);
 
-  const standardDisplayItems = useMemo<MetricDisplayItem[]>(() => {
+  // Todas as 12 métricas do RF013 calculadas com suas séries temporais
+  const allDisplayItems = useMemo<MetricDisplayItem[]>(() => {
     return STANDARD_METRICS.map((def) => {
       const rawValue = def.compute(metricsInput);
       const meta = STANDARD_METRIC_META[def.id];
@@ -204,54 +221,28 @@ export function Metrics({ isDark }: MetricsProps) {
     });
   }, [metricsInput, timeSeries]);
 
-  const standardById = useMemo(() => {
+  const itemsById = useMemo(() => {
     const map = new Map<StandardMetricId, MetricDisplayItem>();
-    for (const item of standardDisplayItems) {
-      map.set(item.id as StandardMetricId, item);
+    for (const item of allDisplayItems) {
+      map.set(item.id, item);
     }
     return map;
-  }, [standardDisplayItems]);
+  }, [allDisplayItems]);
 
-  const customSectionItems = useMemo<MetricDisplayItem[]>(() => {
-    const selectedStandards = customConfig.selectedStandardIds
-      .map((id) => standardById.get(id))
+  // 9 métricas padrão fixas na grade principal (as outras 3 ficam selecionáveis na seção personalizada)
+  const mainGridItems = useMemo<MetricDisplayItem[]>(() => {
+    return STANDARD_METRICS.filter((def) => def.defaultVisible)
+      .map((def) => itemsById.get(def.id))
       .filter((item): item is MetricDisplayItem => Boolean(item));
+  }, [itemsById]);
 
-    const userCustomItems: MetricDisplayItem[] = customConfig.customMetrics.map(
-      (custom) => {
-        const result = evaluateFormula(custom.formula, metricsInput);
-        const rawValue = result.ok ? result.value : null;
-
-        const series: MetricChartPoint[] = timeSeries.map((pt) => {
-          const dayEval = evaluateFormula(custom.formula, pt.input);
-          return {
-            dateLabel: pt.dateLabel,
-            fullDate: pt.fullDate,
-            value: dayEval.ok ? dayEval.value : null,
-          };
-        });
-
-        return {
-          id: custom.id,
-          title: custom.title,
-          formattedValue: formatMetricValue(rawValue, custom.format),
-          rawValue,
-          shortDescription:
-            custom.description ||
-            `Fórmula: ${formatFormulaDisplay(custom.formula)}`,
-          formulaLabel: formatFormulaDisplay(custom.formula),
-          format: custom.format,
-          chartColor: "#3b82f6",
-          series,
-          icon: Calculator,
-          iconColorClass: "text-blue-500",
-          isCustom: true,
-        };
-      }
-    );
-
-    return [...selectedStandards, ...userCustomItems];
-  }, [customConfig, standardById, metricsInput, timeSeries]);
+  // Gráficos selecionados pelo usuário na seção personalizada
+  const customSectionItems = useMemo<MetricDisplayItem[]>(() => {
+    if (!customConfig) return [];
+    return customConfig.selectedMetricIds
+      .map((id) => itemsById.get(id))
+      .filter((item): item is MetricDisplayItem => Boolean(item));
+  }, [customConfig, itemsById]);
 
   const handleSaveConfig = (nextConfig: CustomSectionConfig) => {
     setCustomConfig(nextConfig);
@@ -264,17 +255,15 @@ export function Metrics({ isDark }: MetricsProps) {
     return reset;
   };
 
-  const handleOpenCustomizeModal = (customIdToEdit: string | null = null) => {
-    setEditingCustomId(customIdToEdit);
-    setModalOpen(true);
+  const handleDeleteSection = () => {
+    setCustomConfig(null);
+    deleteCustomSectionConfig();
   };
 
-  const handleDeleteCustomMetric = (customId: string) => {
-    const nextConfig: CustomSectionConfig = {
-      ...customConfig,
-      customMetrics: customConfig.customMetrics.filter((m) => m.id !== customId),
-    };
-    handleSaveConfig(nextConfig);
+  const handleCreateSection = () => {
+    const created = resetCustomSectionConfig();
+    setCustomConfig(created);
+    setModalOpen(true);
   };
 
   return (
@@ -301,7 +290,6 @@ export function Metrics({ isDark }: MetricsProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0 pt-0.5">
-          {/* Seletor de período dos gráficos */}
           <div className="relative inline-flex items-center">
             <Calendar className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
             <select
@@ -317,7 +305,6 @@ export function Metrics({ isDark }: MetricsProps) {
             <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-gray-400" />
           </div>
 
-          {/* Alternador de visualização (Gráficos 2 cols / 3 cols / Compacto) */}
           <div
             role="group"
             aria-label="Modo de exibição das métricas"
@@ -366,57 +353,77 @@ export function Metrics({ isDark }: MetricsProps) {
             </button>
           </div>
 
+          {!customConfig && (
+            <button
+              type="button"
+              onClick={handleCreateSection}
+              className="h-9 inline-flex items-center justify-center gap-1.5 px-3 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors shadow-2xs whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Criar seção personalizada</span>
+            </button>
+          )}
+
           <NotificationPopover isDark={isDark} />
           <AnimatedThemeToggler />
           <UserNav />
         </div>
       </motion.div>
 
-      {/* Seção 1: Minha seção personalizada */}
-      <section aria-labelledby="custom-metrics-section-title" className="mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
-            <h2
-              id="custom-metrics-section-title"
-              className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100"
-            >
-              {customConfig.sectionTitle}
-            </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Painel configurável com gráficos dos seus indicadores prioritários e fórmulas próprias
-            </p>
+      {/* Seção 1: Minha seção personalizada (exibida enquanto existir) */}
+      {customConfig && (
+        <section aria-labelledby="custom-metrics-section-title" className="mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2
+                id="custom-metrics-section-title"
+                className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100"
+              >
+                {customConfig.sectionTitle}
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Personalize o nome e escolha quais gráficos deseja destacar aqui
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="h-9 inline-flex items-center justify-center gap-1.5 px-3 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors shadow-2xs whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>Personalizar seção</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteSection}
+                aria-label={`Excluir seção ${customConfig.sectionTitle}`}
+                className="h-9 inline-flex items-center justify-center gap-1.5 px-3 text-xs font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-900 border border-red-200 dark:border-red-900/60 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-md transition-colors shadow-2xs whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-red-500/40"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Excluir seção</span>
+              </button>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => handleOpenCustomizeModal(null)}
-            className="h-9 inline-flex items-center justify-center gap-1.5 px-3 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors shadow-2xs whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span>Personalizar seção</span>
-          </button>
-        </div>
+          {customSectionItems.length === 0 ? (
+            <div className="rounded-md border border-dashed border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center shadow-xs">
+              <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                Nenhum gráfico selecionado nesta seção.
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Clique em &ldquo;Personalizar seção&rdquo; para selecionar os gráficos que deseja acompanhar.
+              </p>
+            </div>
+          ) : (
+            <MetricsGrid items={customSectionItems} layoutMode={layoutMode} />
+          )}
+        </section>
+      )}
 
-        {customSectionItems.length === 0 ? (
-          <div className="rounded-md border border-dashed border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center shadow-xs">
-            <p className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
-              Nenhum gráfico selecionado nesta seção.
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Clique em &ldquo;Personalizar seção&rdquo; para escolher métricas padrão ou criar uma fórmula.
-            </p>
-          </div>
-        ) : (
-          <MetricsGrid
-            items={customSectionItems}
-            layoutMode={layoutMode}
-            onEditCustomMetric={(customId) => handleOpenCustomizeModal(customId)}
-            onDeleteCustomMetric={handleDeleteCustomMetric}
-          />
-        )}
-      </section>
-
-      {/* Seção 2: Métricas avançadas (todas as 12 métricas em gráfico) */}
+      {/* Seção 2: Métricas avançadas (9 principais + 3 selecionáveis no modal = 12 do RF013) */}
       <section aria-labelledby="advanced-metrics-section-title">
         <div className="mb-4">
           <h2
@@ -426,25 +433,21 @@ export function Metrics({ isDark }: MetricsProps) {
             Métricas avançadas
           </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Evolução completa de todos os indicadores financeiros, de tráfego e eficiência
+            Indicadores principais de desempenho e conversão da sua operação
           </p>
         </div>
 
-        <MetricsGrid items={standardDisplayItems} layoutMode={layoutMode} />
+        <MetricsGrid items={mainGridItems} layoutMode={layoutMode} />
       </section>
 
-      {/* Modal de personalização */}
+      {/* Modal simples de personalização */}
       <CustomSectionModal
         isOpen={modalOpen}
-        config={customConfig}
-        metricsInput={metricsInput}
-        initialEditingCustomId={editingCustomId}
-        onClose={() => {
-          setModalOpen(false);
-          setEditingCustomId(null);
-        }}
+        config={customConfig ?? DEFAULT_CUSTOM_SECTION}
+        onClose={() => setModalOpen(false)}
         onSaveConfig={handleSaveConfig}
         onResetDefault={handleResetDefault}
+        onDeleteSection={handleDeleteSection}
       />
     </motion.div>
   );
